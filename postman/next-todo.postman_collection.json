@@ -1,0 +1,544 @@
+{
+	"info": {
+		"_postman_id": "edeadda5-9618-4e98-a2d4-9b1809b56c48",
+		"name": "next-todo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29632741"
+	},
+	"item": [
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"user\",\r\n  \"password\": \"password\",\r\n  \"firstName\": \"\",\r\n  \"firstNameRuby\": \"\",\r\n  \"lastName\": \"\",\r\n  \"lastNameRuby\": \"\",\r\n  \"role\": 4\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "## ユーザー登録エンドポイント\n\nこのエンドポイントは、システムに新しいユーザーを登録することを可能にします。ユーザーの詳細情報を受け取り、登録が成功すると、認証用のトークンとともに確認を返します。\n\n### リクエスト\n\n**メソッド:** POST  \n**URL:** `http://localhost/api/auth/register`\n\n#### リクエストボディ\n\nリクエストはJSON形式で送信する必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string): 新しいユーザーの希望するユーザー名。\n    \n- **password** (string): 新しいユーザーアカウントのパスワード。\n    \n- **firstName** (string, 任意): ユーザーの名前。\n    \n- **firstNameRuby** (string, 任意): ユーザーの名前のふりがな表記。\n    \n- **lastName** (string, 任意): ユーザーの姓。\n    \n- **lastNameRuby** (string, 任意): ユーザーの姓のふりがな表記。\n    \n- **role** (integer): ユーザーに割り当てられる権限（例：管理者、一般ユーザー）。\n    \n\n#### リクエストボディの例\n\n```json\n{\n  \"username\": \"user\",\n  \"password\": \"password\",\n  \"firstName\": \"\",\n  \"firstNameRuby\": \"\",\n  \"lastName\": \"\",\n  \"lastNameRuby\": \"\",\n  \"role\": 4\n}\n```\n\n### レスポンス\n\n登録が成功すると、APIはステータスコード`200`で応答し、以下の構造を含むJSONオブジェクトを返します：\n\n- **success** (boolean): 登録が成功したかどうかを示します。\n    \n- **data** (object): 登録されたユーザーの詳細情報と認証トークンを含みます。\n    \n    - **user** (object): 新しく登録されたユーザーの情報。\n        \n        - **id** (string): ユーザーの一意識別子。\n            \n        - **username** (string): ユーザーのユーザー名。\n            \n        - **firstName** (string または null): ユーザーの名前、または提供されなかった場合はnull。\n            \n        - **firstNameRuby** (string または null): 名前のふりがな表記、または提供されなかった場合はnull。\n            \n        - **lastName** (string または null): ユーザーの姓、または提供されなかった場合はnull。\n            \n        - **lastNameRuby** (string または null): 姓のふりがな表記、または提供されなかった場合はnull。\n            \n        - **role** (integer): ユーザーの権限。\n            \n        - **createdAt** (string): ユーザーが作成された日時のタイムスタンプ。\n            \n        - **createdBy** (string): ユーザーを作成した人の識別子。\n            \n        - **updatedAt** (string): ユーザーが最後に更新された日時のタイムスタンプ。\n            \n        - **updatedBy** (string): ユーザーを最後に更新した人の識別子。\n            \n        - **deleted** (boolean): ユーザーが削除済みとしてマークされているかどうかを示します。\n            \n    - **token** (string): ユーザーの認証トークン。\n        \n\n#### レスポンスの例\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": \"\",\n      \"username\": \"\",\n      \"firstName\": null,\n      \"firstNameRuby\": null,\n      \"lastName\": null,\n      \"lastNameRuby\": null,\n      \"role\": 0,\n      \"createdAt\": \"\",\n      \"createdBy\": \"\",\n      \"updatedAt\": \"\",\n      \"updatedBy\": \"\",\n      \"deleted\": true\n    },\n    \"token\": \"\"\n  },\n  \"message\": \"\"\n}\n```\n\nこのエンドポイントは、ユーザー管理に不可欠であり、アプリケーション内でのユーザーアカウントの作成を可能にします。"
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();\r",
+									"pm.environment.set(\"token\", response.data.token);\r",
+									"pm.environment.set(\"userId\", response.data.user.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"password\"\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://localhost/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "## ログインエンドポイント\n\nこのエンドポイントは、ユーザーの認証を行い、アクセストークンを取得するために使用されます。提供された認証情報を検証し、認証が成功すると、後続のリクエストで使用するトークンとともにユーザーの詳細情報を返します。\n\n### リクエスト\n\n- **メソッド**: POST\n    \n- **URL**: `http://localhost/api/auth/login`\n    \n- **Content-Type**: application/json\n    \n\n#### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string): ログインを試みるユーザーのユーザー名。\n    \n- **password** (string): ユーザー名に関連付けられたパスワード。\n    \n\n**リクエストボディの例:**\n\n```json\n{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}\n```\n\n### レスポンス\n\nログインが成功すると、サーバーはステータスコード200で応答し、以下の構造を含むJSONオブジェクトを返します：\n\n- **success** (boolean): ログインが成功したかどうかを示します。\n    \n- **data** (object): ユーザー情報と認証トークンを含みます。\n    \n    - **user** (object): 認証されたユーザーの情報。\n        \n        - **id** (string): ユーザーの一意識別子。\n            \n        - **username** (string): ユーザーのユーザー名。\n            \n        - **firstName** (string): ユーザーの名前。\n            \n        - **firstNameRuby** (string): 名前のふりがな表記。\n            \n        - **lastName** (string): ユーザーの姓。\n            \n        - **lastNameRuby** (string): 姓のふりがな表記。\n            \n        - **role** (integer): ユーザーの権限（例：管理者、一般ユーザー）。\n            \n        - **createdAt** (string): ユーザーが作成された日時のタイムスタンプ。\n            \n        - **createdBy** (string): このユーザーを作成したユーザーの識別子。\n            \n        - **updatedAt** (string): ユーザーが最後に更新された日時のタイムスタンプ。\n            \n        - **updatedBy** (string): このユーザーを最後に更新したユーザーの識別子。\n            \n        - **deleted** (boolean): ユーザーアカウントが削除済みとしてマークされているかどうかを示します。\n            \n    - **token** (string): 後続のリクエストで使用する認証トークン。\n        \n- **message** (string): レスポンスに関する追加メッセージ。\n    \n\n**レスポンスの例:**\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": \"\",\n      \"username\": \"\",\n      \"firstName\": \"\",\n      \"firstNameRuby\": \"\",\n      \"lastName\": \"\",\n      \"lastNameRuby\": \"\",\n      \"role\": 0,\n      \"createdAt\": \"\",\n      \"createdBy\": \"\",\n      \"updatedAt\": \"\",\n      \"updatedBy\": \"\",\n      \"deleted\": true\n    },\n    \"token\": \"\"\n  },\n  \"message\": \"\"\n}\n```"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "todos",
+			"item": [
+				{
+					"name": "[id]",
+					"item": [
+						{
+							"name": "get",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost/api/todos/{{todosId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"todos",
+										"{{todosId}}"
+									]
+								},
+								"description": "# Todoアイテムの取得\n\nこのエンドポイントは、一意識別子によって特定のTodoアイテムを取得することを可能にします。\n\n## リクエスト\n\n- **メソッド**: `GET`\n    \n- **URL**: `http://localhost/api/todos/{{todosId}}`\n    \n\n### 認証\n\nこのエンドポイントには認証が必要です。リクエストヘッダーに有効な認証トークンを含めるようにしてください。\n\n### リクエストパラメータ\n\n- **todosId** (パスパラメータ): 取得したいTodoアイテムの一意識別子。これは既存のTodoアイテムに対応する有効なIDである必要があります。\n    \n\n## レスポンス\n\n### 成功レスポンス\n\n- **ステータスコード**: `200 OK`\n    \n- **レスポンスボディ**: レスポンスには、取得されたTodoアイテムの詳細が含まれ、タイトル、説明、ステータスなどのプロパティが含まれます。レスポンスボディの正確な構造は、Todoアイテムによって異なります。\n    \n\n### 可能なエラーレスポンス\n\n- **404 Not Found**: このステータスコードは、指定された`todosId`のTodoアイテムが存在しないことを示します。\n    \n- **401 Unauthorized**: このステータスコードは、リクエストに有効な認証資格情報がないことを示します。\n    \n\n## 例\n\n### リクエスト例\n\n```http\nGET http://localhost/api/todos/12345\nAuthorization: Bearer your-auth-token\n```\n\n### 成功レスポンス例\n\n```json\n{\n  \"id\": \"12345\",\n  \"title\": \"Sample Todo\",\n  \"description\": \"This is a sample todo item.\",\n  \"status\": \"completed\"\n}\n```\n\n### エラーレスポンス例\n\n```json\n{\n  \"error\": \"Todo item not found.\"\n}\n```\n\n取得したいTodoアイテムの実際のIDで`{{todosId}}`を置き換えることを確認してください。"
+							},
+							"response": []
+						},
+						{
+							"name": "update",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"title\": \"updated test\",\r\n    \"descriptions\": \"updated descriptions\"\r\n}"
+								},
+								"url": {
+									"raw": "http://localhost/api/todos/{{todosId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"todos",
+										"{{todosId}}"
+									]
+								},
+								"description": "## Todoアイテムの更新\n\nこのエンドポイントは、一意識別子（`todosId`）を使用して既存のTodoアイテムを更新することを可能にします。指定されたTodoの詳細を変更する`PUT`リクエストです。\n\n### リクエスト形式\n\n- **URL**: `http://localhost/api/todos/{{todosId}}`\n    \n- **メソッド**: `PUT`\n    \n- **Content-Type**: `application/json`\n    \n\n### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **title** (string): Todoアイテムの更新されたタイトル。\n    \n- **descriptions** (string): Todoアイテムの更新された説明。\n    \n\n#### リクエストボディの例\n\n```json\n{\n  \"title\": \"updated test\",\n  \"descriptions\": \"updated descriptions\"\n}\n```\n\n### レスポンス構造\n\n更新が成功すると、レスポンスには通常、更新されたTodoアイテムの詳細が含まれ、変更が適用されたことを確認します。レスポンスの構造には、少なくとも以下のフィールドが含まれる場合があります：\n\n- **id** (string): Todoアイテムの一意識別子。\n    \n- **title** (string): Todoアイテムの更新されたタイトル。\n    \n- **descriptions** (string): Todoアイテムの更新された説明。\n    \n- **updatedAt** (string): Todoアイテムが最後に更新された日時を示すタイムスタンプ。\n    \n\n### レスポンスの例\n\n```json\n{\n  \"id\": \"1\",\n  \"title\": \"updated test\",\n  \"descriptions\": \"updated descriptions\",\n  \"updatedAt\": \"2023-10-10T12:00:00Z\"\n}\n```\n\n無効な`todosId`やリクエストボディ内の必須フィールドの欠落など、更新プロセス中に発生する可能性のあるエラーを適切に処理するようにしてください。"
+							},
+							"response": []
+						},
+						{
+							"name": "remove",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost/api/todos/{{todosId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"todos",
+										"{{todosId}}"
+									]
+								},
+								"description": "## Todoアイテムの削除\n\nこのエンドポイントは、データベースから特定のTodoアイテムを削除することを可能にします。\n\n### リクエスト\n\n- **メソッド**: `DELETE`\n    \n- **エンドポイント**: `http://localhost/api/todos/{{todosId}}`\n    \n- **パスパラメータ**:\n    \n    - `todosId` (必須): 削除したいTodoアイテムの一意識別子。\n        \n\n### レスポンス\n\n削除が成功すると、APIは操作の結果を示すレスポンスを返します。期待されるレスポンス形式には、通常、確認メッセージまたは削除のステータスが含まれます。\n\n### レスポンス例\n\n- **ステータスコード**: `204 No Content` (コンテンツが返されない成功した削除を示します)\n    \n- **レスポンスボディ**: 削除が成功した際には追加情報が提供されないため、通常は空です。\n    \n\n希望するTodoアイテムを正常に削除するために、リクエストで`todosId`パラメータが正しく指定されていることを確認してください。"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "get-all",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();\r",
+									"pm.environment.set(\"todosId\", response.data[0].id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost/api/todos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"todos"
+							]
+						},
+						"description": "### APIエンドポイント: Todo一覧取得\n\n**メソッド:** `GET`\n\n**URL:** `http://localhost/api/todos`\n\n#### 説明\n\nこのエンドポイントは、サーバーからTodoアイテムの一覧を取得します。入力パラメータを必要としないシンプルなGETリクエストです。\n\n#### リクエストパラメータ\n\n- このリクエストには入力パラメータは必要ありません。\n    \n\n#### レスポンス構造\n\nリクエストが成功すると、レスポンスは以下の構造を持つJSONオブジェクトを返します：\n\n- **success** (boolean): リクエストが成功したかどうかを示します。\n    \n- **data** (array): Todoアイテムの一覧を含む配列。Todoが存在しない場合、この配列は空になります。\n    \n\n#### レスポンス例\n\n```json\n{\n  \"success\": true,\n  \"data\": []\n}\n```\n\nこのレスポンス例では、`success`キーはリクエストが成功したことを示し、`data`配列は空であることから、現在利用可能なTodoアイテムがないことを意味しています。"
+					},
+					"response": []
+				},
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"title\": \"test\",\r\n    \"descriptions\": \"descriptions\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost/api/todos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"todos"
+							]
+						},
+						"description": "## Todoアイテムの追加\n\nこのエンドポイントは、`/api/todos`エンドポイントにPOSTリクエストを送信することで、ユーザーが新しいTodoアイテムを作成することを可能にします。\n\n### リクエストメソッド\n\n- **POST**\n    \n\n### リクエストURL\n\n- `http://localhost/api/todos`\n    \n\n### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **title** (string): Todoアイテムのタイトル。\n    \n- **descriptions** (string): Todoアイテムの詳細な説明。\n    \n\n#### リクエストボディの例\n\n```json\n{\n  \"title\": \"test\",\n  \"descriptions\": \"descriptions\"\n}\n```\n\n### 期待されるレスポンス\n\nリクエストが成功すると、サーバーは操作の結果を示すステータスコードで応答します。レスポンスには通常、新しく作成されたTodoアイテムが含まれ、リストに追加されたことが確認されます。\n\n### レスポンス形式\n\nレスポンスはJSON形式で、作成されたTodoアイテムの詳細（一意識別子や送信されたパラメータを含む）が含まれることが期待されます。\n\n### 注意事項\n\nTodoアイテムの作成中にエラーが発生することを避けるため、リクエストボディが正しくJSON形式でフォーマットされていることを確認してください。"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "me",
+					"item": [
+						{
+							"name": "get",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost/api/users/me",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"users",
+										"me"
+									]
+								},
+								"description": "## ユーザープロフィール取得\n\nこのエンドポイントは、現在認証されているユーザーのプロフィール情報を取得します。\n\n### リクエスト\n\n- **メソッド**: GET\n    \n- **URL**: `http://localhost/api/users/me`\n    \n\n### レスポンス\n\nリクエストが成功すると、レスポンスは以下の構造を持つJSONオブジェクトを返します：\n\n- **success** (boolean): リクエストが成功したかどうかを示します。\n    \n- **data** (object): ユーザーのプロフィール情報を含みます：\n    \n    - **id** (string): ユーザーの一意識別子。\n        \n    - **username** (string): ユーザーのユーザー名。\n        \n    - **firstName** (string): ユーザーの名前。\n        \n    - **firstNameRuby** (string): 名前のふりがな（該当する場合）。\n        \n    - **lastName** (string): ユーザーの姓。\n        \n    - **lastNameRuby** (string): 姓のふりがな（該当する場合）。\n        \n    - **role** (integer): ユーザーの権限（例：管理者、一般ユーザー）。\n        \n    - **createdAt** (string): ユーザーが作成された日時のタイムスタンプ。\n        \n    - **createdBy** (string): このユーザーを作成したユーザーの識別子。\n        \n    - **updatedAt** (string): ユーザーのプロフィールが最後に更新された日時のタイムスタンプ。\n        \n    - **updatedBy** (string): このユーザーを最後に更新したユーザーの識別子。\n        \n    - **deleted** (boolean): ユーザーが削除済みとしてマークされているかどうかを示します。\n        \n- **message** (string): レスポンスに付随するメッセージ（もしあれば）。\n    \n\n### 注意事項\n\n- ユーザープロフィールにアクセスするために、適切な認証を行ったリクエストを送信することを確認してください。"
+							},
+							"response": []
+						},
+						{
+							"name": "patch",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"firstName\": \"firstName\",\r\n  \"lastName\": \"lastName\",\r\n  \"firstNameRuby\": \"firstNameRuby\",\r\n  \"lastNameRuby\": \"lastNameRuby\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost/api/users/me",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"users",
+										"me"
+									]
+								},
+								"description": "### ユーザー情報の更新\n\nこのエンドポイントは、認証されたユーザーが個人情報を更新することを可能にします。リクエストは、名前やふりがな表記などのユーザーの詳細情報を変更します。\n\n#### リクエスト\n\n- **メソッド:** PATCH\n    \n- **URL:** `http://localhost/api/users/me`\n    \n- **Content-Type:** application/json\n    \n\n#### リクエストボディパラメータ\n\nリクエストボディは、以下のパラメータを含むJSONオブジェクトである必要があります：\n\n- `firstName` (string): ユーザーの名前。\n    \n- `lastName` (string): ユーザーの姓。\n    \n- `firstNameRuby` (string): ユーザーの名前のふりがな。\n    \n- `lastNameRuby` (string): ユーザーの姓のふりがな。\n    \n\nリクエストボディの例：\n\n```json\n{\n  \"firstName\": \"firstName\",\n  \"lastName\": \"lastName\",\n  \"firstNameRuby\": \"firstNameRuby\",\n  \"lastNameRuby\": \"lastNameRuby\"\n}\n```\n\n#### レスポンス\n\n更新が成功すると、APIは以下の構造を持つレスポンスを返します：\n\n- **ステータスコード:** 200 OK\n    \n- **Content-Type:** application/json\n    \n\nレスポンスボディには以下が含まれます：\n\n- `success` (boolean): 更新が成功したかどうかを示します。\n    \n- `data` (object): 更新されたユーザー情報を含みます：\n    \n    - `id` (string): ユーザーの一意識別子。\n        \n    - `username` (string): ユーザーのユーザー名。\n        \n    - `firstName` (string): 更新された名前。\n        \n    - `firstNameRuby` (string): 更新された名前のふりがな。\n        \n    - `lastName` (string): 更新された姓。\n        \n    - `lastNameRuby` (string): 更新された姓のふりがな。\n        \n    - `role` (integer): ユーザーの権限識別子。\n        \n    - `createdAt` (string): ユーザーが作成された日時のタイムスタンプ。\n        \n    - `createdBy` (string): ユーザーを作成した人の識別子。\n        \n    - `updatedAt` (string): 最後の更新日時のタイムスタンプ。\n        \n    - `updatedBy` (string): 最後にユーザーを更新した人の識別子。\n        \n    - `deleted` (boolean): ユーザーが削除済みとしてマークされているかどうかを示します。\n        \n\n成功レスポンスの例：\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"\",\n    \"username\": \"\",\n    \"firstName\": \"\",\n    \"firstNameRuby\": \"\",\n    \"lastName\": \"\",\n    \"lastNameRuby\": \"\",\n    \"role\": 0,\n    \"createdAt\": \"\",\n    \"createdBy\": \"\",\n    \"updatedAt\": \"\",\n    \"updatedBy\": \"\",\n    \"deleted\": true\n  },\n  \"message\": \"\"\n}\n```\n\nこのエンドポイントは、ユーザーがプロフィール情報を最新の状態に保つために不可欠です。"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "[id]",
+					"item": [
+						{
+							"name": "get",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost/api/users/{{userId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"users",
+										"{{userId}}"
+									]
+								},
+								"description": "## ユーザー詳細情報取得\n\nこのエンドポイントは、一意のユーザーIDで識別される特定のユーザーの詳細情報を取得します。\n\n### リクエスト\n\n- **メソッド**: `GET`\n    \n- **エンドポイント**: `http://localhost/api/users/{{userId}}`\n    \n- **パラメータ**:\n    \n    - `userId` (パスパラメータ): 詳細情報を要求するユーザーの一意識別子。\n        \n\n### レスポンス\n\n- **ステータスコード**: `200 OK`\n    \n- **Content-Type**: `application/json`\n    \n- **レスポンスボディ**:\n    \n    - `success` (boolean): リクエストが成功したかどうかを示します。\n        \n    - `data` (object): ユーザーの詳細情報を含みます：\n        \n        - `id` (string): ユーザーの一意ID。\n            \n        - `username` (string): ユーザーのユーザー名。\n            \n        - `firstName` (string): ユーザーの名前。\n            \n        - `firstNameRuby` (string): 名前のふりがな表記。\n            \n        - `lastName` (string): ユーザーの姓。\n            \n        - `lastNameRuby` (string): 姓のふりがな表記。\n            \n        - `role` (integer): ユーザーの権限（例：管理者、一般ユーザー）。\n            \n        - `createdAt` (string): ユーザーが作成された日時のタイムスタンプ。\n            \n        - `createdBy` (string): ユーザーを作成した人の識別子。\n            \n        - `updatedAt` (string): ユーザーが最後に更新された日時のタイムスタンプ。\n            \n        - `updatedBy` (string): ユーザーを最後に更新した人の識別子。\n            \n        - `deleted` (boolean): ユーザーが削除済みとしてマークされているかどうかを示します。\n            \n    - `message` (string): リクエストに関連する追加メッセージ。\n        \n\n### レスポンス例\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"\",\n    \"username\": \"\",\n    \"firstName\": \"\",\n    \"firstNameRuby\": \"\",\n    \"lastName\": \"\",\n    \"lastNameRuby\": \"\",\n    \"role\": 0,\n    \"createdAt\": \"\",\n    \"createdBy\": \"\",\n    \"updatedAt\": \"\",\n    \"updatedBy\": \"\",\n    \"deleted\": true\n  },\n  \"message\": \"\"\n}\n```"
+							},
+							"response": []
+						},
+						{
+							"name": "patch",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"firstName\": \"firstName\",\r\n  \"lastName\": \"lastName\",\r\n  \"firstNameRuby\": \"firstNameRuby\",\r\n  \"lastNameRuby\": \"lastNameRuby\"\r\n}"
+								},
+								"url": {
+									"raw": "http://localhost/api/users/{{userId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"users",
+										"{{userId}}"
+									]
+								},
+								"description": "### ユーザー情報の更新\n\nこのエンドポイントは、`userId`で識別される特定のユーザーの詳細情報を更新することを可能にします。ユーザーの名前、姓、およびそれぞれのふりがな表記を変更できます。\n\n#### リクエスト\n\n- **メソッド:** PATCH\n    \n- **URL:** `http://localhost/api/users/{{userId}}`\n    \n- | パラメータ | 型 | 説明 |\n  |------------|----|----|\n  | `firstName` | string | ユーザーの名前。 |\n  | `lastName` | string | ユーザーの姓。 |\n  | `firstNameRuby` | string | ユーザーの名前のふりがな表記。 |\n  | `lastNameRuby` | string | ユーザーの姓のふりがな表記。 |\n    \n\n#### レスポンス\n\n更新が成功すると、レスポンスは`200`のステータスコードと以下のフィールドを含むJSONオブジェクトを返します：\n\n- **success**: 更新が成功したかどうかを示すブール値。\n    \n- **data**: 更新されたユーザー情報を含むオブジェクト：\n    \n    - `id`: ユーザーの一意識別子。\n        \n    - `username`: ユーザーのユーザー名。\n        \n    - `firstName`: 更新された名前。\n        \n    - `firstNameRuby`: 更新された名前のふりがな表記。\n        \n    - `lastName`: 更新された姓。\n        \n    - `lastNameRuby`: 更新された姓のふりがな表記。\n        \n    - `role`: ユーザーの権限。\n        \n    - `createdAt`: ユーザーが作成された日時のタイムスタンプ。\n        \n    - `createdBy`: ユーザーを作成した人の識別子。\n        \n    - `updatedAt`: 最後の更新日時のタイムスタンプ。\n        \n    - `updatedBy`: 最後にユーザーを更新した人の識別子。\n        \n    - `deleted`: ユーザーが削除済みとしてマークされているかどうかを示すブール値。\n        \n- **message**: レスポンスに関する追加コンテキストを提供するメッセージ。\n    \n\n#### 注意事項\n\n- `userId`が有効で、システム内の既存ユーザーに対応していることを確認してください。\n    \n- 処理中のエラーを避けるため、リクエストボディが適切にJSON形式でフォーマットされている必要があります。"
+							},
+							"response": []
+						},
+						{
+							"name": "remove",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost/api/users/{{userId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"path": [
+										"api",
+										"users",
+										"{{userId}}"
+									]
+								},
+								"description": "## ユーザー削除\n\nこのエンドポイントは、一意識別子（userId）を指定してシステムからユーザーを削除することを可能にします。\n\n### リクエストメソッド\n\n`DELETE`\n\n### エンドポイント\n\n`http://localhost/api/users/{{userId}}`\n\n### パラメータ\n\n- `userId` (パスパラメータ): 削除したいユーザーの一意識別子。このパラメータは必須です。\n    \n\n### 期待されるレスポンス\n\nユーザーの削除が成功すると、APIは操作の結果を示すステータスコードで応答します。通常、削除が成功した場合は`204 No Content`ステータスを返し、リクエストが正常に処理され、レスポンスに送信する追加コンテンツがないことを示します。\n\nエラーが発生した場合（例：ユーザーが存在しない場合）、APIは`404 Not Found`ステータスと、問題の詳細を説明するエラーメッセージを返す場合があります。"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "get",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost/api/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "## APIエンドポイント: ユーザー一覧取得\n\n### リクエスト\n\n**メソッド:** GET  \n**URL:** `http://localhost/api/users`\n\n### 説明\n\nこのエンドポイントは、システムからユーザーの一覧を取得します。リクエストパラメータは必要ありません。\n\n### 期待されるレスポンス\n\nレスポンスには、以下の構造を持つJSONオブジェクトが含まれます：\n\n- **users**: ユーザーオブジェクトの配列。それぞれに以下が含まれます：\n    \n    - **id**: ユーザーの一意識別子。\n        \n    - **name**: ユーザーの名前。\n        \n    - **email**: ユーザーのメールアドレス。\n        \n    - **created_at**: ユーザーが作成された日時を示すタイムスタンプ。\n        \n\n### 注意事項\n\n- サーバーが稼働しており、指定されたURLでアクセス可能であることを確認してください。\n    \n- レスポンスはJSON形式であり、適切にパースする必要があります。\n    \n- このエンドポイントは、表示やさらなる処理のために、すべてのユーザーレコードを取得するのに便利です。"
+					},
+					"response": []
+				},
+				{
+					"name": "register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"user\",\r\n  \"password\": \"password\",\r\n  \"firstName\": \"\",\r\n  \"firstNameRuby\": \"\",\r\n  \"lastName\": \"\",\r\n  \"lastNameRuby\": \"\",\r\n  \"role\": 1\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://localhost/api/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "## APIエンドポイント: ユーザー作成\n\n### メソッド\n\n`POST`\n\n### URL\n\n`http://localhost/api/users`\n\n### 説明\n\nこのエンドポイントは、システムに新しいユーザーを作成するために使用されます。リクエストボディでユーザーの詳細情報を受け取り、ユーザー作成プロセスの成功または失敗を示すレスポンスを返します。\n\n### リクエストパラメータ\n\nリクエストボディはJSON形式で送信する必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string): ユーザーの一意識別子。\n    \n- **password** (string): ユーザーアカウントのパスワード。\n    \n- **firstName** (string): ユーザーの名前（任意）。\n    \n- **firstNameRuby** (string): 名前のふりがな表記（任意）。\n    \n- **lastName** (string): ユーザーの姓（任意）。\n    \n- **lastNameRuby** (string): 姓のふりがな表記（任意）。\n    \n- **role** (integer): ユーザーに割り当てられる権限（例：管理者の場合は1など）。\n    \n\n### 期待されるレスポンス形式\n\nユーザーの作成が成功すると、APIはJSON形式でレスポンスを返します。通常、成功メッセージと作成されたユーザーの詳細情報が含まれます。エラーが発生した場合は、適切なエラーメッセージが返されます。\n\n### リクエストボディの例\n\n```json\n{\n  \"username\": \"user\",\n  \"password\": \"password\",\n  \"firstName\": \"\",\n  \"firstNameRuby\": \"\",\n  \"lastName\": \"\",\n  \"lastNameRuby\": \"\",\n  \"role\": 1\n}\n```"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

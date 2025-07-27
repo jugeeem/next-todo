@@ -1,36 +1,411 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Todo API
 
-## Getting Started
+JWT認証機能を持ったTodoアプリのAPI。クリーンアーキテクチャに従って実装され、包括的なテストカバレッジを提供します。
 
-First, run the development server:
+## 技術スタック
+
+- **Framework**: Next.js 15.4.3
+- **Runtime**: React 19.1.0
+- **Database**: PostgreSQL 16
+- **ORM**: 生のSQL (pg)
+- **Authentication**: JWT (jsonwebtoken)
+- **Validation**: Zod
+- **Testing**: Jest 30.0.5 + Testing Library
+- **Code Quality**: Biome (linting & formatting)
+- **Container**: Docker & Docker Compose
+
+## セットアップ
+
+### 1. 依存関係のインストール
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 環境変数の設定
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.example`を`.env.local`にコピーし、必要に応じて値を変更してください。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env.local
+```
 
-## Learn More
+#### 主要な環境変数
 
-To learn more about Next.js, take a look at the following resources:
+| 変数名 | 説明 | デフォルト値 |
+|--------|------|-------------|
+| `DB_HOST` | データベースホスト | `localhost` |
+| `DB_LOCAL_PORT` | ローカルDBポート | `5431` |
+| `DB_CONTAINER_PORT` | コンテナDBポート | `5432` |
+| `DB_NAME` | データベース名 | `next_todo` |
+| `DB_USER` | データベースユーザー | `postgres` |
+| `DB_PASSWORD` | データベースパスワード | `password` |
+| `JWT_SECRET` | JWT署名用秘密鍵 | ランダム文字列 |
+| `NODE_ENV` | 実行環境 | `development` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Dockerでの起動
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# データベースとアプリケーションを起動
+docker compose up --build
 
-## Deploy on Vercel
+# バックグラウンドで起動する場合
+docker compose up -d --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## テスト
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+このプロジェクトは包括的なテストスイートを備えています：
+
+- **総テスト数**: 341テスト（全て通過）
+- **テストカバレッジ**: 98.54%（ステートメント）
+- **ブランチカバレッジ**: 92.91%
+- **関数カバレッジ**: 95.38%
+
+### テストの実行
+
+```bash
+# 全テストを実行
+npm test
+
+# ウォッチモードでテスト実行
+npm run test:watch
+
+# カバレッジレポート付きでテスト実行
+npm run test:coverage
+```
+
+### テスト構成
+
+- **API エンドポイントテスト**: 全ての REST API の動作検証
+- **ユースケーステスト**: ビジネスロジックの単体テスト
+- **リポジトリテスト**: データアクセス層のテスト
+- **ライブラリテスト**: 共通ライブラリの単体テスト
+
+各テストは以下をカバーしています：
+- 正常系の動作確認
+- 異常系・エラーハンドリング
+- バリデーション処理
+- 認証・認可機能
+- エッジケース処理
+
+## API エンドポイント
+
+### 認証
+
+#### ユーザー登録
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "password": "password123",
+  "role": 4
+}
+```
+
+#### ユーザーログイン
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "password": "password123"
+}
+```
+
+### ユーザー管理
+
+#### ユーザー一覧取得
+```http
+GET /api/users
+Authorization: Bearer <token>
+```
+
+#### ユーザー詳細取得
+```http
+GET /api/users/{id}
+Authorization: Bearer <token>
+```
+
+#### 現在ユーザー情報取得
+```http
+GET /api/users/me
+Authorization: Bearer <token>
+```
+
+#### プロフィール更新
+```http
+PUT /api/users/me
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "firstName": "太郎",
+  "lastName": "田中",
+  "firstNameRuby": "タロウ",
+  "lastNameRuby": "タナカ"
+}
+```
+
+#### ユーザー作成（管理者用）
+```http
+POST /api/users
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "username": "new_user",
+  "firstName": "新",
+  "lastName": "ユーザー",
+  "password": "password123",
+  "role": 4
+}
+```
+
+#### ユーザー更新（管理者用）
+```http
+PUT /api/users/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "firstName": "更新",
+  "lastName": "太郎",
+  "role": 2
+}
+```
+
+#### ユーザー削除（管理者用）
+```http
+DELETE /api/users/{id}
+Authorization: Bearer <token>
+```
+
+### Todo
+
+すべてのTodo APIは認証が必要です。ヘッダーに`Authorization: Bearer <token>`を含めてください。
+
+#### Todo一覧取得
+```http
+GET /api/todos
+Authorization: Bearer <token>
+```
+
+#### Todo作成
+```http
+POST /api/todos
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "新しいタスク",
+  "descriptions": "タスクの詳細説明"
+}
+```
+
+#### Todo詳細取得
+```http
+GET /api/todos/{id}
+Authorization: Bearer <token>
+```
+
+#### Todo更新
+```http
+PUT /api/todos/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "更新されたタスク",
+  "descriptions": "更新された詳細説明"
+}
+```
+
+#### Todo削除
+```http
+DELETE /api/todos/{id}
+Authorization: Bearer <token>
+```
+
+### ヘルスチェック
+
+#### アプリケーション状態確認
+```http
+GET /api/health
+```
+
+## データベーススキーマ
+
+### users テーブル
+
+| カラム | 型 | 制約 | 説明 |
+|--------|----|----- |------|
+| id | UUID | PRIMARY KEY, NOT NULL | 一意なID |
+| username | VARCHAR | NOT NULL, UNIQUE | ユーザー名 |
+| first_name | VARCHAR | NULL | 名 |
+| first_name_ruby | VARCHAR | NULL | 名(カナ) |
+| last_name | VARCHAR | NULL | 姓 |
+| last_name_ruby | VARCHAR | NULL | 姓(カナ) |
+| role | INTEGER | NOT NULL, DEFAULT 8 | 役割 (1=admin, 2=manager, 4=user, 8=guest) |
+| password_hash | VARCHAR | NOT NULL | ハッシュ化されたパスワード |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 作成日時 |
+| created_by | VARCHAR | NOT NULL, DEFAULT 'system' | 作成者 |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 更新日時 |
+| updated_by | VARCHAR | NOT NULL, DEFAULT 'system' | 更新者 |
+| deleted | BOOLEAN | NOT NULL, DEFAULT FALSE | 削除フラグ |
+
+### todos テーブル
+
+| カラム | 型 | 制約 | 説明 |
+|--------|----|----- |------|
+| id | UUID | PRIMARY KEY, NOT NULL | 一意なID |
+| title | VARCHAR(32) | NOT NULL | todoのタイトル |
+| descriptions | VARCHAR(128) | NULL | todoの詳細 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 作成日時 |
+| created_by | VARCHAR | NOT NULL, DEFAULT 'system' | 作成者 |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 更新日時 |
+| updated_by | VARCHAR | NOT NULL, DEFAULT 'system' | 更新者 |
+| deleted | BOOLEAN | NOT NULL, DEFAULT FALSE | 削除フラグ |
+| user_id | UUID | NOT NULL, FOREIGN KEY | users.id の外部キー |
+
+## アーキテクチャ
+
+このプロジェクトはクリーンアーキテクチャに従って構成されており、高いテスト可能性と保守性を実現しています：
+
+```
+src/
+├── app/api/           # API ルート (インターフェース層)
+│   ├── auth/          # 認証エンドポイント
+│   ├── todos/         # Todo 管理エンドポイント
+│   ├── users/         # ユーザー管理エンドポイント
+│   └── health/        # ヘルスチェック
+├── domain/            # ドメイン層
+│   ├── entities/      # エンティティ（User, Todo）
+│   └── repositories/  # リポジトリインターフェース
+├── infrastructure/    # インフラストラクチャ層
+│   ├── database/      # データベース接続
+│   └── repositories/  # リポジトリ実装（PostgreSQL）
+├── usecases/         # ユースケース層 (アプリケーションサービス)
+│   ├── AuthUseCase.ts    # 認証ビジネスロジック
+│   ├── TodoUseCase.ts    # Todo ビジネスロジック
+│   └── UserUseCase.ts    # ユーザー ビジネスロジック
+├── lib/              # 共通ライブラリ
+│   ├── auth-middleware.ts # JWT認証ミドルウェア
+│   ├── container.ts      # DIコンテナ
+│   ├── jwt.ts           # JWT ユーティリティ
+│   ├── response.ts      # API レスポンス ヘルパー
+│   └── validation.ts    # バリデーション スキーマ
+└── types/            # TypeScript 型定義
+```
+
+### 設計原則
+
+- **依存性の注入**: DIコンテナによる疎結合な設計
+- **レイヤー分離**: 各層の責務を明確に分離
+- **テスタビリティ**: モック可能な設計による高いテストカバレッジ
+- **型安全性**: TypeScript による厳密な型チェック
+
+## テストユーザー
+
+データベース初期化時に以下のテストユーザーが作成されます：
+
+- **admin** / **password** (role: 1 - Admin)
+- **user1** / **password** (role: 4 - User)
+
+## ポート設定
+
+- **アプリケーション**: 3000
+- **PostgreSQL**: 5431 (外部アクセス用)
+
+## プロジェクト構成
+
+```
+next-todo/
+├── src/                    # ソースコード
+│   ├── app/               # Next.js App Router
+│   │   ├── api/          # API エンドポイント
+│   │   ├── globals.css   # グローバルスタイル
+│   │   ├── layout.tsx    # レイアウトコンポーネント
+│   │   └── page.tsx      # ホームページ
+│   ├── domain/           # ドメイン層
+│   ├── infrastructure/   # インフラ層
+│   ├── usecases/        # ユースケース層
+│   ├── lib/             # 共通ライブラリ
+│   ├── types/           # 型定義
+│   └── middleware.ts    # Next.js ミドルウェア
+├── postman/             # API テストコレクション
+├── coverage/            # テストカバレッジレポート
+├── public/              # 静的ファイル
+├── biome.json          # Biome 設定
+├── jest.config.ts      # Jest 設定
+├── jest.setup.ts       # Jest セットアップ
+├── compose.yml         # Docker Compose 設定
+├── next.config.ts      # Next.js 設定
+├── tsconfig.json       # TypeScript 設定
+└── README.md           # このファイル
+```
+
+## 開発
+
+### コード品質管理
+
+```bash
+# コードフォーマット
+npm run format
+
+# リント実行
+npm run lint
+
+# 型チェック、リント、フォーマットを一括実行
+npm run check
+```
+
+### ビルド・デプロイ
+
+```bash
+# ビルド
+npm run build
+
+# 本番起動
+npm start
+
+# 開発サーバー起動（Turbopack使用）
+npm run dev
+```
+
+## APIテストコレクション
+
+Postmanコレクションが提供されています：
+- `postman/next-todo.postman_collection.json`
+
+このコレクションには全ての API エンドポイントのサンプルリクエストが含まれています。
+
+## 品質指標
+
+### テストカバレッジ（最新）
+
+| カテゴリ | カバレッジ率 |
+|----------|-------------|
+| ステートメント | 98.54% |
+| ブランチ | 92.91% |
+| 関数 | 95.38% |
+| ライン | 98.54% |
+
+### テストスイート詳細
+
+- **API エンドポイントテスト**: 17スイート
+- **総テストケース**: 341テスト
+- **成功率**: 100%（全テスト通過）
+
+### 主要機能のテストカバレッジ
+
+- **認証API**: 100% カバレッジ（25テスト）
+- **Todo API**: 95%以上 カバレッジ
+- **ユーザー管理API**: 100% カバレッジ
+- **ビジネスロジック層**: 97%以上 カバレッジ
+- **データアクセス層**: 99%以上 カバレッジ
