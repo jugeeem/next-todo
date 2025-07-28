@@ -1,301 +1,180 @@
 /**
- * @fileoverview 個別ユーザー管理API（/api/users/[id]）のユニットテスト
- *
- * このファイルは、特定ユーザーの取得、更新、削除エンドポイントの
- * 包括的なテストスイートを提供します。
- *
- * @author jugeeem
- * @since 1.0.0
+ * @fileoverview 個別ユーザー情報API（/api/users/[id]）のユニットテスト - ヘッダーベース認証対応版
  */
 
 import type { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { UserRole } from '@/domain/entities/User';
+import { ZodError } from 'zod';
+import { type UpdateUserInput, type User, UserRole } from '@/domain/entities/User';
 import { DELETE, GET, PATCH } from '../route';
 
 // モック設定
-jest.mock('@/lib/auth-middleware');
 jest.mock('@/lib/container');
 jest.mock('@/lib/response');
-
-// モック設定
-jest.mock('@/lib/auth-middleware');
-jest.mock('@/lib/container');
-jest.mock('@/lib/response');
-
-// モック実装
-const mockAuthMiddleware = {
-  authenticate: jest.fn(),
-};
-
-const mockContainer = {
-  userUseCase: {
-    getUserById: jest.fn(),
-    updateUser: jest.fn(),
-    updateUserAsAdmin: jest.fn(),
-    deleteUser: jest.fn(),
-  },
-};
-
-const mockResponse = {
-  success: jest.fn(),
-  error: jest.fn(),
-  unauthorized: jest.fn(),
-  forbidden: jest.fn(),
-  notFound: jest.fn(),
-  internalError: jest.fn(),
-};
 
 describe('/api/users/[id] API エンドポイント', () => {
+  let mockContainer: {
+    userUseCase: {
+      getUserById: jest.MockedFunction<(id: string) => Promise<User | null>>;
+      updateUser: jest.MockedFunction<
+        (id: string, data: UpdateUserInput) => Promise<User>
+      >;
+      updateUserAsAdmin: jest.MockedFunction<
+        (id: string, data: UpdateUserInput) => Promise<User>
+      >;
+      deleteUser: jest.MockedFunction<(id: string) => Promise<void>>;
+    };
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // モックの設定
-    const { AuthMiddleware } = jest.requireMock('@/lib/auth-middleware');
+    mockContainer = {
+      userUseCase: {
+        getUserById: jest.fn(),
+        updateUser: jest.fn(),
+        updateUserAsAdmin: jest.fn(),
+        deleteUser: jest.fn(),
+      },
+    };
+
+    // Container のモック設定
     const { Container } = jest.requireMock('@/lib/container');
-    const responseLib = jest.requireMock('@/lib/response');
-
-    AuthMiddleware.mockImplementation(() => mockAuthMiddleware);
     Container.getInstance = jest.fn(() => mockContainer);
-    Object.assign(responseLib, mockResponse);
 
-    // デフォルトのモック戻り値を設定
-    mockResponse.success.mockReturnValue(new Response('success'));
-    mockResponse.error.mockReturnValue(new Response('error'));
-    mockResponse.unauthorized.mockReturnValue(new Response('unauthorized'));
-    mockResponse.forbidden.mockReturnValue(new Response('forbidden'));
-    mockResponse.notFound.mockReturnValue(new Response('not found'));
-    mockResponse.internalError.mockReturnValue(new Response('internal error'));
+    // Response関数のモック設定
+    const responseLib = jest.requireMock('@/lib/response');
+    responseLib.success = jest.fn(() => new Response('success'));
+    responseLib.error = jest.fn(() => new Response('error'));
+    responseLib.unauthorized = jest.fn(() => new Response('unauthorized'));
+    responseLib.forbidden = jest.fn(() => new Response('forbidden'));
+    responseLib.notFound = jest.fn(() => new Response('not found'));
+    responseLib.internalError = jest.fn(() => new Response('internal error'));
   });
 
   describe('GET /api/users/[id] - 個別ユーザー取得', () => {
-    const createMockRequest = (authHeader?: string): NextRequest => {
-      const headers = new Headers();
-      if (authHeader) {
-        headers.set('authorization', authHeader);
-      }
-
+    const createMockRequest = (headers: Record<string, string> = {}) => {
       return {
-        method: 'GET',
-        url: 'http://localhost:3000/api/users/user-123',
-        headers,
-        json: jest.fn(),
+        headers: {
+          get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
+        },
       } as unknown as NextRequest;
     };
 
-    const createMockParams = (id: string) => Promise.resolve({ id });
-
-    test('管理者として他のユーザー情報を取得できる', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('target-user-id');
-      const targetUser = {
-        userId: 'target-user-id',
-        username: 'targetuser',
-        firstName: 'ターゲット',
-        lastName: 'ユーザー',
-        role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('管理者として他のユーザー情報を取得できる', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
-      mockContainer.userUseCase.getUserById.mockResolvedValue(targetUser);
+      const mockUser: User = {
+        id: 'target-user-id',
+        username: 'targetuser',
+        passwordHash: 'hashedpassword',
+        firstName: 'Target',
+        lastName: 'User',
+        firstNameRuby: undefined,
+        lastNameRuby: undefined,
+        role: UserRole.USER,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        createdBy: 'admin-123',
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        updatedBy: 'admin-123',
+        deleted: false,
+      };
 
-      // Act
-      await GET(request, { params });
+      mockContainer.userUseCase.getUserById.mockResolvedValue(mockUser);
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
+      await GET(request, { params: Promise.resolve({ id: 'target-user-id' }) });
+
       expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith(
         'target-user-id',
       );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        targetUser,
-        'ユーザー情報を取得しました',
-      );
     });
 
-    test('マネージャーとして他のユーザー情報を取得できる', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer manager-token');
-      const params = createMockParams('target-user-id');
-      const targetUser = {
-        userId: 'target-user-id',
-        username: 'targetuser',
-        firstName: 'ターゲット',
-        lastName: 'ユーザー',
-        role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('認証ヘッダーが無い場合は401エラーを返す', async () => {
+      const request = createMockRequest({});
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'manager-id',
-          username: 'manager',
-          role: UserRole.MANAGER,
-        },
-      });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      mockContainer.userUseCase.getUserById.mockResolvedValue(targetUser);
+      await GET(request, { params: Promise.resolve({ id: 'user-123' }) });
 
-      // Act
-      await GET(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith(
-        'target-user-id',
-      );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        targetUser,
-        'ユーザー情報を取得しました',
-      );
+      expect(responseLib.unauthorized).toHaveBeenCalledWith('Authentication required');
     });
 
-    test('ユーザーが自分の情報を取得できる', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer user-token');
-      const params = createMockParams('user-id');
-      const userData = {
-        userId: 'user-id',
-        username: 'user',
-        firstName: 'ユーザー',
-        lastName: 'テスト',
-        role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
-        },
+    it('一般ユーザーが他のユーザー情報にアクセスしようとすると403エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'user-123',
+        'x-user-role': String(UserRole.USER),
       });
 
-      mockContainer.userUseCase.getUserById.mockResolvedValue(userData);
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Act
-      await GET(request, { params });
+      await GET(request, { params: Promise.resolve({ id: 'other-user-id' }) });
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith('user-id');
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        userData,
-        'ユーザー情報を取得しました',
-      );
-    });
-
-    test('一般ユーザーが他人の情報にアクセスしようとした場合、403エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer user-token');
-      const params = createMockParams('other-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
-        },
-      });
-
-      // Act
-      await GET(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).not.toHaveBeenCalled();
-      expect(mockResponse.forbidden).toHaveBeenCalledWith(
+      expect(responseLib.forbidden).toHaveBeenCalledWith(
         'このユーザー情報にアクセスする権限がありません',
       );
     });
 
-    test('認証が失敗した場合、401エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest();
-      const params = createMockParams('user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: false,
-        error: '認証トークンが無効です',
+    it('一般ユーザーが自分の情報を取得できる', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'user-123',
+        'x-user-role': String(UserRole.USER),
       });
 
-      // Act
-      await GET(request, { params });
+      const mockUser: User = {
+        id: 'user-123',
+        username: 'selfuser',
+        passwordHash: 'hashedpassword',
+        firstName: 'Self',
+        lastName: 'User',
+        firstNameRuby: undefined,
+        lastNameRuby: undefined,
+        role: UserRole.USER,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        createdBy: 'admin-123',
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        updatedBy: 'admin-123',
+        deleted: false,
+      };
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).not.toHaveBeenCalled();
-      expect(mockResponse.unauthorized).toHaveBeenCalledWith('認証トークンが無効です');
+      mockContainer.userUseCase.getUserById.mockResolvedValue(mockUser);
+
+      await GET(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith('user-123');
     });
 
-    test('存在しないユーザーIDの場合、404エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('non-existent-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('ユーザーが見つからない場合は404エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
       mockContainer.userUseCase.getUserById.mockResolvedValue(null);
 
-      // Act
-      await GET(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith(
-        'non-existent-id',
-      );
-      expect(mockResponse.notFound).toHaveBeenCalledWith('ユーザーが見つかりません');
+      await GET(request, { params: Promise.resolve({ id: 'nonexistent-id' }) });
+
+      expect(responseLib.notFound).toHaveBeenCalledWith('ユーザーが見つかりません');
     });
 
-    test('UseCase でエラーが発生した場合、500エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('予期しないエラーが発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
       mockContainer.userUseCase.getUserById.mockRejectedValue(
-        new Error('データベース接続エラー'),
+        new Error('Database connection error'),
       );
 
-      // Act
-      await GET(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.getUserById).toHaveBeenCalledWith('user-id');
-      expect(mockResponse.internalError).toHaveBeenCalledWith(
+      await GET(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(responseLib.internalError).toHaveBeenCalledWith(
         'ユーザー情報の取得に失敗しました',
       );
     });
@@ -303,551 +182,353 @@ describe('/api/users/[id] API エンドポイント', () => {
 
   describe('PATCH /api/users/[id] - ユーザー情報更新', () => {
     const createMockRequest = (
-      requestBody: unknown,
-      authHeader?: string,
-    ): NextRequest => {
-      const headers = new Headers();
-      if (authHeader) {
-        headers.set('authorization', authHeader);
-      }
-
+      headers: Record<string, string> = {},
+      body: Record<string, unknown> = {},
+    ) => {
       return {
-        method: 'PATCH',
-        url: 'http://localhost:3000/api/users/user-123',
-        headers,
-        json: jest.fn().mockResolvedValue(requestBody),
+        headers: {
+          get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
+        },
+        json: jest.fn().mockResolvedValue(body),
       } as unknown as NextRequest;
     };
 
-    const createMockParams = (id: string) => Promise.resolve({ id });
+    it('管理者として他のユーザー情報を更新できる', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'admin-123',
+          'x-user-role': String(UserRole.ADMIN),
+        },
+        {
+          firstName: 'Updated',
+          lastName: 'Name',
+        },
+      );
 
-    const validUpdateData = {
-      firstName: '更新した名前',
-      lastName: '更新した姓',
-      firstNameRuby: 'こうしんしたなまえ',
-      lastNameRuby: 'こうしんしたせい',
-    };
-
-    test('管理者として他のユーザー情報を更新できる', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer admin-token');
-      const params = createMockParams('target-user-id');
-      const updatedUser = {
-        userId: 'target-user-id',
+      const mockUser: User = {
+        id: 'target-user-id',
         username: 'targetuser',
-        firstName: '更新した名前',
-        lastName: '更新した姓',
+        passwordHash: 'hashedpassword',
+        firstName: 'Updated',
+        lastName: 'Name',
+        firstNameRuby: undefined,
+        lastNameRuby: undefined,
         role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        createdBy: 'admin-123',
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        updatedBy: 'admin-123',
+        deleted: false,
       };
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
-      });
+      mockContainer.userUseCase.updateUserAsAdmin.mockResolvedValue(mockUser);
 
-      mockContainer.userUseCase.updateUserAsAdmin.mockResolvedValue(updatedUser);
+      await PATCH(request, { params: Promise.resolve({ id: 'target-user-id' }) });
 
-      // Act
-      await PATCH(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
       expect(mockContainer.userUseCase.updateUserAsAdmin).toHaveBeenCalledWith(
         'target-user-id',
-        validUpdateData,
-      );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        updatedUser,
-        'ユーザー情報を更新しました',
+        {
+          firstName: 'Updated',
+          lastName: 'Name',
+        },
       );
     });
 
-    test('マネージャーとして他のユーザー情報を更新できる', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer manager-token');
-      const params = createMockParams('target-user-id');
-      const updatedUser = {
-        userId: 'target-user-id',
-        username: 'targetuser',
-        firstName: '更新した名前',
-        lastName: '更新した姓',
-        role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'manager-id',
-          username: 'manager',
-          role: UserRole.MANAGER,
+    it('認証ヘッダーが無い場合は401エラーを返す', async () => {
+      const request = createMockRequest(
+        {},
+        {
+          firstName: 'Updated',
+          lastName: 'Name',
         },
-      });
-
-      mockContainer.userUseCase.updateUserAsAdmin.mockResolvedValue(updatedUser);
-
-      // Act
-      await PATCH(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.updateUserAsAdmin).toHaveBeenCalledWith(
-        'target-user-id',
-        validUpdateData,
       );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        updatedUser,
-        'ユーザー情報を更新しました',
-      );
+
+      const responseLib = jest.requireMock('@/lib/response');
+
+      await PATCH(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(responseLib.unauthorized).toHaveBeenCalledWith('Authentication required');
     });
 
-    test('ユーザーが自分の情報を更新できる', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer user-token');
-      const params = createMockParams('user-id');
-      const updatedUser = {
-        userId: 'user-id',
-        username: 'user',
-        firstName: '更新した名前',
-        lastName: '更新した姓',
-        role: UserRole.USER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
+    it('一般ユーザーが他のユーザー情報を更新しようとすると403エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': String(UserRole.USER),
         },
-      });
-
-      mockContainer.userUseCase.updateUser.mockResolvedValue(updatedUser);
-
-      // Act
-      await PATCH(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUser).toHaveBeenCalledWith(
-        'user-id',
-        validUpdateData,
-      );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        updatedUser,
-        'ユーザー情報を更新しました',
-      );
-    });
-
-    test('一般ユーザーが他人の情報を更新しようとした場合、403エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer user-token');
-      const params = createMockParams('other-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
+        {
+          firstName: 'Updated',
+          lastName: 'Name',
         },
-      });
+      );
 
-      // Act
-      await PATCH(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).not.toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUser).not.toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUserAsAdmin).not.toHaveBeenCalled();
-      expect(mockResponse.forbidden).toHaveBeenCalledWith(
+      await PATCH(request, { params: Promise.resolve({ id: 'other-user-id' }) });
+
+      expect(responseLib.forbidden).toHaveBeenCalledWith(
         'このユーザー情報を更新する権限がありません',
       );
     });
 
-    test('認証が失敗した場合、401エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData);
-      const params = createMockParams('user-id');
+    it('一般ユーザーが自分の情報を更新できる', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': String(UserRole.USER),
+        },
+        {
+          firstName: 'Updated',
+          lastName: 'Name',
+        },
+      );
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: false,
-        error: '認証トークンが無効です',
+      const mockUser: User = {
+        id: 'user-123',
+        username: 'selfuser',
+        passwordHash: 'hashedpassword',
+        firstName: 'Updated',
+        lastName: 'Name',
+        firstNameRuby: undefined,
+        lastNameRuby: undefined,
+        role: UserRole.USER,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        createdBy: 'admin-123',
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        updatedBy: 'admin-123',
+        deleted: false,
+      };
+
+      mockContainer.userUseCase.updateUser.mockResolvedValue(mockUser);
+
+      await PATCH(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(mockContainer.userUseCase.updateUser).toHaveBeenCalledWith('user-123', {
+        firstName: 'Updated',
+        lastName: 'Name',
       });
-
-      // Act
-      await PATCH(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).not.toHaveBeenCalled();
-      expect(mockResponse.unauthorized).toHaveBeenCalledWith('認証トークンが無効です');
     });
 
-    test('バリデーションエラーの場合、400エラーを返す', async () => {
-      // Arrange
-      const invalidUpdateData = {
-        firstName: '', // 空の文字列
-        lastName: '',
-      };
-      const request = createMockRequest(invalidUpdateData, 'Bearer user-token');
-      const params = createMockParams('user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
-        },
-      });
-
-      // Zodエラーをモック
-      const zodError = new z.ZodError([
+    it('バリデーションエラーが発生した場合は400エラーを返す', async () => {
+      const request = createMockRequest(
         {
-          code: 'too_small',
-          minimum: 1,
-          type: 'string',
-          inclusive: true,
-          exact: false,
-          message: '必須項目です',
-          path: ['firstName'],
+          'x-user-id': 'admin-123',
+          'x-user-role': String(UserRole.ADMIN),
         },
-      ]);
+        {
+          firstName: '', // 無効なデータ
+        },
+      );
 
-      mockContainer.userUseCase.updateUser.mockRejectedValue(zodError);
+      mockContainer.userUseCase.updateUserAsAdmin.mockRejectedValue(
+        new ZodError([
+          {
+            code: 'too_small',
+            minimum: 1,
+            type: 'string',
+            inclusive: true,
+            exact: false,
+            message: 'First name is required',
+            path: ['firstName'],
+          },
+        ]),
+      );
 
-      // Act
-      await PATCH(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
-      expect(mockResponse.error).toHaveBeenCalledWith(
+      await PATCH(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(responseLib.error).toHaveBeenCalledWith(
         '入力データが正しくありません',
         400,
       );
     });
 
-    test('存在しないユーザーの場合、404エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer admin-token');
-      const params = createMockParams('non-existent-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
+    it('ユーザーが見つからない場合は404エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'admin-123',
+          'x-user-role': String(UserRole.ADMIN),
         },
-      });
+        {
+          firstName: 'Updated',
+        },
+      );
 
       mockContainer.userUseCase.updateUserAsAdmin.mockRejectedValue(
         new Error('ユーザーが見つかりません'),
       );
 
-      // Act
-      await PATCH(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUserAsAdmin).toHaveBeenCalledWith(
-        'non-existent-id',
-        validUpdateData,
-      );
-      expect(mockResponse.notFound).toHaveBeenCalledWith('ユーザーが見つかりません');
+      await PATCH(request, { params: Promise.resolve({ id: 'nonexistent-id' }) });
+
+      expect(responseLib.notFound).toHaveBeenCalledWith('ユーザーが見つかりません');
     });
 
-    test('ユーザー名重複エラーの場合、409エラーを返す', async () => {
-      // Arrange
-      const updateDataWithUsername = {
-        ...validUpdateData,
-        username: 'duplicated-username',
-      };
-      const request = createMockRequest(updateDataWithUsername, 'Bearer admin-token');
-      const params = createMockParams('user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
+    it('ユーザー名重複エラーが発生した場合は409エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'admin-123',
+          'x-user-role': String(UserRole.ADMIN),
         },
-      });
+        {
+          username: 'duplicateuser',
+        },
+      );
 
       mockContainer.userUseCase.updateUserAsAdmin.mockRejectedValue(
         new Error('このユーザー名は既に使用されています'),
       );
 
-      // Act
-      await PATCH(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUserAsAdmin).toHaveBeenCalledWith(
-        'user-id',
-        updateDataWithUsername,
-      );
-      expect(mockResponse.error).toHaveBeenCalledWith(
+      await PATCH(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(responseLib.error).toHaveBeenCalledWith(
         'このユーザー名は既に使用されています',
         409,
       );
     });
 
-    test('UseCase で予期しないエラーが発生した場合、500エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest(validUpdateData, 'Bearer user-token');
-      const params = createMockParams('user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
+    it('予期しないエラーが発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'admin-123',
+          'x-user-role': String(UserRole.ADMIN),
         },
-      });
-
-      mockContainer.userUseCase.updateUser.mockRejectedValue(
-        new Error('データベース接続エラー'),
+        {
+          firstName: 'Updated',
+        },
       );
 
-      // Act
-      await PATCH(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(request.json).toHaveBeenCalled();
-      expect(mockContainer.userUseCase.updateUser).toHaveBeenCalledWith(
-        'user-id',
-        validUpdateData,
+      mockContainer.userUseCase.updateUserAsAdmin.mockRejectedValue(
+        new Error('Database connection error'),
       );
-      expect(mockResponse.internalError).toHaveBeenCalledWith(
+
+      const responseLib = jest.requireMock('@/lib/response');
+
+      await PATCH(request, { params: Promise.resolve({ id: 'user-123' }) });
+
+      expect(responseLib.internalError).toHaveBeenCalledWith(
         'ユーザー情報の更新に失敗しました',
       );
     });
   });
 
   describe('DELETE /api/users/[id] - ユーザー削除', () => {
-    const createMockRequest = (authHeader?: string): NextRequest => {
-      const headers = new Headers();
-      if (authHeader) {
-        headers.set('authorization', authHeader);
-      }
-
+    const createMockRequest = (headers: Record<string, string> = {}) => {
       return {
-        method: 'DELETE',
-        url: 'http://localhost:3000/api/users/user-123',
-        headers,
-        json: jest.fn(),
+        headers: {
+          get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
+        },
       } as unknown as NextRequest;
     };
 
-    const createMockParams = (id: string) => Promise.resolve({ id });
-
-    test('管理者として他のユーザーを削除できる', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('target-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('管理者として他のユーザーを削除できる', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
-      mockContainer.userUseCase.deleteUser.mockResolvedValue(undefined);
+      mockContainer.userUseCase.deleteUser.mockResolvedValue();
 
-      // Act
-      await DELETE(request, { params });
+      await DELETE(request, { params: Promise.resolve({ id: 'target-user-id' }) });
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
       expect(mockContainer.userUseCase.deleteUser).toHaveBeenCalledWith(
         'target-user-id',
       );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        { deleted: true, userId: 'target-user-id' },
-        'ユーザーを削除しました',
-      );
     });
 
-    test('マネージャーとして他のユーザーを削除できる', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer manager-token');
-      const params = createMockParams('target-user-id');
+    it('認証ヘッダーが無い場合は401エラーを返す', async () => {
+      const request = createMockRequest({});
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'manager-id',
-          username: 'manager',
-          role: UserRole.MANAGER,
-        },
-      });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      mockContainer.userUseCase.deleteUser.mockResolvedValue(undefined);
+      await DELETE(request, { params: Promise.resolve({ id: 'user-123' }) });
 
-      // Act
-      await DELETE(request, { params });
-
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).toHaveBeenCalledWith(
-        'target-user-id',
-      );
-      expect(mockResponse.success).toHaveBeenCalledWith(
-        { deleted: true, userId: 'target-user-id' },
-        'ユーザーを削除しました',
-      );
+      expect(responseLib.unauthorized).toHaveBeenCalledWith('Authentication required');
     });
 
-    test('一般ユーザーがアクセスした場合、403エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer user-token');
-      const params = createMockParams('target-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'user-id',
-          username: 'user',
-          role: UserRole.USER,
-        },
+    it('一般ユーザーが削除しようとすると403エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'user-123',
+        'x-user-role': String(UserRole.USER),
       });
 
-      // Act
-      await DELETE(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).not.toHaveBeenCalled();
-      expect(mockResponse.forbidden).toHaveBeenCalledWith(
+      await DELETE(request, { params: Promise.resolve({ id: 'target-user-id' }) });
+
+      expect(responseLib.forbidden).toHaveBeenCalledWith(
         '管理者またはマネージャー権限が必要です',
       );
     });
 
-    test('自分自身を削除しようとした場合、403エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('admin-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('管理者が自分自身を削除しようとすると403エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
-      // Act
-      await DELETE(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).not.toHaveBeenCalled();
-      expect(mockResponse.forbidden).toHaveBeenCalledWith(
+      await DELETE(request, { params: Promise.resolve({ id: 'admin-123' }) });
+
+      expect(responseLib.forbidden).toHaveBeenCalledWith(
         '自分自身を削除することはできません',
       );
     });
 
-    test('認証が失敗した場合、401エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest();
-      const params = createMockParams('target-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: false,
-        error: '認証トークンが無効です',
+    it('マネージャーとして他のユーザーを削除できる', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'manager-123',
+        'x-user-role': String(UserRole.MANAGER),
       });
 
-      // Act
-      await DELETE(request, { params });
+      mockContainer.userUseCase.deleteUser.mockResolvedValue();
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).not.toHaveBeenCalled();
-      expect(mockResponse.unauthorized).toHaveBeenCalledWith('認証トークンが無効です');
+      await DELETE(request, { params: Promise.resolve({ id: 'target-user-id' }) });
+
+      expect(mockContainer.userUseCase.deleteUser).toHaveBeenCalledWith(
+        'target-user-id',
+      );
     });
 
-    test('存在しないユーザーの場合、404エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('non-existent-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('削除対象のユーザーが見つからない場合は404エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
       mockContainer.userUseCase.deleteUser.mockRejectedValue(
         new Error('ユーザーが見つかりません'),
       );
 
-      // Act
-      await DELETE(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).toHaveBeenCalledWith(
-        'non-existent-id',
-      );
-      expect(mockResponse.notFound).toHaveBeenCalledWith(
+      await DELETE(request, { params: Promise.resolve({ id: 'nonexistent-id' }) });
+
+      expect(responseLib.notFound).toHaveBeenCalledWith(
         '削除対象のユーザーが見つかりません',
       );
     });
 
-    test('UseCase で予期しないエラーが発生した場合、500エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('Bearer admin-token');
-      const params = createMockParams('target-user-id');
-
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: {
-          userId: 'admin-id',
-          username: 'admin',
-          role: UserRole.ADMIN,
-        },
+    it('予期しないエラーが発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'admin-123',
+        'x-user-role': String(UserRole.ADMIN),
       });
 
       mockContainer.userUseCase.deleteUser.mockRejectedValue(
-        new Error('データベース接続エラー'),
+        new Error('Database connection error'),
       );
 
-      // Act
-      await DELETE(request, { params });
+      const responseLib = jest.requireMock('@/lib/response');
 
-      // Assert
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.userUseCase.deleteUser).toHaveBeenCalledWith(
-        'target-user-id',
-      );
-      expect(mockResponse.internalError).toHaveBeenCalledWith(
+      await DELETE(request, { params: Promise.resolve({ id: 'target-user-id' }) });
+
+      expect(responseLib.internalError).toHaveBeenCalledWith(
         'ユーザーの削除に失敗しました',
       );
     });

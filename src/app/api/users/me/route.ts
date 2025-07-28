@@ -11,7 +11,6 @@
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { UserRole } from '@/domain/entities/User';
-import { AuthMiddleware } from '@/lib/auth-middleware';
 import { Container } from '@/lib/container';
 import { error, internalError, success, unauthorized } from '@/lib/response';
 import { updateUserSchema } from '@/types/validation';
@@ -57,14 +56,15 @@ import { updateUserSchema } from '@/types/validation';
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const container = Container.getInstance();
-    const user = await container.userUseCase.getUserById(authResult.user.userId);
+    const user = await container.userUseCase.getUserById(userId);
 
     if (!user) {
       return unauthorized('ユーザー情報が見つかりません');
@@ -131,10 +131,12 @@ export async function GET(request: NextRequest): Promise<Response> {
  */
 export async function PATCH(request: NextRequest): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
     const container = Container.getInstance();
@@ -144,15 +146,13 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const validatedInput = updateUserSchema.parse(body);
 
     // 一般ユーザーはrole変更不可、管理者は可能
+    const role = parseInt(userRole, 10);
     const updateData =
-      authResult.user.role <= UserRole.MANAGER
+      role <= UserRole.MANAGER
         ? validatedInput // 管理者・マネージャーは role 変更可能
         : (({ role, ...rest }) => rest)(validatedInput); // 一般ユーザーは role 変更不可
 
-    const updatedUser = await container.userUseCase.updateUser(
-      authResult.user.userId,
-      updateData,
-    );
+    const updatedUser = await container.userUseCase.updateUser(userId, updateData);
 
     return success(updatedUser, 'プロフィールを更新しました');
   } catch (err) {

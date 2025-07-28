@@ -4,15 +4,18 @@ JWT認証機能を持ったTodoアプリのAPI。クリーンアーキテクチ�
 
 ## 技術スタック
 
-- **Framework**: Next.js 15.4.3
+- **Framework**: Next.js 15.4.3 + Turbopack
 - **Runtime**: React 19.1.0
 - **Database**: PostgreSQL 16
-- **ORM**: 生のSQL (pg)
-- **Authentication**: JWT (jsonwebtoken)
-- **Validation**: Zod
-- **Testing**: Jest 30.0.5 + Testing Library
-- **Code Quality**: Biome (linting & formatting)
+- **ORM**: 生のSQL (pg 8.12.0)
+- **Authentication**: JWT (jsonwebtoken 9.0.2)
+- **Validation**: Zod 3.22.4
+- **Testing**: Jest 30.0.5 + Testing Library + JSDOM
+- **Code Quality**: Biome 2.1.2 (linting & formatting)
 - **Container**: Docker & Docker Compose
+- **UI Framework**: HeroUI 2.8.1 + Framer Motion 12.23.7
+- **Styling**: Tailwind CSS 4 + PostCSS 4
+- **Additional Libraries**: bcryptjs, JOSE 6.0.12, UUID 9.0.1
 
 ## セットアップ
 
@@ -57,10 +60,11 @@ docker compose up -d --build
 
 このプロジェクトは包括的なテストスイートを備えています：
 
-- **総テスト数**: 341テスト（全て通過）
-- **テストカバレッジ**: 98.54%（ステートメント）
-- **ブランチカバレッジ**: 92.91%
+- **総テスト数**: 326テスト（全て通過）
+- **テストカバレッジ**: 99.5%（ステートメント）
+- **ブランチカバレッジ**: 96.7%
 - **関数カバレッジ**: 95.38%
+- **実行時間**: 5.408秒
 
 ### テストの実行
 
@@ -287,28 +291,36 @@ src/
 ├── domain/            # ドメイン層
 │   ├── entities/      # エンティティ（User, Todo）
 │   └── repositories/  # リポジトリインターフェース
+├── features/          # フィーチャー層（UI コンポーネント）
+│   ├── auth/          # 認証関連コンポーネント
+│   ├── todos/         # Todo関連コンポーネント
+│   └── users/         # ユーザー関連コンポーネント
 ├── infrastructure/    # インフラストラクチャ層
 │   ├── database/      # データベース接続
 │   └── repositories/  # リポジトリ実装（PostgreSQL）
 ├── usecases/         # ユースケース層 (アプリケーションサービス)
 │   ├── AuthUseCase.ts    # 認証ビジネスロジック
 │   ├── TodoUseCase.ts    # Todo ビジネスロジック
-│   └── UserUseCase.ts    # ユーザー ビジネスロジック
+│   ├── UserUseCase.ts    # ユーザー ビジネスロジック
+│   └── __tests__/        # ユースケーステスト（86テスト・100%カバレッジ）
 ├── lib/              # 共通ライブラリ
 │   ├── auth-middleware.ts # JWT認証ミドルウェア
 │   ├── container.ts      # DIコンテナ
 │   ├── jwt.ts           # JWT ユーティリティ
 │   ├── response.ts      # API レスポンス ヘルパー
-│   └── validation.ts    # バリデーション スキーマ
+│   ├── validation.ts    # バリデーション スキーマ
+│   └── __tests__/        # ライブラリテスト（100%カバレッジ）
 └── types/            # TypeScript 型定義
 ```
 
 ### 設計原則
 
-- **依存性の注入**: DIコンテナによる疎結合な設計
-- **レイヤー分離**: 各層の責務を明確に分離
-- **テスタビリティ**: モック可能な設計による高いテストカバレッジ
-- **型安全性**: TypeScript による厳密な型チェック
+- **依存性の注入**: DIコンテナによる疎結合な設計とシングルトンパターン
+- **レイヤー分離**: クリーンアーキテクチャに従った各層の責務分離
+- **テスタビリティ**: モック可能な設計による99.5%の高テストカバレッジ
+- **型安全性**: TypeScript 5.8.3による厳密な型チェック
+- **品質保証**: 326テストケースによる包括的なテストスイート
+- **モダンな開発環境**: Turbopack、HeroUI、Tailwind CSS 4の活用
 
 ## テストユーザー
 
@@ -329,15 +341,18 @@ next-todo/
 ├── src/                    # ソースコード
 │   ├── app/               # Next.js App Router
 │   │   ├── api/          # API エンドポイント
-│   │   ├── globals.css   # グローバルスタイル
+│   │   ├── globals.css   # グローバルスタイル（Tailwind CSS 4）
+│   │   ├── hero.ts       # HeroUI プラグイン設定
 │   │   ├── layout.tsx    # レイアウトコンポーネント
-│   │   └── page.tsx      # ホームページ
+│   │   ├── page.tsx      # ホームページ
+│   │   └── providers.tsx # HeroUI プロバイダー
 │   ├── domain/           # ドメイン層
+│   ├── features/         # フィーチャー層（UI コンポーネント）
 │   ├── infrastructure/   # インフラ層
 │   ├── usecases/        # ユースケース層
 │   ├── lib/             # 共通ライブラリ
 │   ├── types/           # 型定義
-│   └── middleware.ts    # Next.js ミドルウェア
+│   └── middleware.ts    # Next.js ミドルウェア（JWT認証）
 ├── postman/             # API テストコレクション
 ├── coverage/            # テストカバレッジレポート
 ├── public/              # 静的ファイル
@@ -391,21 +406,22 @@ Postmanコレクションが提供されています：
 
 | カテゴリ | カバレッジ率 |
 |----------|-------------|
-| ステートメント | 98.54% |
-| ブランチ | 92.91% |
+| ステートメント | 99.5% |
+| ブランチ | 96.7% |
 | 関数 | 95.38% |
-| ライン | 98.54% |
+| ライン | 99.5% |
 
 ### テストスイート詳細
 
 - **API エンドポイントテスト**: 17スイート
-- **総テストケース**: 341テスト
+- **総テストケース**: 326テスト
 - **成功率**: 100%（全テスト通過）
 
 ### 主要機能のテストカバレッジ
 
-- **認証API**: 100% カバレッジ（25テスト）
-- **Todo API**: 95%以上 カバレッジ
-- **ユーザー管理API**: 100% カバレッジ
-- **ビジネスロジック層**: 97%以上 カバレッジ
+- **認証API**: 100% カバレッジ
+- **Todo API**: 100% カバレッジ
+- **ユーザー管理API**: 100% カバレッジ  
+- **ビジネスロジック層**: 100% カバレッジ
 - **データアクセス層**: 99%以上 カバレッジ
+- **共通ライブラリ**: 100% カバレッジ

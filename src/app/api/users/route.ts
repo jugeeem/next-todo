@@ -12,7 +12,6 @@
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { UserRole } from '@/domain/entities/User';
-import { AuthMiddleware } from '@/lib/auth-middleware';
 import { Container } from '@/lib/container';
 import { error, forbidden, internalError, success, unauthorized } from '@/lib/response';
 import { createUserSchema } from '@/types/validation';
@@ -55,14 +54,17 @@ import { createUserSchema } from '@/types/validation';
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
     // 管理者権限チェック（ADMIN=1 または MANAGER=2）
-    if (authResult.user.role > UserRole.MANAGER) {
+    const role = parseInt(userRole, 10);
+    if (role > UserRole.MANAGER) {
       return forbidden('管理者権限が必要です');
     }
 
@@ -126,14 +128,17 @@ export async function GET(request: NextRequest): Promise<Response> {
  */
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
     // 管理者権限チェック（ADMIN=1 または MANAGER=2）
-    if (authResult.user.role > UserRole.MANAGER) {
+    const role = parseInt(userRole, 10);
+    if (role > UserRole.MANAGER) {
       return forbidden('管理者権限が必要です');
     }
 

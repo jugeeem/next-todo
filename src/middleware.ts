@@ -10,7 +10,13 @@ import { AuthMiddleware } from '@/lib/auth-middleware';
  * @returns パスが保護されている場合は true、そうでない場合は false
  */
 function isProtectedPath(path: string): boolean {
-  const protectedPaths = ['/api/todos', '/api/users', '/users', '/todos', '/auth/register'];
+  const protectedPaths = [
+    '/api/todos',
+    '/api/users',
+    '/users',
+    '/todos',
+    '/auth/register',
+  ];
   return protectedPaths.some((prefix) => path.startsWith(prefix));
 }
 
@@ -47,7 +53,7 @@ export async function middleware(request: NextRequest) {
   // 保護されたパスの場合は認証をチェック
   if (isProtectedPath(path)) {
     const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
+    const authResult = await authMiddleware.authenticate(request);
 
     if (!authResult.success) {
       return new NextResponse(
@@ -76,5 +82,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/todos/:path*', '/api/users/:path*'],
+  matcher: ['/api/todos/:path*', '/api/todos', '/api/users/:path*', '/api/users'],
 };

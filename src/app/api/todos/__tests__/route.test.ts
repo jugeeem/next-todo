@@ -1,70 +1,34 @@
 /**
- * @fileoverview Todos API route unit tests - 完全修正版
- *
- * TODO APIのルーティングが正しく動作することを検証するテストです。
- * ユーザーAPIと完全に同じモック戦略を適用します。
- *
- * @author jugeeem
- * @since 1.0.0
+ * @fileoverview Todos API（/api/todos）のユニットテスト - ヘッダーベース認証対応版
  */
 
 import type { NextRequest } from 'next/server';
+import { GET, POST } from '../route';
 
-// テスト用の型定義
-interface User {
-  userId: number;
-  username: string;
-  role: number;
-}
-
-interface AuthResult {
-  success: boolean;
-  user?: User;
-  error?: string;
-}
-
-interface Todo {
-  id: number;
-  title: string;
-  descriptions: string | null;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface TodoInput {
-  title: string;
-  descriptions?: string | null;
-  userId?: number;
-}
-
-// ユーザーAPIと完全に同じモック設定
-jest.mock('@/lib/auth-middleware');
+// モック設定
 jest.mock('@/lib/container');
 jest.mock('@/lib/response');
 
 describe('/api/todos API エンドポイント', () => {
-  let mockAuthMiddleware: {
-    authenticate: jest.MockedFunction<(request: NextRequest) => AuthResult>;
-  };
-
   let mockContainer: {
     todoUseCase: {
-      getTodosByUserId: jest.MockedFunction<(userId: number) => Promise<Todo[]>>;
-      createTodo: jest.MockedFunction<(todoData: TodoInput) => Promise<Todo>>;
+      getTodosByUserId: jest.Mock;
+      createTodo: jest.Mock;
     };
+  };
+
+  let mockResponseLib: {
+    success: jest.Mock;
+    error: jest.Mock;
+    unauthorized: jest.Mock;
+    forbidden: jest.Mock;
+    internalError: jest.Mock;
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // モジュールキャッシュをクリア
-    jest.resetModules();
 
-    // ユーザーAPIと完全に同じモック設定パターン
-    mockAuthMiddleware = {
-      authenticate: jest.fn(),
-    };
-
+    // Container のモック設定
     mockContainer = {
       todoUseCase: {
         getTodosByUserId: jest.fn(),
@@ -72,274 +36,239 @@ describe('/api/todos API エンドポイント', () => {
       },
     };
 
-    // AuthMiddleware のモック設定
-    const { AuthMiddleware } = jest.requireMock('@/lib/auth-middleware');
-    AuthMiddleware.mockImplementation(() => mockAuthMiddleware);
-
-    // Container のモック設定
     const { Container } = jest.requireMock('@/lib/container');
     Container.getInstance = jest.fn(() => mockContainer);
 
     // Response関数のモック設定
+    mockResponseLib = {
+      success: jest.fn(() => new Response('success')),
+      error: jest.fn(() => new Response('error')),
+      unauthorized: jest.fn(() => new Response('unauthorized')),
+      forbidden: jest.fn(() => new Response('forbidden')),
+      internalError: jest.fn(() => new Response('internal error')),
+    };
+
     const responseLib = jest.requireMock('@/lib/response');
-    responseLib.success = jest.fn(() => new Response('success'));
-    responseLib.error = jest.fn(() => new Response('error'));
-    responseLib.unauthorized = jest.fn(() => new Response('unauthorized'));
-    responseLib.internalError = jest.fn(() => new Response('internal error'));
+    Object.assign(responseLib, mockResponseLib);
   });
 
   describe('GET /api/todos - TODO一覧取得', () => {
-    const createMockRequest = (method = 'GET', authHeader?: string): NextRequest => {
-      const headers = new Headers();
-      if (authHeader) {
-        headers.set('authorization', authHeader);
-      }
-
+    const createMockRequest = (headers: Record<string, string> = {}) => {
       return {
-        method,
-        url: 'http://localhost:3000/api/todos',
-        headers,
-        json: jest.fn(),
+        headers: {
+          get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
+        },
       } as unknown as NextRequest;
     };
 
-    test('認証トークンが無効な場合は401エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('GET', 'Bearer invalid-token');
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: false,
-        error: 'Invalid token',
+    it('認証されたユーザーとして正常にTODO一覧を取得できる', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'user-123',
+        'x-user-role': '1',
       });
 
-      // Dynamic import after mock setup
-      const { GET } = await import('../route');
-
-      // Act
-      await GET(request);
-
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(responseLib.unauthorized).toHaveBeenCalledWith('Invalid token');
-      expect(mockContainer.todoUseCase.getTodosByUserId).not.toHaveBeenCalled();
-    });
-
-    test('認証されたユーザーとして正常にTODO一覧を取得できる', async () => {
-      // Arrange
-      const request = createMockRequest('GET', 'Bearer valid-token');
       const mockTodos = [
-        {
-          id: 1,
-          title: 'テストタスク1',
-          descriptions: 'テスト用の説明1',
-          userId: 1,
-          createdAt: '2025-07-27T10:00:00.000Z',
-          updatedAt: '2025-07-27T10:00:00.000Z',
-        },
+        { id: '1', title: 'Test Todo 1', userId: 'user-123' },
+        { id: '2', title: 'Test Todo 2', userId: 'user-123' },
       ];
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
-      });
       mockContainer.todoUseCase.getTodosByUserId.mockResolvedValue(mockTodos);
 
-      // Dynamic import after mock setup
-      const { GET } = await import('../route');
-
-      // Act
       await GET(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.todoUseCase.getTodosByUserId).toHaveBeenCalledWith(1);
-      expect(responseLib.success).toHaveBeenCalledWith(mockTodos);
+      expect(mockContainer.todoUseCase.getTodosByUserId).toHaveBeenCalledWith(
+        'user-123',
+      );
+      expect(mockResponseLib.success).toHaveBeenCalledWith(mockTodos);
     });
 
-    test('TODOが存在しない場合は空配列を返す', async () => {
-      // Arrange
-      const request = createMockRequest('GET', 'Bearer valid-token');
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
-      });
-      mockContainer.todoUseCase.getTodosByUserId.mockResolvedValue([]);
+    it('認証ヘッダーが無い場合は401エラーを返す', async () => {
+      const request = createMockRequest({});
 
-      // Dynamic import after mock setup
-      const { GET } = await import('../route');
-
-      // Act
       await GET(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(mockContainer.todoUseCase.getTodosByUserId).toHaveBeenCalledWith(1);
-      expect(responseLib.success).toHaveBeenCalledWith([]);
+      expect(mockResponseLib.unauthorized).toHaveBeenCalledWith(
+        'Authentication required',
+      );
     });
 
-    test('予期しないエラーが発生した場合は500エラーを返す', async () => {
-      // Arrange
-      const request = createMockRequest('GET', 'Bearer valid-token');
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
+    it('データベースエラーが発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest({
+        'x-user-id': 'user-123',
+        'x-user-role': '1',
       });
+
+      // console.errorをモック
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       mockContainer.todoUseCase.getTodosByUserId.mockRejectedValue(
         new Error('Database error'),
       );
 
-      // console.error をモック
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      // Dynamic import after mock setup
-      const { GET } = await import('../route');
-
-      // Act
       await GET(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
+      expect(mockResponseLib.internalError).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Get todos error:', expect.any(Error));
-      expect(responseLib.internalError).toHaveBeenCalled();
 
-      // モックを復元
       consoleSpy.mockRestore();
     });
   });
 
   describe('POST /api/todos - TODO作成', () => {
     const createMockRequest = (
-      method = 'POST',
-      body?: unknown,
-      authHeader?: string,
-    ): NextRequest => {
-      const headers = new Headers();
-      headers.set('content-type', 'application/json');
-      if (authHeader) {
-        headers.set('authorization', authHeader);
-      }
-
+      headers: Record<string, string> = {},
+      body: Record<string, unknown> = {},
+    ) => {
       return {
-        method,
-        url: 'http://localhost:3000/api/todos',
-        headers,
+        headers: {
+          get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
+        },
         json: jest.fn().mockResolvedValue(body),
       } as unknown as NextRequest;
     };
 
-    test('正常なTODO作成リクエスト', async () => {
-      // Arrange
-      const validTodo = { title: '新しいタスク', descriptions: '詳細な説明' };
-      const request = createMockRequest('POST', validTodo, 'Bearer valid-token');
-      const createdTodo = {
-        id: 1,
-        ...validTodo,
-        userId: 1,
-        createdAt: '2025-07-27T10:00:00.000Z',
-        updatedAt: '2025-07-27T10:00:00.000Z',
+    it('正常なTODO作成リクエスト', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': '1',
+        },
+        {
+          title: 'New Todo',
+          descriptions: 'New Description',
+        },
+      );
+
+      const mockCreatedTodo = {
+        id: '1',
+        title: 'New Todo',
+        descriptions: 'New Description',
+        userId: 'user-123',
       };
 
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
-      });
-      mockContainer.todoUseCase.createTodo.mockResolvedValue(createdTodo);
+      mockContainer.todoUseCase.createTodo.mockResolvedValue(mockCreatedTodo);
 
-      // Dynamic import after mock setup
-      const { POST } = await import('../route');
-
-      // Act
       await POST(request);
 
-      // Assert - TODO APIではuserIdが追加されたオブジェクトを渡している
-      const expectedTodoInput = { ...validTodo, userId: 1 };
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(mockContainer.todoUseCase.createTodo).toHaveBeenCalledWith(
-        expectedTodoInput,
-      );
-      expect(responseLib.success).toHaveBeenCalledWith(
-        createdTodo,
+      expect(mockContainer.todoUseCase.createTodo).toHaveBeenCalledWith({
+        title: 'New Todo',
+        descriptions: 'New Description',
+        userId: 'user-123',
+      });
+      expect(mockResponseLib.success).toHaveBeenCalledWith(
+        mockCreatedTodo,
         'Todo created successfully',
       );
     });
 
-    test('認証トークンが無効な場合は401エラーを返す', async () => {
-      // Arrange
+    it('認証ヘッダーが無い場合は401エラーを返す', async () => {
       const request = createMockRequest(
-        'POST',
-        { title: 'テストタスク' },
-        'Bearer expired-token',
+        {},
+        {
+          title: 'New Todo',
+        },
       );
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: false,
-        error: 'Token expired',
-      });
 
-      // Dynamic import after mock setup
-      const { POST } = await import('../route');
-
-      // Act
       await POST(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(responseLib.unauthorized).toHaveBeenCalledWith('Token expired');
-      expect(mockContainer.todoUseCase.createTodo).not.toHaveBeenCalled();
+      expect(mockResponseLib.unauthorized).toHaveBeenCalledWith(
+        'Authentication required',
+      );
     });
 
-    test('バリデーションエラーの場合は400エラーを返す', async () => {
-      // Arrange
-      const invalidTodo = { descriptions: '説明のみでタイトルなし' }; // titleが必須なのに欠けている
-      const request = createMockRequest('POST', invalidTodo, 'Bearer valid-token');
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
-      });
+    it('バリデーションエラーが発生した場合は400エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': '1',
+        },
+        {
+          // titleが空文字でバリデーションエラー
+          title: '',
+          descriptions: 'Test description',
+        },
+      );
 
-      // Dynamic import after mock setup
-      const { POST } = await import('../route');
-
-      // Act
       await POST(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
-      expect(mockAuthMiddleware.authenticate).toHaveBeenCalledWith(request);
-      expect(responseLib.error).toHaveBeenCalledWith(
+      expect(mockResponseLib.error).toHaveBeenCalledWith(
         expect.stringContaining('Invalid input:'),
       );
-      expect(mockContainer.todoUseCase.createTodo).not.toHaveBeenCalled();
     });
 
-    test('予期しないエラーが発生した場合は500エラーを返す', async () => {
-      // Arrange
-      const validTodo = { title: '新しいタスク', descriptions: '詳細な説明' };
-      const request = createMockRequest('POST', validTodo, 'Bearer valid-token');
-      mockAuthMiddleware.authenticate.mockReturnValue({
-        success: true,
-        user: { userId: 1, username: 'testuser', role: 4 },
-      });
-      mockContainer.todoUseCase.createTodo.mockRejectedValue(
-        new Error('Database error'),
-      );
+    it('JSON解析エラーが発生した場合は500エラーを返す', async () => {
+      const mockErrorRequest = {
+        headers: {
+          get: jest.fn((name: string) => {
+            if (name.toLowerCase() === 'x-user-id') return 'user-123';
+            if (name.toLowerCase() === 'x-user-role') return '1';
+            return null;
+          }),
+        },
+        json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
+      } as unknown as NextRequest;
 
-      // console.error をモック
+      // console.errorをモック
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      // Dynamic import after mock setup
-      const { POST } = await import('../route');
+      await POST(mockErrorRequest);
 
-      // Act
+      expect(mockResponseLib.error).toHaveBeenCalledWith('Invalid JSON');
+      expect(consoleSpy).toHaveBeenCalledWith('Create todo error:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+
+    it('データベースエラーが発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': '1',
+        },
+        {
+          title: 'New Todo',
+          descriptions: 'Test description',
+        },
+      );
+
+      // console.errorをモック
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockContainer.todoUseCase.createTodo.mockRejectedValue(
+        new Error('Database connection error'),
+      );
+
       await POST(request);
 
-      // Assert
-      const responseLib = jest.requireMock('@/lib/response');
+      expect(mockResponseLib.error).toHaveBeenCalledWith('Database connection error');
       expect(consoleSpy).toHaveBeenCalledWith('Create todo error:', expect.any(Error));
-      expect(responseLib.error).toHaveBeenCalledWith('Database error');
 
-      // モックを復元
+      consoleSpy.mockRestore();
+    });
+
+    it('非Errorオブジェクトの例外が発生した場合は500エラーを返す', async () => {
+      const request = createMockRequest(
+        {
+          'x-user-id': 'user-123',
+          'x-user-role': '1',
+        },
+        {
+          title: 'New Todo',
+          descriptions: 'Test description',
+        },
+      );
+
+      // console.errorをモック
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Errorオブジェクト以外の例外をスロー
+      mockContainer.todoUseCase.createTodo.mockRejectedValue('Unexpected error');
+
+      await POST(request);
+
+      expect(mockResponseLib.internalError).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('Create todo error:', 'Unexpected error');
+
       consoleSpy.mockRestore();
     });
   });

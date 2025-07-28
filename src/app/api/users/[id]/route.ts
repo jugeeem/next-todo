@@ -11,7 +11,6 @@
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { UserRole } from '@/domain/entities/User';
-import { AuthMiddleware } from '@/lib/auth-middleware';
 import { Container } from '@/lib/container';
 import {
   error,
@@ -67,15 +66,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
     const { id } = await params;
 
-    if (authResult.user.role > UserRole.MANAGER && authResult.user.userId !== id) {
+    // ロール変換（文字列から数値へ）
+    const role = parseInt(userRole, 10);
+    if (role > UserRole.MANAGER && userId !== id) {
       return forbidden('このユーザー情報にアクセスする権限がありません');
     }
 
@@ -139,15 +142,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
     const { id } = await params;
 
-    if (authResult.user.role > UserRole.MANAGER && authResult.user.userId !== id) {
+    // ロール変換（文字列から数値へ）
+    const role = parseInt(userRole, 10);
+    if (role > UserRole.MANAGER && userId !== id) {
       return forbidden('このユーザー情報を更新する権限がありません');
     }
 
@@ -156,14 +163,11 @@ export async function PATCH(
     const body = await request.json();
 
     // 管理者と一般ユーザーで使用できるスキーマを分ける
-    const schema =
-      authResult.user.role <= UserRole.MANAGER
-        ? adminUpdateUserSchema
-        : updateUserSchema;
+    const schema = role <= UserRole.MANAGER ? adminUpdateUserSchema : updateUserSchema;
     const validatedInput = schema.parse(body);
 
     let updatedUser: SafeUser;
-    if (authResult.user.role <= UserRole.MANAGER) {
+    if (role <= UserRole.MANAGER) {
       // 管理者の場合、パスワードやユーザー名更新も可能
       updatedUser = await container.userUseCase.updateUserAsAdmin(
         id,
@@ -235,19 +239,23 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   try {
-    const authMiddleware = new AuthMiddleware();
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!userId || !userRole) {
+      return unauthorized('Authentication required');
     }
 
-    if (authResult.user.role > UserRole.MANAGER) {
+    // ロール変換（文字列から数値へ）
+    const role = parseInt(userRole, 10);
+    if (role > UserRole.MANAGER) {
       return forbidden('管理者またはマネージャー権限が必要です');
     }
 
     const { id } = await params;
 
-    if (authResult.user.userId === id) {
+    if (userId === id) {
       return forbidden('自分自身を削除することはできません');
     }
 

@@ -142,7 +142,7 @@ export class AuthMiddleware {
    * }
    * ```
    */
-  authenticate(request: NextRequest): MiddlewareAuthResult {
+  async authenticate(request: NextRequest): Promise<MiddlewareAuthResult> {
     try {
       const authHeader = request.headers.get('authorization');
       const token = this.jwtService.extractTokenFromHeader(authHeader || '');
@@ -151,13 +151,15 @@ export class AuthMiddleware {
         return { success: false, error: 'No token provided' };
       }
 
-      const user = this.jwtService.verifyToken(token);
+      const user = await this.jwtService.verifyToken(token);
+
       if (!user) {
         return { success: false, error: 'Invalid token' };
       }
 
       return { success: true, user };
-    } catch {
+    } catch (error) {
+      console.error('Authentication error:', error);
       return { success: false, error: 'Authentication failed' };
     }
   }

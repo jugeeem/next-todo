@@ -1,5 +1,4 @@
 import type { NextRequest } from 'next/server';
-import { AuthMiddleware } from '@/lib/auth-middleware';
 import { Container } from '@/lib/container';
 import {
   error,
@@ -10,8 +9,6 @@ import {
   unauthorized,
 } from '@/lib/response';
 import { updateTodoSchema } from '@/types/validation';
-
-const authMiddleware = new AuthMiddleware();
 
 interface RouteParams {
   params: Promise<{
@@ -88,9 +85,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const container = Container.getInstance();
@@ -100,7 +99,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return notFound('Todo not found');
     }
 
-    if (todo.userId !== authResult.user.userId) {
+    if (todo.userId !== userId) {
       return forbidden('Access denied');
     }
 
@@ -208,9 +207,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const body = await request.json();
@@ -229,7 +230,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return notFound('Todo not found');
     }
 
-    if (existingTodo.userId !== authResult.user.userId) {
+    if (existingTodo.userId !== userId) {
       return forbidden('Access denied');
     }
 
@@ -307,9 +308,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const container = Container.getInstance();
@@ -319,7 +322,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return notFound('Todo not found');
     }
 
-    if (existingTodo.userId !== authResult.user.userId) {
+    if (existingTodo.userId !== userId) {
       return forbidden('Access denied');
     }
 

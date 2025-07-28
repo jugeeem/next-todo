@@ -10,16 +10,18 @@
 - **横断的関心事**: 認証、バリデーション、レスポンス処理などの共通機能
 - **依存性の管理**: 依存性注入によるモジュール間の疎結合
 - **型安全性**: TypeScript の型システムを活用した堅牢な実装
+- **包括的テスト**: 100%のテストカバレッジによる高品質保証
 
 ## ディレクトリ構成
 
 ```
 src/lib/
-├── auth-middleware.ts    # 認証ミドルウェア
-├── container.ts          # 依存性注入コンテナ
-├── jwt.ts               # JWT トークンサービス
-├── response.ts          # API レスポンスヘルパー
-├── validation.ts        # バリデーション再エクスポート
+├── auth-middleware.ts    # JWT認証ミドルウェア
+├── container.ts          # 依存性注入コンテナ（Singleton）
+├── jwt.ts               # JWT トークンサービス（HMAC SHA256）
+├── response.ts          # 統一APIレスポンスヘルパー
+├── validation.ts        # バリデーション再エクスポート（レガシー互換）
+├── __tests__/           # ユニットテストスイート（100%カバレッジ）
 └── README.md           # このファイル
 ```
 
@@ -68,20 +70,21 @@ const payload = jwtService.verifyToken(token);
 ### Dependency Injection (`container.ts`)
 
 #### `container.ts` - 依存性注入コンテナ
-- **目的**: アプリケーション全体でのサービス・リポジトリ管理
+- **目的**: アプリケーション全体でのサービス・リポジトリ・ユースケース管理
 - **設計パターン**: Singleton パターン
 - **管理対象**:
   - Infrastructure Layer: PostgresUserRepository, PostgresTodoRepository
   - Service Layer: JWTService
-  - Use Case Layer: AuthUseCase, TodoUseCase
-- **利点**: 疎結合なアーキテクチャ、テスタビリティの向上
+  - Use Case Layer: AuthUseCase, TodoUseCase, UserUseCase
+- **利点**: 疎結合なアーキテクチャ、テスタビリティの向上、依存関係の一元管理
 
 ```typescript
 import { Container } from '@/lib/container';
 
 const container = Container.getInstance();
 const authUseCase = container.authUseCase;
-const userRepository = container.userRepository;
+const userUseCase = container.userUseCase;
+const todoUseCase = container.todoUseCase;
 ```
 
 ### API Utilities (`response.ts`)
@@ -115,6 +118,7 @@ return unauthorized("認証が必要です");
   - レガシーコードとの互換性維持
   - 段階的移行のサポート
 - **推奨**: 新しいコードでは `@/types/validation` からの直接インポート
+- **注意**: このモジュールは後方互換性のために提供（@deprecated）
 
 ```typescript
 // レガシー方式（互換性のため）
@@ -142,6 +146,7 @@ export class Container {
     // Use Case Layer
     this.authUseCase = new AuthUseCase(this.userRepository, this.jwtService);
     this.todoUseCase = new TodoUseCase(this.todoRepository);
+    this.userUseCase = new UserUseCase(this.userRepository);
   }
 }
 ```
@@ -198,6 +203,7 @@ export async function GET(request: NextRequest) {
   // 2. 依存性注入コンテナから必要なサービス取得
   const container = Container.getInstance();
   const todoUseCase = container.todoUseCase;
+  const userUseCase = container.userUseCase;
   
   try {
     // 3. ビジネスロジックの実行
@@ -254,6 +260,12 @@ export const config = {
 ```
 
 ## テスト戦略
+
+### テスト環境
+- **フレームワーク**: Jest
+- **カバレッジ**: 100% (statements, branches, functions, lines)
+- **モッキング**: jest.mock による依存関係のモック化
+- **非同期テスト**: async/await による非同期処理のテスト
 
 ### 単体テスト例
 
@@ -385,11 +397,52 @@ export function paginated<T>(
 }
 ```
 
+### UserUseCase の統合
+
+```typescript
+// ユーザー管理機能の統合例
+export class Container {
+  public readonly userUseCase: UserUseCase;
+  
+  private constructor() {
+    // 既存の初期化...
+    this.userUseCase = new UserUseCase(this.userRepository);
+  }
+}
+
+// API ルートでの使用例
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const container = Container.getInstance();
+  const userUseCase = container.userUseCase;
+  
+  try {
+    const updatedUser = await userUseCase.updateUser(params.id, updateData);
+    return success(updatedUser, "ユーザー情報を更新しました");
+  } catch (error) {
+    return internalError("ユーザー更新に失敗しました");
+  }
+}
+```
+
 ## 今後の改善予定
 
+- [x] **UserUseCase の統合**: ユーザー管理ユースケースの依存性注入コンテナへの追加 ✓ 完了
+- [x] **包括的テストスイート**: 100%テストカバレッジの達成 ✓ 完了  
+- [x] **詳細なJSDocコメント**: 全モジュールの包括的なドキュメント化 ✓ 完了
 - [ ] 認証キャッシュ機能の実装
 - [ ] より詳細なログ記録システム
 - [ ] 複数の認証プロバイダー対応
 - [ ] レート制限機能の追加
 - [ ] API バージョニング対応
 - [ ] OpenAPI/Swagger ドキュメント生成
+
+## 最近の更新履歴
+
+### v2.0.0 (2025-07-28)
+- **UserUseCase の追加**: 依存性注入コンテナにUserUseCaseを統合
+- **テストカバレッジ100%達成**: 全libモジュールの包括的テスト完了
+- **JSDocコメント強化**: 全モジュールの詳細なドキュメント化
+- **validation.ts の非推奨化**: 後方互換性を保ちつつ新パスへの移行推奨

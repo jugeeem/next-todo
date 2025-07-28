@@ -226,7 +226,7 @@ export class AuthUseCase {
 
     const user = await this.userRepository.create(input);
 
-    const token = this.jwtService.generateToken(user);
+    const token = await this.jwtService.generateToken(user);
 
     const { passwordHash: _, ...userWithoutPassword } = user;
 
@@ -353,7 +353,7 @@ export class AuthUseCase {
     }
 
     // Generate token
-    const token = this.jwtService.generateToken(user);
+    const token = await this.jwtService.generateToken(user);
 
     // Return user without password hash
     const { passwordHash: _p, ...userWithoutPassword } = user;

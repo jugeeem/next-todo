@@ -20,9 +20,9 @@
  * @since 1.0.0
  */
 
-import jwt from 'jsonwebtoken';
+import { jwtVerify, SignJWT } from 'jose';
 import type { User } from '@/domain/entities/User';
-import type { JWTPayload } from '@/types/auth';
+import type { JWTPayload as CustomJWTPayload } from '@/types/auth';
 
 /**
  * JWT サービスクラス
@@ -66,7 +66,7 @@ import type { JWTPayload } from '@/types/auth';
  */
 export class JWTService {
   /**
-   * JWT 署名用秘密鍵
+   * JWT 署名用秘密鍵（Uint8Array形式）
    *
    * JWT トークンの署名と検証に使用される秘密鍵です。
    * 環境変数 JWT_SECRET から読み込まれ、設定されていない場合は
@@ -75,7 +75,7 @@ export class JWTService {
    * @private
    * @readonly
    */
-  private secret: string;
+  private secret: Uint8Array;
 
   /**
    * JWTService コンストラクタ
@@ -94,7 +94,8 @@ export class JWTService {
    * ```
    */
   constructor() {
-    this.secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const secretString = process.env.JWT_SECRET || 'fallback-secret-key';
+    this.secret = new TextEncoder().encode(secretString);
   }
 
   /**
@@ -129,16 +130,20 @@ export class JWTService {
    * });
    * ```
    */
-  generateToken(user: User): string {
-    const payload: JWTPayload = {
+  async generateToken(user: User): Promise<string> {
+    const payload = {
       userId: user.id,
       username: user.username,
       role: user.role,
     };
 
-    return jwt.sign(payload, this.secret, {
-      expiresIn: '24h',
-    });
+    const jwt = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(this.secret);
+
+    return jwt;
   }
 
   /**
@@ -182,11 +187,15 @@ export class JWTService {
    * console.log(result); // null
    * ```
    */
-  verifyToken(token: string): JWTPayload | null {
+  async verifyToken(token: string): Promise<CustomJWTPayload | null> {
     try {
-      const decoded = jwt.verify(token, this.secret) as JWTPayload;
-      return decoded;
-    } catch {
+      const { payload } = await jwtVerify(token, this.secret);
+      return payload as unknown as CustomJWTPayload;
+    } catch (error) {
+      console.error(
+        'Token verification failed:',
+        error instanceof Error ? error.message : String(error),
+      );
       return null;
     }
   }

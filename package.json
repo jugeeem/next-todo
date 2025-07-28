@@ -24,6 +24,7 @@
     "framer-motion": "^12.23.7",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
+    "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
     "next": "15.4.3",
     "pg": "^8.12.0",

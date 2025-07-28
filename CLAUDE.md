@@ -6,17 +6,19 @@
 
 ### アーキテクチャ哲学
 - **クリーンアーキテクチャ**: 依存性の逆転原則に基づく層分離
-- **テスト駆動開発**: 98.54%のコードカバレッジを維持
+- **テスト駆動開発**: 99.5%のコードカバレッジを維持
 - **型安全性**: TypeScript による厳密な型チェック
 - **コード品質**: Biome による一貫したコードスタイル
 
 ### 技術スタック
 ```
-Frontend: Next.js 15.4.3 + React 19.1.0 + TypeScript 5.8.3
+Frontend: Next.js 15.4.3 + React 19.1.0 + TypeScript 5.8.3 + Turbopack
 Backend: Next.js App Router + PostgreSQL 16
-Testing: Jest 30.0.5 + Testing Library
+Testing: Jest 30.0.5 + Testing Library + JSDOM
 Quality: Biome 2.1.2 (ESLint + Prettier 代替)
 Container: Docker + Docker Compose
+UI Framework: HeroUI 2.8.1 + Framer Motion 12.23.7 + Tailwind CSS 4
+Libraries: bcryptjs, JOSE 6.0.12, Zod 3.22.4, UUID 9.0.1
 ```
 
 ## 🏗️ アーキテクチャ設計原則
@@ -26,6 +28,7 @@ Container: Docker + Docker Compose
 src/
 ├── app/api/           # 🌐 インターフェース層（Next.js App Router）
 ├── domain/            # 🎯 ドメイン層（ビジネスルール）
+├── features/          # 🎨 フィーチャー層（UI コンポーネント）
 ├── usecases/         # 🔄 ユースケース層（アプリケーションサービス）
 ├── infrastructure/   # 🏗️ インフラストラクチャ層（外部依存）
 ├── lib/              # 🛠️ 共通ライブラリ（横断的関心事）
@@ -35,6 +38,7 @@ src/
 ### 依存性の方向
 ```
 app/api → usecases → domain
+features → usecases → domain
 infrastructure → domain
 lib → (すべての層で利用可能)
 ```
@@ -77,27 +81,30 @@ npm start
 ## 🧪 テスト戦略
 
 ### テストカバレッジ要件
-- **ステートメント**: 95%以上
-- **ブランチ**: 90%以上
-- **関数**: 95%以上
-- **ライン**: 95%以上
+- **ステートメント**: 99%以上（現在: 99.5%）
+- **ブランチ**: 95%以上（現在: 96.7%）
+- **関数**: 95%以上（現在: 95.38%）
+- **ライン**: 99%以上（現在: 99.5%）
 
 ### テスト構成
 ```bash
 src/
-├── app/api/**/__tests__/     # APIエンドポイントテスト
-├── usecases/**/__tests__/    # ビジネスロジックテスト
-├── infrastructure/**/__tests__/ # データアクセステスト
-└── lib/**/__tests__/         # ユーティリティテスト
+├── app/api/**/__tests__/        # APIエンドポイントテスト（17スイート）
+├── usecases/**/__tests__/       # ビジネスロジックテスト（86テスト・100%カバレッジ）
+├── infrastructure/**/__tests__/ # データアクセステスト（99%+カバレッジ）
+└── lib/**/__tests__/            # ユーティリティテスト（100%カバレッジ）
 ```
 
 ### テスト実行コマンド
 ```bash
-# 全テスト実行
+# 全テスト実行（326テスト・5.4秒）
 npm test
 
 # カバレッジ付きテスト
 npm run test:coverage
+
+# ウォッチモードでテスト実行
+npm run test:watch
 
 # 特定テスト実行
 npm test -- --testPathPattern="auth"
@@ -133,13 +140,25 @@ src/domain/
     └── TodoRepository.ts        # Todoリポジトリインターフェース
 ```
 
+#### フィーチャー層
+```
+src/features/
+├── auth/                        # 認証関連UIコンポーネント
+│   ├── login/                   # ログインフォーム
+│   └── register/                # ユーザー登録フォーム
+├── todos/                       # Todo関連UIコンポーネント
+│   └── ...                      # Todo管理UI
+└── users/                       # ユーザー関連UIコンポーネント
+    └── ...                      # ユーザー管理UI
+```
+
 #### ユースケース層
 ```
 src/usecases/
-├── AuthUseCase.ts              # 認証ビジネスロジック
-├── UserUseCase.ts              # ユーザー管理ビジネスロジック
-├── TodoUseCase.ts              # Todo管理ビジネスロジック
-└── __tests__/                  # ユースケーステスト
+├── AuthUseCase.ts              # 認証ビジネスロジック（26テスト）
+├── UserUseCase.ts              # ユーザー管理ビジネスロジック（25テスト）
+├── TodoUseCase.ts              # Todo管理ビジネスロジック（35テスト）
+└── __tests__/                  # ユースケーステスト（100%カバレッジ）
 ```
 
 ### 2. TypeScript型定義パターン
@@ -259,6 +278,50 @@ export const UserRegistrationSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.number().int().min(1).max(8).optional(),
 });
+```
+
+### 5. UI コンポーネント規約
+
+#### HeroUI + Tailwind CSS 4 パターン
+```typescript
+// src/features/auth/login/LoginForm.tsx
+import { Button, Input, Card, CardBody } from '@heroui/react';
+import { motion } from 'framer-motion';
+
+export function LoginForm() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center justify-center min-h-screen"
+    >
+      <Card className="w-full max-w-md">
+        <CardBody className="p-6">
+          <Input
+            label="ユーザー名"
+            placeholder="ユーザー名を入力"
+            variant="bordered"
+            className="mb-4"
+          />
+          <Input
+            label="パスワード"
+            type="password"
+            placeholder="パスワードを入力"
+            variant="bordered"
+            className="mb-6"
+          />
+          <Button
+            color="primary"
+            size="lg"
+            className="w-full"
+          >
+            ログイン
+          </Button>
+        </CardBody>
+      </Card>
+    </motion.div>
+  );
+}
 ```
 
 ## 🔧 実装パターン
@@ -496,18 +559,15 @@ DB_CONTAINER_PORT=5432
 DB_NAME=next_todo
 DB_USER=postgres
 DB_PASSWORD=password
-JWT_SECRET=your-secret-key
+JWT_SECRET=your-secret-key-here
 NODE_ENV=development
-NGINX_LOCAL_PORT=8080
-NGINX_CONTAINER_PORT=80
 ```
 
 #### Docker Compose サービス構成
 ```yaml
 services:
-  db:      # PostgreSQL データベース
-  node:    # Next.js アプリケーション
-  nginx:   # リバースプロキシ
+  db:      # PostgreSQL 16 データベース
+  app:     # Next.js 15.4.3 アプリケーション（Turbopack）
 ```
 
 ### 3. パフォーマンス最適化
@@ -533,10 +593,10 @@ const todosWithUsers = await this.todoRepository.findAllWithUsers();
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
 ### プロジェクト固有リソース
-- `README.md`: プロジェクト概要とセットアップ
+- `README.md`: プロジェクト概要とセットアップ（最新仕様対応）
 - `postman/`: API テストコレクション
-- `coverage/`: テストカバレッジレポート
-- `.docker/`: Docker設定ファイル
+- `coverage/`: テストカバレッジレポート（99.5%達成）
+- `src/*/README.md`: 各層の詳細ドキュメント
 
 ---
 

@@ -89,6 +89,28 @@ jest.mock('next/headers', () => ({
   }),
 }));
 
+// jose ライブラリのモック設定（Edge Runtime対応）
+jest.mock('jose', () => ({
+  SignJWT: jest.fn().mockImplementation(() => ({
+    setProtectedHeader: jest.fn().mockReturnThis(),
+    setIssuedAt: jest.fn().mockReturnThis(),
+    setExpirationTime: jest.fn().mockReturnThis(),
+    sign: jest.fn().mockResolvedValue('mock-jwt-token'),
+  })),
+  jwtVerify: jest.fn().mockImplementation((token: string) => {
+    if (token === 'valid-token') {
+      return Promise.resolve({
+        payload: {
+          userId: 'user-123',
+          username: 'testuser',
+          role: 1,
+        },
+      });
+    }
+    throw new Error('Invalid token');
+  }),
+}));
+
 // fetch() グローバルモック設定
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 

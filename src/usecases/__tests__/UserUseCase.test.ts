@@ -182,13 +182,29 @@ describe('UserUseCase', () => {
     });
 
     it('should throw error when user not found', async () => {
-      const userId = 'nonexistent-id';
-      const updateInput: UpdateUserInput = { firstName: '花子' };
+      const userId = 'non-existent-id';
+      const updateInput: UpdateUserInput = {
+        firstName: 'Updated',
+      };
 
       mockUserRepository.findById.mockResolvedValue(null);
 
       await expect(userUseCase.updateUser(userId, updateInput)).rejects.toThrow(
         'ユーザーが見つかりません',
+      );
+    });
+
+    it('should throw error when user update fails', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const updateInput: UpdateUserInput = {
+        firstName: 'Updated',
+      };
+
+      mockUserRepository.findById.mockResolvedValue(sampleUser);
+      mockUserRepository.update.mockResolvedValue(null);
+
+      await expect(userUseCase.updateUser(userId, updateInput)).rejects.toThrow(
+        'ユーザーの更新に失敗しました',
       );
     });
   });
@@ -252,16 +268,190 @@ describe('UserUseCase', () => {
   });
 
   describe('updateUserAsAdmin', () => {
-    it('should update user role as admin', async () => {
+    beforeEach(() => {
+      const mockDatabase = jest.requireMock('@/infrastructure/database/connection');
+      mockDatabase.database.query.mockClear();
+    });
+
+    it('should update user basic info as admin', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        firstName: 'Updated',
+        lastName: 'Admin',
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = { ...sampleUser, ...adminUpdateInput };
+
+      mockUserRepository.findById.mockResolvedValue(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await userUseCase.updateUserAsAdmin(userId, adminUpdateInput);
+
+      expect(result).not.toHaveProperty('passwordHash');
+      expect(result.firstName).toBe('Updated');
+      expect(result.lastName).toBe('Admin');
+      expect(result.role).toBe(2);
+    });
+
+    it('should throw error when user not found in updateUserAsAdmin', async () => {
+      const userId = 'non-existent-id';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        role: 2 as UserRole,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        userUseCase.updateUserAsAdmin(userId, adminUpdateInput),
+      ).rejects.toThrow('ユーザーが見つかりません');
+    });
+
+    it('should throw error when basic update fails in updateUserAsAdmin', async () => {
       const userId = '550e8400-e29b-41d4-a716-446655440000';
       const adminUpdateInput: AdminUpdateUserInput = {
         role: 2 as UserRole,
       };
 
-      await userUseCase.updateUserAsAdmin(userId, adminUpdateInput);
+      mockUserRepository.findById.mockResolvedValue(sampleUser);
+      mockUserRepository.update.mockResolvedValue(null);
 
-      // データベースへの直接アクセスのため、実装が完了していることのみ確認
-      expect(true).toBe(true);
+      await expect(
+        userUseCase.updateUserAsAdmin(userId, adminUpdateInput),
+      ).rejects.toThrow('ユーザーの更新に失敗しました');
+    });
+
+    it('should update password when provided', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        password: 'newpassword123',
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = { ...sampleUser, role: 2 as UserRole };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+      mockUserRepository.findById.mockResolvedValueOnce(updatedUser);
+
+      const result = await userUseCase.updateUserAsAdmin(userId, adminUpdateInput);
+
+      const mockDatabase = jest.requireMock('@/infrastructure/database/connection');
+      expect(mockDatabase.database.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE users'),
+        expect.arrayContaining([
+          '$2a$12$mockedHashedPassword',
+          expect.any(Date),
+          userId,
+        ]),
+      );
+      expect(result).not.toHaveProperty('passwordHash');
+    });
+
+    it('should throw error when user not found after password update', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        password: 'newpassword123',
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = { ...sampleUser, role: 2 as UserRole };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+      mockUserRepository.findById.mockResolvedValueOnce(null);
+
+      await expect(
+        userUseCase.updateUserAsAdmin(userId, adminUpdateInput),
+      ).rejects.toThrow('ユーザーの更新後の取得に失敗しました');
+    });
+
+    it('should update username when provided and not duplicate', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        username: 'newusername',
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = {
+        ...sampleUser,
+        username: 'newusername',
+        role: 2 as UserRole,
+      };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.findById.mockResolvedValueOnce(updatedUser);
+
+      const result = await userUseCase.updateUserAsAdmin(userId, adminUpdateInput);
+
+      const mockDatabase = jest.requireMock('@/infrastructure/database/connection');
+      expect(mockDatabase.database.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE users'),
+        expect.arrayContaining(['newusername', expect.any(Date), userId]),
+      );
+      expect(result.username).toBe('newusername');
+    });
+
+    it('should throw error when username already exists', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        username: 'existinguser',
+        role: 2 as UserRole,
+      };
+
+      const existingUserWithSameUsername = {
+        ...sampleUser,
+        id: 'different-id',
+        username: 'existinguser',
+      };
+      const updatedUser = { ...sampleUser, role: 2 as UserRole };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+      mockUserRepository.findByUsername.mockResolvedValue(existingUserWithSameUsername);
+
+      await expect(
+        userUseCase.updateUserAsAdmin(userId, adminUpdateInput),
+      ).rejects.toThrow('このユーザー名は既に使用されています');
+    });
+
+    it('should allow updating to same username', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        username: sampleUser.username, // 同じユーザー名
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = { ...sampleUser, role: 2 as UserRole };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await userUseCase.updateUserAsAdmin(userId, adminUpdateInput);
+
+      expect(result).not.toHaveProperty('passwordHash');
+      expect(result.role).toBe(2);
+    });
+
+    it('should throw error when user not found after username update', async () => {
+      const userId = '550e8400-e29b-41d4-a716-446655440000';
+      const adminUpdateInput: AdminUpdateUserInput = {
+        username: 'newusername',
+        role: 2 as UserRole,
+      };
+
+      const updatedUser = { ...sampleUser, role: 2 as UserRole };
+
+      mockUserRepository.findById.mockResolvedValueOnce(sampleUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.findById.mockResolvedValueOnce(null);
+
+      await expect(
+        userUseCase.updateUserAsAdmin(userId, adminUpdateInput),
+      ).rejects.toThrow('ユーザーの更新後の取得に失敗しました');
     });
   });
 

@@ -1,10 +1,7 @@
 import type { NextRequest } from 'next/server';
-import { AuthMiddleware } from '@/lib/auth-middleware';
 import { Container } from '@/lib/container';
 import { error, internalError, success, unauthorized } from '@/lib/response';
 import { createTodoSchema } from '@/types/validation';
-
-const authMiddleware = new AuthMiddleware();
 
 /**
  * ユーザーのTODOリスト取得API
@@ -67,13 +64,15 @@ const authMiddleware = new AuthMiddleware();
  */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const container = Container.getInstance();
-    const todos = await container.todoUseCase.getTodosByUserId(authResult.user.userId);
+    const todos = await container.todoUseCase.getTodosByUserId(userId);
 
     return success(todos);
   } catch (err) {
@@ -160,9 +159,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = authMiddleware.authenticate(request);
-    if (!authResult.success) {
-      return unauthorized(authResult.error);
+    // ミドルウェアで認証済みのユーザー情報を取得
+    const userId = request.headers.get('x-user-id');
+
+    if (!userId) {
+      return unauthorized('Authentication required');
     }
 
     const body = await request.json();
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
     const container = Container.getInstance();
     const todoInput = {
       ...validationResult.data,
-      userId: authResult.user.userId,
+      userId: userId,
     };
 
     const todo = await container.todoUseCase.createTodo(todoInput);
