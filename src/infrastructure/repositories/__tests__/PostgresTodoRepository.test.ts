@@ -52,6 +52,7 @@ describe('PostgresTodoRepository', () => {
     id: '123e4567-e89b-12d3-a456-426614174000',
     title: 'テストタスク',
     descriptions: 'テスト用のタスクです',
+    completed: false,
     createdAt: new Date('2024-01-01T10:00:00Z'),
     createdBy: 'system',
     updatedAt: new Date('2024-01-01T11:00:00Z'),
@@ -67,6 +68,7 @@ describe('PostgresTodoRepository', () => {
     id: '123e4567-e89b-12d3-a456-426614174000',
     title: 'テストタスク',
     descriptions: 'テスト用のタスクです',
+    completed: false,
     created_at: '2024-01-01T10:00:00Z',
     created_by: 'system',
     updated_at: '2024-01-01T11:00:00Z',
@@ -93,7 +95,7 @@ describe('PostgresTodoRepository', () => {
       // Assert
       expect(result).toEqual(sampleTodo);
       expect(mockDatabase.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT id, title, descriptions'),
+        expect.stringContaining('SELECT id, title, descriptions, completed'),
         [todoId],
       );
       expect(mockDatabase.query).toHaveBeenCalledWith(
@@ -201,6 +203,7 @@ describe('PostgresTodoRepository', () => {
       const createInput: CreateTodoInput = {
         title: '新しいタスク',
         descriptions: '新しいタスクの説明',
+        completed: false,
         userId: 'user-123',
       };
       const mockId = 'new-todo-id';
@@ -214,6 +217,7 @@ describe('PostgresTodoRepository', () => {
         id: mockId,
         title: createInput.title,
         descriptions: createInput.descriptions,
+        completed: createInput.completed,
         created_at: mockDate.toISOString(),
         created_by: 'system',
         updated_at: mockDate.toISOString(),
@@ -237,6 +241,7 @@ describe('PostgresTodoRepository', () => {
       expect(result.id).toBe(mockId);
       expect(result.title).toBe(createInput.title);
       expect(result.descriptions).toBe(createInput.descriptions);
+      expect(result.completed).toBe(createInput.completed);
       expect(result.userId).toBe(createInput.userId);
       expect(mockDatabase.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO todos'),
@@ -244,6 +249,7 @@ describe('PostgresTodoRepository', () => {
           mockId,
           createInput.title,
           createInput.descriptions,
+          createInput.completed,
           createInput.userId,
           mockDate,
           mockDate,
@@ -271,6 +277,7 @@ describe('PostgresTodoRepository', () => {
         id: mockId,
         title: createInput.title,
         descriptions: null,
+        completed: false,
         created_at: mockDate.toISOString(),
         created_by: 'system',
         updated_at: mockDate.toISOString(),
@@ -294,7 +301,15 @@ describe('PostgresTodoRepository', () => {
       expect(result.descriptions).toBeNull();
       expect(mockDatabase.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO todos'),
-        [mockId, createInput.title, null, createInput.userId, mockDate, mockDate],
+        [
+          mockId,
+          createInput.title,
+          null,
+          false,
+          createInput.userId,
+          mockDate,
+          mockDate,
+        ],
       );
 
       // モックをリストア
@@ -472,6 +487,46 @@ describe('PostgresTodoRepository', () => {
 
       // Assert
       expect(result).toBeNull();
+    });
+
+    it('ToDoタスクの完了状態を正常に更新できる', async () => {
+      // Arrange
+      const todoId = '123e4567-e89b-12d3-a456-426614174000';
+      const updateInput: UpdateTodoInput = {
+        completed: true,
+      };
+      const mockDate = new Date('2024-01-01T13:00:00Z');
+
+      const originalDate = global.Date;
+      global.Date = jest.fn(() => mockDate) as unknown as DateConstructor;
+
+      const updatedDbRow = {
+        ...sampleDbRow,
+        completed: updateInput.completed,
+        updated_at: mockDate.toISOString(),
+      };
+
+      mockDatabase.query.mockResolvedValue({
+        rows: [updatedDbRow],
+        rowCount: 1,
+        command: 'UPDATE',
+        oid: 0,
+        fields: [],
+      });
+
+      // Act
+      const result = await repository.update(todoId, updateInput);
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result?.completed).toBe(updateInput.completed);
+      expect(mockDatabase.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE todos'),
+        [updateInput.completed, mockDate, todoId],
+      );
+
+      // モックをリストア
+      global.Date = originalDate;
     });
   });
 

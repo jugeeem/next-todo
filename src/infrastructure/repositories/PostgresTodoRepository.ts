@@ -33,6 +33,7 @@ import { database } from '@/infrastructure/database/connection';
  *   id UUID PRIMARY KEY,
  *   title VARCHAR(32) NOT NULL,
  *   descriptions VARCHAR(128),
+ *   completed BOOLEAN NOT NULL DEFAULT FALSE,
  *   user_id UUID NOT NULL REFERENCES users(id),
  *   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
  *   created_by VARCHAR(255) NOT NULL DEFAULT 'system',
@@ -73,7 +74,7 @@ export class PostgresTodoRepository implements TodoRepository {
    */
   async findById(id: string): Promise<Todo | null> {
     const query = `
-      SELECT id, title, descriptions, created_at, created_by, updated_at, updated_by, deleted, user_id
+      SELECT id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
       FROM todos 
       WHERE id = $1 AND deleted = FALSE
     `;
@@ -122,7 +123,7 @@ export class PostgresTodoRepository implements TodoRepository {
    */
   async findByUserId(userId: string): Promise<Todo[]> {
     const query = `
-      SELECT id, title, descriptions, created_at, created_by, updated_at, updated_by, deleted, user_id
+      SELECT id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
       FROM todos 
       WHERE user_id = $1 AND deleted = FALSE
       ORDER BY created_at DESC
@@ -170,15 +171,16 @@ export class PostgresTodoRepository implements TodoRepository {
     const now = new Date();
 
     const query = `
-      INSERT INTO todos (id, title, descriptions, user_id, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, title, descriptions, created_at, created_by, updated_at, updated_by, deleted, user_id
+      INSERT INTO todos (id, title, descriptions, completed, user_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
     `;
 
     const values = [
       id,
       input.title,
       input.descriptions || null,
+      input.completed ?? false,
       input.userId,
       now,
       now,
@@ -243,6 +245,11 @@ export class PostgresTodoRepository implements TodoRepository {
       values.push(input.descriptions);
     }
 
+    if (input.completed !== undefined) {
+      updateFields.push(`completed = $${paramIndex++}`);
+      values.push(input.completed);
+    }
+
     if (updateFields.length === 0) {
       return this.findById(id);
     }
@@ -256,7 +263,7 @@ export class PostgresTodoRepository implements TodoRepository {
       UPDATE todos 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex} AND deleted = FALSE
-      RETURNING id, title, descriptions, created_at, created_by, updated_at, updated_by, deleted, user_id
+      RETURNING id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
     `;
 
     const result = await database.query(query, values);
@@ -348,7 +355,7 @@ export class PostgresTodoRepository implements TodoRepository {
    */
   async findAll(): Promise<Todo[]> {
     const query = `
-      SELECT id, title, descriptions, created_at, created_by, updated_at, updated_by, deleted, user_id
+      SELECT id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
       FROM todos 
       WHERE deleted = FALSE
       ORDER BY created_at DESC
@@ -369,6 +376,7 @@ export class PostgresTodoRepository implements TodoRepository {
    * - id → id (UUID文字列)
    * - title → title (文字列、必須)
    * - descriptions → descriptions (文字列 | undefined)
+   * - completed → completed (boolean)
    * - user_id → userId (UUID文字列)
    * - created_at → createdAt (Date)
    * - created_by → createdBy (文字列)
@@ -413,6 +421,7 @@ export class PostgresTodoRepository implements TodoRepository {
       id: row.id as string,
       title: row.title as string,
       descriptions: row.descriptions as string | undefined,
+      completed: row.completed as boolean,
       createdAt: new Date(row.created_at as string),
       createdBy: row.created_by as string,
       updatedAt: new Date(row.updated_at as string),

@@ -38,6 +38,7 @@ describe('TodoUseCase', () => {
     id: '550e8400-e29b-41d4-a716-446655440000',
     title: 'サンプルタスク',
     descriptions: 'テスト用のタスクです',
+    completed: false,
     createdAt: new Date('2024-01-01T00:00:00Z'),
     createdBy: 'test-user',
     updatedAt: new Date('2024-01-01T00:00:00Z'),
@@ -49,12 +50,14 @@ describe('TodoUseCase', () => {
   const sampleCreateInput: CreateTodoInput = {
     title: '新しいタスク',
     descriptions: '新規作成するタスクです',
+    completed: false,
     userId: 'user-123',
   };
 
   const sampleUpdateInput: UpdateTodoInput = {
     title: '更新されたタスク',
     descriptions: '更新されたタスクの説明',
+    completed: true,
   };
 
   beforeEach(() => {
@@ -562,6 +565,7 @@ describe('TodoUseCase', () => {
           id: '550e8400-e29b-41d4-a716-446655440000',
           title: '完全なタスク',
           descriptions: '全フィールドが設定されたタスク',
+          completed: false,
           createdAt: new Date('2024-01-01T00:00:00Z'),
           createdBy: 'user-1',
           updatedAt: new Date('2024-01-01T00:00:00Z'),

@@ -391,6 +391,21 @@ export const createTodoSchema = z.object({
     .string()
     .max(128, 'Description must be less than 128 characters')
     .optional(),
+
+  /**
+   * タスク完了状態（オプション）
+   *
+   * タスクが完了しているかどうかを示すブール値です。
+   * 省略した場合はfalse（未完了）として扱われます。
+   *
+   * @type {boolean | undefined}
+   * @default false
+   * @constraints
+   * - オプション項目
+   *
+   * @example true, false
+   */
+  completed: z.boolean().default(false).optional(),
 });
 
 /**
@@ -432,6 +447,7 @@ export const updateTodoSchema = z.object({
     .string()
     .max(128, 'Description must be less than 128 characters')
     .optional(),
+  completed: z.boolean().optional(),
 });
 
 // =====================================
@@ -558,3 +574,94 @@ export type CreateTodoValidation = z.infer<typeof createTodoSchema>;
  * ```
  */
 export type UpdateTodoValidation = z.infer<typeof updateTodoSchema>;
+
+/**
+ * パスワード変更バリデーションスキーマ
+ *
+ * ユーザーがパスワードを変更する際の入力データを検証するためのZodスキーマです。
+ * セキュリティ要件を満たし、現在のパスワード認証と新しいパスワードの妥当性を検証します。
+ *
+ * バリデーション項目:
+ * - 現在のパスワード: 必須
+ * - 新しいパスワード: 必須、最低6文字
+ * - パスワード確認: 必須、新しいパスワードと一致
+ *
+ * @constant changePasswordSchema
+ * @type {z.ZodObject}
+ *
+ * @example
+ * ```typescript
+ * // API ルートでの使用例
+ * export async function PUT(request: NextRequest) {
+ *   try {
+ *     const body = await request.json();
+ *     const validatedInput = changePasswordSchema.parse(body);
+ *
+ *     // パスワード変更処理
+ *     await userUseCase.changePassword(
+ *       userId,
+ *       validatedInput.currentPassword,
+ *       validatedInput.newPassword
+ *     );
+ *
+ *     return success(null, 'パスワードを変更しました');
+ *   } catch (error) {
+ *     if (error instanceof z.ZodError) {
+ *       return error('入力データが正しくありません', 400);
+ *     }
+ *     return internalError('パスワード変更に失敗しました');
+ *   }
+ * }
+ * ```
+ *
+ * @security
+ * - パスワード要件の強制
+ * - 確認パスワードによる入力ミス防止
+ * - 現在パスワードによる本人確認
+ */
+export const changePasswordSchema = z
+  .object({
+    /** 現在のパスワード（認証用、必須） */
+    currentPassword: z.string().min(1, 'Current password is required'),
+
+    /** 新しいパスワード（必須、最低6文字） */
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+
+    /** 新しいパスワードの確認（必須） */
+    confirmPassword: z.string().min(1, 'Password confirmation is required'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+/**
+ * パスワード変更バリデーション型
+ *
+ * changePasswordSchema から推論された TypeScript 型です。
+ * パスワード変更機能やフォーム処理で使用されます。
+ *
+ * @type ChangePasswordValidation
+ * @example
+ * ```typescript
+ * async function handlePasswordChange(formData: ChangePasswordValidation) {
+ *   try {
+ *     const result = await userUseCase.changePassword(
+ *       userId,
+ *       formData.currentPassword,
+ *       formData.newPassword
+ *     );
+ *
+ *     showSuccessMessage('パスワードを変更しました');
+ *     return result;
+ *   } catch (error) {
+ *     if (error.message === '現在のパスワードが間違っています') {
+ *       showErrorMessage('現在のパスワードが間違っています');
+ *     } else {
+ *       showErrorMessage('パスワード変更に失敗しました');
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export type ChangePasswordValidation = z.infer<typeof changePasswordSchema>;

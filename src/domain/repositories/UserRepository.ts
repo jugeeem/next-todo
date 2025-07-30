@@ -177,4 +177,41 @@ export interface UserRepository {
    * @todo 大量データ対応のためのページネーション実装を検討
    */
   findAll(): Promise<User[]>;
+
+  /**
+   * ユーザーパスワード変更
+   *
+   * 指定されたIDのユーザーのパスワードを変更します。
+   * 現在のパスワードの検証と新しいパスワードのハッシュ化を行います。
+   * セキュリティ上、現在のパスワードの検証が必須です。
+   *
+   * @param id - 対象ユーザーのID
+   * @param currentPassword - 現在のパスワード（プレーンテキスト）
+   * @param newPassword - 新しいパスワード（プレーンテキスト）
+   * @returns 更新されたユーザー情報、対象が見つからない場合はnull
+   * @throws {Error} ユーザーが見つからない、現在のパスワードが間違っている等
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const updatedUser = await userRepository.changePassword(
+   *     "user-123",
+   *     "currentPassword",
+   *     "newSecurePassword123"
+   *   );
+   *   if (updatedUser) {
+   *     console.log("パスワード変更完了");
+   *   }
+   * } catch (error) {
+   *   if (error.message === "現在のパスワードが間違っています") {
+   *     console.error("認証失敗");
+   *   }
+   * }
+   * ```
+   */
+  changePassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<User | null>;
 }

@@ -463,4 +463,59 @@ export class UserUseCase {
     const { passwordHash, ...safeUser } = user;
     return safeUser;
   }
+
+  /**
+   * ユーザーのパスワードを変更
+   *
+   * 現在のパスワードを確認してから新しいパスワードに変更します。
+   * セキュリティ上、現在のパスワードの検証が必須です。
+   * 実際のデータベース操作はリポジトリ層で行います。
+   *
+   * @param id - 対象ユーザーのID
+   * @param currentPassword - 現在のパスワード（プレーンテキスト）
+   * @param newPassword - 新しいパスワード（プレーンテキスト）
+   * @returns 更新されたユーザー情報（SafeUser型）
+   *
+   * @throws Error 'ユーザーが見つかりません' ユーザーが存在しない場合
+   * @throws Error '現在のパスワードが間違っています' パスワード認証失敗
+   * @throws Error パスワード更新時のデータベースエラー
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const updatedUser = await userUseCase.changePassword(
+   *     'user-id-123',
+   *     'currentPassword',
+   *     'newSecurePassword123'
+   *   );
+   *   console.log('パスワードを変更しました');
+   * } catch (error) {
+   *   if (error.message === '現在のパスワードが間違っています') {
+   *     console.error('パスワードが間違っています');
+   *   } else {
+   *     console.error('パスワード変更エラー:', error);
+   *   }
+   * }
+   * ```
+   */
+  async changePassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<SafeUser> {
+    // リポジトリ層でパスワード変更処理を実行
+    const updatedUser = await this.userRepository.changePassword(
+      id,
+      currentPassword,
+      newPassword,
+    );
+
+    if (!updatedUser) {
+      throw new Error('パスワードの更新に失敗しました');
+    }
+
+    // パスワードハッシュを除いた安全なユーザー情報を返す
+    const { passwordHash, ...safeUser } = updatedUser;
+    return safeUser;
+  }
 }

@@ -1007,4 +1007,42 @@ export class TodoUseCase {
   async getAllTodos(): Promise<Todo[]> {
     return this.todoRepository.findAll();
   }
+
+  /**
+   * ユーザーのTodo統計情報を取得します
+   *
+   * 指定されたユーザーIDに関連するTodoの統計情報を計算して返します。
+   * 総Todo数、完了数、進行中数、完了率などの情報を提供します。
+   *
+   * @param userId - 統計を取得するユーザーID
+   * @returns Promise<TodoStats> Todo統計情報
+   *
+   * @example
+   * ```typescript
+   * const stats = await todoUseCase.getTodoStatsByUserId('user-123');
+   * console.log(`完了率: ${stats.completionRate}%`);
+   * ```
+   */
+  async getTodoStatsByUserId(userId: string): Promise<{
+    totalTodos: number;
+    completedTodos: number;
+    pendingTodos: number;
+    completionRate: number;
+  }> {
+    const todos = await this.getTodosByUserId(userId);
+
+    const totalTodos = todos.length;
+    // 現在のTodoエンティティには完了状態がないため、全て進行中として扱う
+    const completedTodos = 0; // TODO: 将来的に完了状態フィールドが追加された場合に実装
+    const pendingTodos = totalTodos;
+    const completionRate =
+      totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+
+    return {
+      totalTodos,
+      completedTodos,
+      pendingTodos,
+      completionRate,
+    };
+  }
 }

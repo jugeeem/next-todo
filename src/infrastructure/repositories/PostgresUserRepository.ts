@@ -376,6 +376,93 @@ export class PostgresUserRepository implements UserRepository {
   }
 
   /**
+   * ユーザーパスワード変更
+   *
+   * 指定されたIDのユーザーのパスワードを変更します。
+   * セキュリティ上、現在のパスワードの検証を行ってから新しいパスワードに変更します。
+   * 新しいパスワードは自動的にbcryptでハッシュ化されます。
+   *
+   * @param {string} id - 対象ユーザーのID（UUID形式）
+   * @param {string} currentPassword - 現在のパスワード（プレーンテキスト）
+   * @param {string} newPassword - 新しいパスワード（プレーンテキスト）
+   * @returns {Promise<User | null>} 更新されたユーザー情報、対象が見つからない場合はnull
+   * @throws {Error} ユーザーが見つからない、現在のパスワードが間違っている等
+   *
+   * @example
+   * ```typescript
+   * const repository = new PostgresUserRepository();
+   *
+   * try {
+   *   const updatedUser = await repository.changePassword(
+   *     'user-id-123',
+   *     'currentPassword',
+   *     'newSecurePassword123'
+   *   );
+   *
+   *   if (updatedUser) {
+   *     console.log(`パスワード変更完了: ${updatedUser.username}`);
+   *   } else {
+   *     console.log('ユーザーが見つかりません');
+   *   }
+   * } catch (error) {
+   *   if (error.message === '現在のパスワードが間違っています') {
+   *     console.error('認証失敗: 現在のパスワードが正しくありません');
+   *   } else {
+   *     console.error('パスワード変更エラー:', error.message);
+   *   }
+   * }
+   * ```
+   *
+   * @security
+   * - 現在のパスワードを bcrypt で検証
+   * - 新しいパスワードを bcrypt でハッシュ化（ソルトラウンド: 10）
+   * - SQLインジェクション対策のパラメータ化クエリ
+   * - 論理削除されたユーザーは更新対象外
+   */
+  async changePassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<User | null> {
+    // ユーザー情報を取得（パスワードハッシュ含む）
+    const user = await this.findById(id);
+
+    if (!user) {
+      throw new Error('ユーザーが見つかりません');
+    }
+
+    // 現在のパスワードを検証
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new Error('現在のパスワードが間違っています');
+    }
+
+    // 新しいパスワードをハッシュ化
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // パスワードを更新
+    const query = `
+      UPDATE users 
+      SET password_hash = $1, updated_at = $2
+      WHERE id = $3 AND deleted = FALSE
+      RETURNING id, username, first_name, first_name_ruby, last_name, last_name_ruby, password_hash, role, created_at, created_by, updated_at, updated_by, deleted
+    `;
+
+    const result = await database.query(query, [newPasswordHash, new Date(), id]);
+
+    if (result.rows.length === 0) {
+      throw new Error('パスワードの更新に失敗しました');
+    }
+
+    return this.mapRowToUser(result.rows[0]);
+  }
+
+  /**
    * データベース行をUserエンティティにマッピング
    *
    * PostgreSQLクエリ結果の行データを、ドメインエンティティのUser型に変換します。

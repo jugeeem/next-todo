@@ -22,6 +22,7 @@
  *   id: "550e8400-e29b-41d4-a716-446655440000",
  *   title: "プロジェクトの企画書を作成",
  *   descriptions: "Q1の新プロジェクトの企画書を作成し、関係者に共有する",
+ *   completed: false,
  *   createdAt: new Date("2024-01-01T09:00:00Z"),
  *   createdBy: "user-123",
  *   updatedAt: new Date("2024-01-02T14:30:00Z"),
@@ -40,6 +41,9 @@ export interface Todo {
 
   /** タスクの詳細説明（任意、最大128文字） */
   descriptions?: string;
+
+  /** タスクの完了状態（true: 完了、false: 未完了） */
+  completed: boolean;
 
   /** タスク作成日時 */
   createdAt: Date;
@@ -72,6 +76,7 @@ export interface Todo {
  * const createTodoData: CreateTodoInput = {
  *   title: "APIドキュメントの更新",
  *   descriptions: "新機能追加に伴うAPIドキュメントの更新作業",
+ *   completed: false,
  *   userId: "user-456"
  * };
  * ```
@@ -82,6 +87,9 @@ export interface CreateTodoInput {
 
   /** タスクの詳細説明（任意、最大128文字） */
   descriptions?: string;
+
+  /** タスクの完了状態（任意、デフォルト: false） */
+  completed?: boolean;
 
   /** タスクを所有するユーザーのID（必須） */
   userId: string;
@@ -99,7 +107,8 @@ export interface CreateTodoInput {
  * ```typescript
  * const updateData: UpdateTodoInput = {
  *   title: "APIドキュメントの更新（完了）",
- *   descriptions: "新機能追加に伴うAPIドキュメントの更新作業 - レビュー完了"
+ *   descriptions: "新機能追加に伴うAPIドキュメントの更新作業 - レビュー完了",
+ *   completed: true
  * };
  * ```
  */
@@ -109,4 +118,7 @@ export interface UpdateTodoInput {
 
   /** タスクの詳細説明（任意、最大128文字） */
   descriptions?: string;
+
+  /** タスクの完了状態（任意） */
+  completed?: boolean;
 }
