@@ -1,6 +1,8 @@
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Container } from '@/lib/container';
-import { error, internalError, success } from '@/lib/response';
+import { setAuthTokenCookie, setUserCookie } from '@/lib/cookie';
+import { error, internalError } from '@/lib/response';
 import { createUserSchema } from '@/types/validation';
 
 /**
@@ -107,7 +109,21 @@ export async function POST(request: NextRequest) {
     const container = Container.getInstance();
     const result = await container.authUseCase.register(validationResult.data);
 
-    return success(result, 'Registration successful');
+    // 成功レスポンスを作成
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: 'Registration successful',
+        data: result,
+      },
+      { status: 200 },
+    );
+
+    // Cookieに認証情報を設定
+    setAuthTokenCookie(response, result.token);
+    setUserCookie(response, result.user);
+
+    return response;
   } catch (err) {
     console.error('Registration error:', err);
     if (err instanceof Error) {

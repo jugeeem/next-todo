@@ -20,6 +20,7 @@
  */
 
 import type { NextRequest } from 'next/server';
+import { getAuthTokenFromServer } from '@/lib/cookie';
 import { JWTService } from '@/lib/jwt';
 import type { MiddlewareAuthResult } from '@/types/auth';
 
@@ -97,7 +98,7 @@ export class AuthMiddleware {
    * オブジェクトとして返され、成功時にはユーザー情報が含まれます。
    *
    * 認証処理ステップ:
-   * 1. Authorization ヘッダーの取得
+   * 1. Authorization ヘッダーまたはCookieからトークンを取得
    * 2. Bearer トークンの抽出
    * 3. JWT トークンの検証
    * 4. ユーザー情報の復号化
@@ -144,8 +145,14 @@ export class AuthMiddleware {
    */
   async authenticate(request: NextRequest): Promise<MiddlewareAuthResult> {
     try {
+      // まずAuthorizationヘッダーからトークンを試行
       const authHeader = request.headers.get('authorization');
-      const token = this.jwtService.extractTokenFromHeader(authHeader || '');
+      let token = this.jwtService.extractTokenFromHeader(authHeader || '');
+
+      // Authorizationヘッダーにトークンがない場合はCookieから取得
+      if (!token) {
+        token = getAuthTokenFromServer(request);
+      }
 
       if (!token) {
         return { success: false, error: 'No token provided' };

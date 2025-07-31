@@ -10,9 +10,15 @@ import { JWTService } from '../jwt';
 // JWTService をモック化
 jest.mock('../jwt');
 
+// Cookie をモック化
+jest.mock('../cookie', () => ({
+  getAuthTokenFromServer: jest.fn(),
+}));
+
 describe('AuthMiddleware', () => {
   let authMiddleware: AuthMiddleware;
   let mockJWTService: jest.Mocked<JWTService>;
+  let mockCookie: { getAuthTokenFromServer: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,6 +32,8 @@ describe('AuthMiddleware', () => {
     (JWTService as jest.MockedClass<typeof JWTService>).mockImplementation(
       () => mockJWTService,
     );
+
+    mockCookie = jest.requireMock('../cookie');
 
     authMiddleware = new AuthMiddleware();
   });
@@ -60,16 +68,38 @@ describe('AuthMiddleware', () => {
       }
     });
 
-    it('Authorizationヘッダーが存在しない場合は認証失敗する', async () => {
+    it('AuthorizationヘッダーとCookieの両方が存在しない場合は認証失敗する', async () => {
       const request = createMockRequest({});
 
       mockJWTService.extractTokenFromHeader.mockReturnValue(null);
+      mockCookie.getAuthTokenFromServer.mockReturnValue(null);
 
       const result = await authMiddleware.authenticate(request);
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toBe('No token provided');
+      }
+    });
+
+    it('Authorizationヘッダーはないが、Cookieからトークンを取得できる場合は認証成功する', async () => {
+      const request = createMockRequest({});
+      const token = 'cookie-token';
+      const mockUser: JWTPayload = {
+        userId: 'user-123',
+        username: 'testuser',
+        role: 1,
+      };
+
+      mockJWTService.extractTokenFromHeader.mockReturnValue(null);
+      mockCookie.getAuthTokenFromServer.mockReturnValue(token);
+      mockJWTService.verifyToken.mockResolvedValue(mockUser);
+
+      const result = await authMiddleware.authenticate(request);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.user).toEqual(mockUser);
       }
     });
 

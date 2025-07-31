@@ -132,3 +132,27 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError;
 });
+
+// NextResponse のモック
+jest.mock('next/server', () => {
+  const actualNext = jest.requireActual('next/server');
+  
+  return {
+    ...actualNext,
+    NextResponse: {
+      json: jest.fn((data: unknown, init?: ResponseInit) => {
+        const mockResponse = {
+          json: jest.fn().mockResolvedValue(data),
+          status: init?.status || 200,
+          headers: new Map(),
+        };
+        
+        // headers.set メソッドを追加
+        mockResponse.headers.set = jest.fn();
+        mockResponse.headers.get = jest.fn();
+        
+        return mockResponse;
+      }),
+    },
+  };
+});
