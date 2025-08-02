@@ -323,7 +323,7 @@ Todo一覧・作成画面のクライアントコンポーネント実装
 - モーダルオーバーレイ（半透明背景）
 
 **認証・セキュリティ**
-- localStorage からのトークン・ユーザー情報取得
+- Cookie からのトークン・ユーザー情報取得
 - 認証状態チェック（useEffect）
 - 未認証時の自動リダイレクト
 - API リクエストでの Bearer トークン送信
@@ -442,7 +442,7 @@ Todo詳細・編集・削除画面のクライアントコンポーネント実�
 - モーダルオーバーレイ（半透明背景）
 
 **認証・権限制御**
-- localStorage からのトークン・ユーザー情報取得
+- Cookie からのトークン・ユーザー情報取得
 - 認証状態チェック（useEffect）
 - 未認証時の自動リダイレクト
 - 作成者権限チェック（編集・削除ボタン表示制御）
@@ -588,7 +588,7 @@ export default async function TodoDetailPage({ params }: TodoDetailPageProps) {
 - 現在ページ・総ページ数表示
 
 **認証・セキュリティ**
-- localStorage からのトークン・ユーザー情報取得
+- Cookie からのトークン・ユーザー情報取得
 - 認証状態チェック（useEffect）
 - 未認証時の自動リダイレクト
 - API リクエストでの Bearer トークン送信
@@ -704,7 +704,7 @@ export default function UsersPage() {
 - モーダルオーバーレイ（半透明背景）
 
 **認証・権限制御**
-- localStorage からのトークン・ユーザー情報取得
+- Cookie からのトークン・ユーザー情報取得
 - 認証状態チェック（useEffect）
 - 未認証時の自動リダイレクト
 - 編集権限チェック（管理者・本人のみ）
@@ -863,7 +863,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 - モーダルオーバーレイ（半透明背景）
 
 **認証・セキュリティ**
-- localStorage からのトークン・ユーザー情報取得
+- Cookie からのトークン・ユーザー情報取得
 - 認証状態チェック（useEffect）
 - 未認証時の自動リダイレクト
 - パスワード変更時の現在パスワード確認

@@ -49,8 +49,8 @@ import { createUserSchema } from '@/types/validation';
  * - パスワードハッシュは除外してレスポンス
  *
  * @performance
- * - 大量データ時のページネーション対応を検討中
- * - 将来的にクエリパラメータでフィルタリング対応予定
+ * - ページネーション対応済み（pageとperPageパラメータ）
+ * - クエリパラメータでのフィルタリング対応
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -68,11 +68,40 @@ export async function GET(request: NextRequest): Promise<Response> {
       return forbidden('管理者権限が必要です');
     }
 
+    // クエリパラメータの取得と検証
+    const url = new URL(request.url);
+    const pageParam = url.searchParams.get('page');
+    const perPageParam = url.searchParams.get('perPage');
+
+    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
+    const perPage = perPageParam
+      ? Math.min(100, Math.max(1, parseInt(perPageParam, 10)))
+      : 20;
+
     const container = Container.getInstance();
 
-    const users = await container.userUseCase.getAllUsers();
+    // 全ユーザーを取得
+    const allUsers = await container.userUseCase.getAllUsers();
 
-    return success(users, 'ユーザー一覧を取得しました');
+    // ページネーション計算
+    const totalUsers = allUsers.length;
+    const totalPages = Math.ceil(totalUsers / perPage);
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    const users = allUsers.slice(startIndex, endIndex);
+
+    // ページネーション情報を含むレスポンス
+    const responseData = {
+      data: users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        perPage,
+      },
+    };
+
+    return success(responseData, 'ユーザー一覧を取得しました');
   } catch (err) {
     console.error('ユーザー一覧取得エラー:', err);
 
