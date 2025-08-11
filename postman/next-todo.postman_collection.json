@@ -22,7 +22,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"username\": \"user\",\r\n  \"password\": \"password\",\r\n  \"firstName\": \"\",\r\n  \"firstNameRuby\": \"\",\r\n  \"lastName\": \"\",\r\n  \"lastNameRuby\": \"\",\r\n  \"role\": 4\r\n}\r\n",
+							"raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"password\",\r\n  \"firstName\": \"\",\r\n  \"firstNameRuby\": \"\",\r\n  \"lastName\": \"\",\r\n  \"lastNameRuby\": \"\",\r\n  \"role\": 1\r\n}\r\n",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -30,11 +30,12 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost/api/auth/register",
+							"raw": "http://localhost:3000/api/auth/register",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"auth",
@@ -75,11 +76,12 @@
 							"raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"password\"\r\n}\r\n"
 						},
 						"url": {
-							"raw": "http://localhost/api/auth/login",
+							"raw": "http://localhost:3000/api/auth/login",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"auth",
@@ -87,6 +89,40 @@
 							]
 						},
 						"description": "## ログインエンドポイント\n\nこのエンドポイントは、ユーザーの認証を行い、アクセストークンを取得するために使用されます。提供された認証情報を検証し、認証が成功すると、後続のリクエストで使用するトークンとともにユーザーの詳細情報を返します。\n\n### リクエスト\n\n- **メソッド**: POST\n    \n- **URL**: `http://localhost/api/auth/login`\n    \n- **Content-Type**: application/json\n    \n\n#### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string): ログインを試みるユーザーのユーザー名。\n    \n- **password** (string): ユーザー名に関連付けられたパスワード。\n    \n\n**リクエストボディの例:**\n\n```json\n{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}\n```\n\n### レスポンス\n\nログインが成功すると、サーバーはステータスコード200で応答し、以下の構造を含むJSONオブジェクトを返します：\n\n- **success** (boolean): ログインが成功したかどうかを示します。\n    \n- **data** (object): ユーザー情報と認証トークンを含みます。\n    \n    - **user** (object): 認証されたユーザーの情報。\n        \n        - **id** (string): ユーザーの一意識別子。\n            \n        - **username** (string): ユーザーのユーザー名。\n            \n        - **firstName** (string): ユーザーの名前。\n            \n        - **firstNameRuby** (string): 名前のふりがな表記。\n            \n        - **lastName** (string): ユーザーの姓。\n            \n        - **lastNameRuby** (string): 姓のふりがな表記。\n            \n        - **role** (integer): ユーザーの権限（例：管理者、一般ユーザー）。\n            \n        - **createdAt** (string): ユーザーが作成された日時のタイムスタンプ。\n            \n        - **createdBy** (string): このユーザーを作成したユーザーの識別子。\n            \n        - **updatedAt** (string): ユーザーが最後に更新された日時のタイムスタンプ。\n            \n        - **updatedBy** (string): このユーザーを最後に更新したユーザーの識別子。\n            \n        - **deleted** (boolean): ユーザーアカウントが削除済みとしてマークされているかどうかを示します。\n            \n    - **token** (string): 後続のリクエストで使用する認証トークン。\n        \n- **message** (string): レスポンスに関する追加メッセージ。\n    \n\n**レスポンスの例:**\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": \"\",\n      \"username\": \"\",\n      \"firstName\": \"\",\n      \"firstNameRuby\": \"\",\n      \"lastName\": \"\",\n      \"lastNameRuby\": \"\",\n      \"role\": 0,\n      \"createdAt\": \"\",\n      \"createdBy\": \"\",\n      \"updatedAt\": \"\",\n      \"updatedBy\": \"\",\n      \"deleted\": true\n    },\n    \"token\": \"\"\n  },\n  \"message\": \"\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/auth/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "## ログアウト API\n\nこのエンドポイントは、アプリケーションからユーザーをログアウトさせるために使用します。POST リクエストにより、ユーザーのセッションを終了し、認証トークンをクリアします。\n\n### リクエスト\n\n- メソッド: POST\n- URL: `http://localhost:3000/api/auth/logout`\n\n#### リクエストボディ\n\nこのリクエストにボディは不要です。エンドポイントに対して POST リクエストを送るだけで、ログアウト処理が開始されます。\n\n### レスポンス\n\nログアウトが成功すると、サーバーは次の構造の JSON オブジェクトで応答します。\n\n- success（boolean）: ログアウトが成功したかどうかを示します。\n- message（string）: ログアウト処理に関する追加のメッセージ（空の場合があります）。\n\n#### レスポンス例\n\n```json\n{\n  \"success\": true,\n  \"message\": \"\"\n}\n```\n\n### ステータスコード\n\n- 200 OK: ログアウトに成功しました。"
 					},
 					"response": []
 				}
@@ -115,11 +151,12 @@
 									}
 								],
 								"url": {
-									"raw": "http://localhost/api/todos/{{todosId}}",
+									"raw": "http://localhost:3000/api/todos/{{todosId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"todos",
@@ -151,11 +188,12 @@
 									"raw": "{\r\n    \"title\": \"updated test\",\r\n    \"descriptions\": \"updated descriptions\"\r\n}"
 								},
 								"url": {
-									"raw": "http://localhost/api/todos/{{todosId}}",
+									"raw": "http://localhost:3000/api/todos/{{todosId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"todos",
@@ -183,11 +221,12 @@
 									}
 								],
 								"url": {
-									"raw": "http://localhost/api/todos/{{todosId}}",
+									"raw": "http://localhost:3000/api/todos/{{todosId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"todos",
@@ -230,11 +269,12 @@
 							}
 						],
 						"url": {
-							"raw": "http://localhost/api/todos",
+							"raw": "http://localhost:3000/api/todos",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"todos"
@@ -270,11 +310,12 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost/api/todos",
+							"raw": "http://localhost:3000/api/todos",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"todos"
@@ -293,6 +334,133 @@
 					"name": "me",
 					"item": [
 						{
+							"name": "password",
+							"item": [
+								{
+									"name": "change-password",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"type": "text"
+											},
+											{
+												"key": "Authorization",
+												"value": "Bearer {{token}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"currentPassword\": \"currentSecurePassword\",\r\n  \"newPassword\": \"newSecurePassword123\",\r\n  \"confirmPassword\": \"newSecurePassword123\"\r\n}\r\n",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:3000/api/users/me/password",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"users",
+												"me",
+												"password"
+											]
+										},
+										"description": "## ユーザーパスワードの更新\n\nこのエンドポイントは、ユーザーが自分のパスワードを更新するためのものです。正確性を確保するために、現在のパスワード・新しいパスワード・新しいパスワードの確認が必要です。\n\n### リクエスト\n\n- メソッド: PUT\n- URL: `http://localhost:3000/api/users/me/password`\n\n### リクエストボディ\n\nリクエストボディは JSON 形式で、以下のパラメータを含める必要があります。\n\n- currentPassword（string）: 現在のパスワード。パスワード変更を許可する前にユーザーを認証するために必要です。\n- newPassword（string）: 設定したい新しいパスワード。アプリケーションのパスワード複雑性要件を満たす必要があります。\n- confirmPassword（string）: 新しいパスワードの確認。更新を進めるには newPassword と一致している必要があります。\n\n### 期待されるレスポンス\n\nパスワードの更新に成功すると、処理が成功したことを示すレスポンスが返されます。正確なレスポンス構造は実装によって異なる場合がありますが、一般的には成功メッセージや、場合によっては更新後のユーザー情報が含まれます。\n\n### 注意事項\n\n- 新しいパスワードが十分に強力で、指定されたセキュリティ基準を満たしていることを確認してください。\n- currentPassword が既存のパスワードと一致しない場合、リクエストは失敗し、適切なエラーメッセージが返されます。\n- 本番環境では常に HTTPS を使用し、パスワードなどの機微情報を保護してください。"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "todos",
+							"item": [
+								{
+									"name": "stats",
+									"item": [
+										{
+											"name": "get",
+											"request": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json",
+														"type": "text"
+													},
+													{
+														"key": "Authorization",
+														"value": "Bearer {{token}}",
+														"type": "text"
+													}
+												],
+												"url": {
+													"raw": "http://localhost:3000/api/users/me/todos/stats",
+													"protocol": "http",
+													"host": [
+														"localhost"
+													],
+													"port": "3000",
+													"path": [
+														"api",
+														"users",
+														"me",
+														"todos",
+														"stats"
+													]
+												},
+												"description": "## ユーザーのTodo統計を取得\n\nこのエンドポイントは、ユーザーのTodo項目に関する統計情報を取得します。Todoの総数、完了数、未完了数、全体の完了率の概要を提供します。\n\n### リクエスト\n\n- メソッド: GET\n- URL: `http://localhost:3000/api/users/me/todos/stats`\n\n#### リクエストボディ\n\nこのエンドポイントにリクエストボディは不要です。\n\n### レスポンス\n\nリクエストが成功すると、サーバーは次の構造の JSON オブジェクトで応答します。\n\n- success（boolean）: リクエストが成功したかどうか\n- data（object）: ユーザーのTodo統計を含むオブジェクト\n  - totalTodos（integer）: ユーザーに関連するTodoの総数\n  - completedTodos（integer）: 完了済みのTodo数\n  - pendingTodos（integer）: 未完了のTodo数\n  - completionRate（float）: 完了率（パーセンテージ）\n\n#### レスポンス例\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"totalTodos\": 0,\n    \"completedTodos\": 0,\n    \"pendingTodos\": 0,\n    \"completionRate\": 0\n  }\n}\n```\n\nこのエンドポイントは、ユーザーが自分のTodo管理状況を素早く把握し、時間の経過に伴う進捗を追跡するのに役立ちます。"
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "get-list",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"type": "text"
+											},
+											{
+												"key": "Authorization",
+												"value": "Bearer {{token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "http://localhost:3000/api/users/me/todos",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"users",
+												"me",
+												"todos"
+											]
+										},
+										"description": "## ログインユーザーのTodo一覧取得\n\nこのエンドポイントは、現在認証されているユーザーに関連するTodo一覧を取得します。`GET` リクエストで、構造化された JSON 形式のTodoを返します。\n\n### リクエスト形式\n\n- メソッド: GET\n    \n- URL: `http://localhost:3000/api/users/me/todos`\n    \n\n### レスポンス形式\n\n成功時、API は次の構造の JSON オブジェクトを返します。\n\n- success: リクエストが成功したかを示す真偽値\n    \n- data: Todo オブジェクトの配列。各オブジェクトは次のフィールドを含みます:\n    - id: Todo の一意な識別子\n        \n    - title: Todo のタイトル\n        \n    - descriptions: Todo の説明\n        \n    - completed: Todo が完了しているかを示す真偽値\n        \n    - createdAt: Todo の作成日時\n        \n    - createdBy: Todo を作成したユーザーの識別子\n        \n    - updatedAt: Todo の最終更新日時\n        \n    - updatedBy: Todo を最後に更新したユーザーの識別子\n        \n    - deleted: Todo が削除済みかを示す真偽値\n        \n    - userId: Todo に紐づくユーザーの識別子\n        \n\n### レスポンス例\n\n``` json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"\",\n      \"title\": \"\",\n      \"descriptions\": \"\",\n      \"completed\": true,\n      \"createdAt\": \"\",\n      \"createdBy\": \"\",\n      \"updatedAt\": \"\",\n      \"updatedBy\": \"\",\n      \"deleted\": true,\n      \"userId\": \"\"\n    }\n  ]\n}\n\n ```\n\nこのエンドポイントは、ユーザーが自分のTodoを効率的に管理・閲覧するのに役立ちます。"
+									},
+									"response": []
+								}
+							]
+						},
+						{
 							"name": "get",
 							"request": {
 								"method": "GET",
@@ -309,11 +477,12 @@
 									}
 								],
 								"url": {
-									"raw": "http://localhost/api/users/me",
+									"raw": "http://localhost:3000/api/users/me",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"users",
@@ -350,11 +519,12 @@
 									}
 								},
 								"url": {
-									"raw": "http://localhost/api/users/me",
+									"raw": "http://localhost:3000/api/users/me",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"users",
@@ -387,11 +557,12 @@
 									}
 								],
 								"url": {
-									"raw": "http://localhost/api/users/{{userId}}",
+									"raw": "http://localhost:3000/api/users/{{userId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"users",
@@ -423,11 +594,12 @@
 									"raw": "{\r\n  \"firstName\": \"firstName\",\r\n  \"lastName\": \"lastName\",\r\n  \"firstNameRuby\": \"firstNameRuby\",\r\n  \"lastNameRuby\": \"lastNameRuby\"\r\n}"
 								},
 								"url": {
-									"raw": "http://localhost/api/users/{{userId}}",
+									"raw": "http://localhost:3000/api/users/{{userId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"users",
@@ -455,11 +627,12 @@
 									}
 								],
 								"url": {
-									"raw": "http://localhost/api/users/{{userId}}",
+									"raw": "http://localhost:3000/api/users/{{userId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
 									],
+									"port": "3000",
 									"path": [
 										"api",
 										"users",
@@ -489,11 +662,12 @@
 							}
 						],
 						"url": {
-							"raw": "http://localhost/api/users",
+							"raw": "http://localhost:3000/api/users",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"users"
@@ -524,11 +698,12 @@
 							"raw": "{\r\n  \"username\": \"user\",\r\n  \"password\": \"password\",\r\n  \"firstName\": \"\",\r\n  \"firstNameRuby\": \"\",\r\n  \"lastName\": \"\",\r\n  \"lastNameRuby\": \"\",\r\n  \"role\": 1\r\n}\r\n"
 						},
 						"url": {
-							"raw": "http://localhost/api/users",
+							"raw": "http://localhost:3000/api/users",
 							"protocol": "http",
 							"host": [
 								"localhost"
 							],
+							"port": "3000",
 							"path": [
 								"api",
 								"users"
