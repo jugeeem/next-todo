@@ -794,7 +794,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   - `/api/users/me/todos/stats` GET リクエスト
   - 統計情報の状態更新
 - `handleProfileUpdate`: プロフィール更新フォーム送信処理
-  - `/api/users/me` PUT リクエスト
+  - `/api/users/me` PATCH リクエスト
   - フォームデータのJSON送信
   - 更新成功時：プロフィール表示更新・モーダル閉じ・成功メッセージ表示
 - `handlePasswordChange`: パスワード変更フォーム送信処理
@@ -802,8 +802,8 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   - パスワード一致確認バリデーション
   - 変更成功時：フォームリセット・モーダル閉じ・成功メッセージ表示
 - `handleAccountDelete`: アカウント削除処理
-  - `/api/users/me` DELETE リクエスト
-  - 削除成功時：ログアウト処理・ログイン画面リダイレクト
+  - `/api/users/{id}` DELETE リクエスト（管理者/マネージャーのみ、自分自身は削除不可）
+  - 削除成功時：ユーザー管理画面（例：/users）へのリダイレクト
 - `handleInputChange`: フォーム入力値変更ハンドラー（プロフィール・パスワード）
 - `validatePasswordForm`: パスワードフォームバリデーション
 - `getUserRoleName`: ロール値から表示名取得

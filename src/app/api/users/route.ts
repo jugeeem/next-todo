@@ -17,40 +17,64 @@ import { error, forbidden, internalError, success, unauthorized } from '@/lib/re
 import { createUserSchema } from '@/types/validation';
 
 /**
- * ユーザー一覧取得エンドポイント
+ * @typedef {Object} Pagination
+ * @property {number} currentPage 現在のページ番号（1始まり）
+ * @property {number} totalPages 総ページ数
+ * @property {number} totalUsers 総ユーザー数
+ * @property {number} perPage 1ページあたり件数
+ */
+
+/**
+ * @typedef {Object} UsersListResponse
+ * @property {Array<unknown>} data ユーザー配列（機微情報は含まない）
+ * @property {Pagination} pagination ページネーション情報
+ */
+
+/**
+ * @summary ユーザー一覧取得
+ * @description
+ * 管理者（ADMIN=1）またはマネージャー（MANAGER=2）のみが全ユーザー一覧を取得できます。結果にはページネーション情報が含まれます。
  *
- * システム内の全ユーザーを取得します。
- * 管理者権限が必要で、論理削除されたユーザーは除外されます。
+ * 認証ヘッダー:
+ * - `x-user-id`
+ * - `x-user-role`
  *
- * @param request - Next.js のリクエストオブジェクト
- * @returns ユーザー一覧または適切なエラーレスポンス
+ * クエリパラメータ:
+ * - `page`    : number >= 1（省略時 1）。数値以外や0以下は1に正規化。
+ * - `perPage` : number 1..100（省略時 20）。1未満は1、100超は100に丸め。
  *
- * @example
- * ```typescript
- * // 管理者としてのリクエスト
- * const response = await fetch('/api/users', {
- *   headers: {
- *     'Authorization': 'Bearer admin-jwt-token'
- *   }
+ * 成功時: 200 OK / application/json
+ * - 形式: `ApiResponse<UsersListResponse>`
+ * - メッセージ: "ユーザー一覧を取得しました"
+ *
+ * エラー時:
+ * - 401 Unauthorized: 認証ヘッダー不足/不正（Authentication required）
+ * - 403 Forbidden   : 許可ロール以外（管理者権限が必要です）
+ * - 500 Internal Server Error: 予期せぬエラー（ユーザー一覧の取得に失敗しました）
+ *
+ * @param {import('next/server').NextRequest} request Next.js のリクエスト
+ * @returns {Promise<Response>} ApiResponse<UsersListResponse> を含むJSONレスポンス
+ *
+ * @example <caption>cURL</caption>
+ * curl -sS -X GET \
+ *   "http://localhost:3000/api/users?page=2&perPage=10" \
+ *   -H "x-user-id: admin-123" \
+ *   -H "x-user-role: 1"
+ *
+ * @example <caption>TypeScript (fetch)</caption>
+ * const res = await fetch('/api/users?page=1&perPage=20', {
+ *   headers: { 'x-user-id': 'admin-123', 'x-user-role': '1' },
  * });
+ * const json = await res.json();
+ * // { success: true, data: { data: User[], pagination: { currentPage, totalPages, totalUsers, perPage } }, message, timestamp }
  *
- * const result: ApiResponse<User[]> = await response.json();
- * if (result.success) {
- *   console.log(`ユーザー数: ${result.data.length}`);
- *   result.data.forEach(user => {
- *     console.log(`${user.username} (${user.role})`);
- *   });
- * }
- * ```
+ * @throws {Error} 401 Unauthorized - Authentication required
+ * @throws {Error} 403 Forbidden - 管理者権限が必要です
+ * @throws {Error} 500 Internal Server Error - ユーザー一覧の取得に失敗しました
  *
- * @security
- * - 管理者権限（ADMIN または MANAGER）が必要
- * - JWTトークンによる認証
- * - パスワードハッシュは除外してレスポンス
- *
- * @performance
- * - ページネーション対応済み（pageとperPageパラメータ）
- * - クエリパラメータでのフィルタリング対応
+ * @remarks
+ * - Userオブジェクトにパスワード等の機微情報は含まれません。
+ * - ページネーションは現状、全件取得後のスライスで行われます（将来の最適化対象）。
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
