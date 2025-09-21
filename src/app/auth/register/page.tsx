@@ -1,10 +1,11 @@
-import RegisterIndex from '@/features/auth/register/components/Index';
+import RegisterForm from '@/features/auth/register/components/RegisterForm';
+import { generatePageMetadata } from '@/lib/metadata';
 
-export const metadata = {
+export const metadata = generatePageMetadata({
   title: 'ユーザー登録',
-  description: 'ユーザー登録ページ',
-};
+  url: '/auth/register',
+});
 
 export default function RegisterPage() {
-  return <RegisterIndex />;
+  return <RegisterForm />;
 }

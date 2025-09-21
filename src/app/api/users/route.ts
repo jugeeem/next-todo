@@ -88,6 +88,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // 管理者権限チェック（ADMIN=1 または MANAGER=2）
     const role = parseInt(userRole, 10);
+    console.log('ユーザーロール:', role);
     if (role > UserRole.MANAGER) {
       return forbidden('管理者権限が必要です');
     }
@@ -96,6 +97,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     const url = new URL(request.url);
     const pageParam = url.searchParams.get('page');
     const perPageParam = url.searchParams.get('perPage');
+
+    // クエリパラメータの拡張
+    const roleParam = url.searchParams.get('role');
+    console.log('取得したロール！:------------------', roleParam);
 
     const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
     const perPage = perPageParam
@@ -107,12 +112,32 @@ export async function GET(request: NextRequest): Promise<Response> {
     // 全ユーザーを取得
     const allUsers = await container.userUseCase.getAllUsers();
 
+    // 検索条件でのフィルタリング
+    let roleFilteredUsers = allUsers;
+    if (roleParam) {
+      const searchRole = parseInt(roleParam, 10);
+
+      if (+roleParam !== 0) {
+        roleFilteredUsers = allUsers.filter((user) => {
+          if (user.role === searchRole) {
+            return userId;
+          }
+        });
+      }
+
+      if (Number.isNaN(searchRole) || searchRole > 8) {
+        return error('無効な役割が指定されました', 400);
+      }
+    }
+    // let roleFilteredUsers = allUsers;
+    console.log('フィルタリング後のユーザー:', roleFilteredUsers);
+
     // ページネーション計算
-    const totalUsers = allUsers.length;
+    const totalUsers = roleFilteredUsers.length;
     const totalPages = Math.ceil(totalUsers / perPage);
     const startIndex = (page - 1) * perPage;
     const endIndex = startIndex + perPage;
-    const users = allUsers.slice(startIndex, endIndex);
+    const users = roleFilteredUsers.slice(startIndex, endIndex);
 
     // ページネーション情報を含むレスポンス
     const responseData = {
