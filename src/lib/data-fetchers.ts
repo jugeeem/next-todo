@@ -1,3 +1,5 @@
+'server-only';
+
 import { cookies } from 'next/headers';
 import { Container } from '@/lib/container';
 import { ServerAuth } from './server-auth';

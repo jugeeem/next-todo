@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, Card, CardBody, CardHeader, Input, Textarea } from '@heroui/react';
 import { useState } from 'react';
 
 export default function TodoForm({
@@ -9,8 +10,12 @@ export default function TodoForm({
   onCancel,
 }: {
   mode: 'create' | 'edit';
-  initialValues?: { title: string; descriptions?: string };
-  onSubmit: (form: { title: string; descriptions?: string }) => void;
+  initialValues?: { title: string; descriptions: string; completed?: boolean };
+  onSubmit: (form: {
+    title: string;
+    descriptions: string;
+    completed?: boolean;
+  }) => void;
   onCancel: () => void;
   isLoading: boolean;
 }) {
@@ -82,58 +87,52 @@ export default function TodoForm({
   };
 
   return (
-    <div className="w-80 mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">
-        {mode === 'create' ? '新規Todo作成' : 'Todo編集'}
-      </h2>
-      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="title">
-            タイトル
-          </label>
-          <input
+    <Card shadow="none" className="w-80 p-3">
+      <CardHeader>
+        <h2 className="text-xl font-bold">
+          {mode === 'create' ? '新規Todo作成' : 'Todo編集'}
+        </h2>
+      </CardHeader>
+      <CardBody>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+          <Input
+            label="タイトル"
             type="text"
             id="title"
             name="title"
             value={form.title}
-            className="w-full px-3 py-2 border rounded"
             placeholder="Todoのタイトルを入力"
             onChange={handleTaskUpdate}
+            className="mb-5"
           />
           {error && <p className="text-red-500">{error.titleError}</p>}
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="descriptions">
-            説明
-          </label>
-          <textarea
-            id="descriptions"
-            name="descriptions"
-            value={form.descriptions}
-            className="w-full px-3 py-2 border rounded"
-            placeholder="Todoの説明を入力 (任意)"
-            onChange={handleTaskUpdate}
-          />
-          {error && <p className="text-red-500">{error.descriptionsError}</p>}
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className={`bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isSending}
-            onClick={onCancel}
-          >
-            キャンセル
-          </button>
-          <button
-            type="submit"
-            className={`bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 ml-2 rounded transition-colors ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isSending}
-          >
-            {mode === 'create' ? '作成' : '更新'}
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="mb-4">
+            <Textarea
+              label="説明"
+              id="descriptions"
+              name="descriptions"
+              value={form.descriptions}
+              placeholder="Todoの説明を入力 (任意)"
+              onChange={handleTaskUpdate}
+            />
+            {error && <p className="text-red-500">{error.descriptionsError}</p>}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              color="danger"
+              disabled={isSending}
+              variant="light"
+              onPress={onCancel}
+            >
+              キャンセル
+            </Button>
+            <Button type="submit" color="primary" disabled={isSending}>
+              {mode === 'create' ? '作成' : '更新'}
+            </Button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
   );
 }

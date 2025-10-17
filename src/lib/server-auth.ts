@@ -19,11 +19,13 @@ export class ServerAuth {
       return null;
     }
     const payload = await jwt.verifyToken(token.value);
-    if (payload) {
-      return payload as ServerAuthResult;
-    }
+
     // 認証失敗時
-    return { userId: '', role: -1, username: '', result: false } as ServerAuthResult;
+    if (!payload) {
+      return { userId: '', role: -1, username: '', result: false } as ServerAuthResult;
+    }
+    // 認証成功時
+    return payload as ServerAuthResult;
   }
 
   // 認証必須ページでの認証チェック
@@ -39,7 +41,6 @@ export class ServerAuth {
   async requireAdminAuth() {
     const authState = await this.getAuthState();
     if (!authState || authState.role !== 1) {
-      console.log('Admin authentication failed:', authState);
       return false;
     }
     return true;
@@ -48,9 +49,9 @@ export class ServerAuth {
   // ログイン済みユーザリダイレクト
   async redirectIfAuthenticated() {
     const authState = await this.getAuthState();
-    if (authState) {
-      // 既に認証されている場合はリダイレクト
-      redirect('/');
+    if (!authState) {
+      return;
     }
+    redirect('/todos');
   }
 }

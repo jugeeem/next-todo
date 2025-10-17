@@ -1,29 +1,41 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Input,
+  Link,
+  Select,
+  SelectItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+} from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { deleteClientCookie } from '@/lib/cookie';
 
 const PAGE_SIZE = 20;
 
-export default function UserList({
-  users,
-}: {
-  users: Array<{
-    id: string;
-    username: string;
-    firstName?: string | undefined;
-    firstNameRuby?: string | undefined;
-    lastName?: string | undefined;
-    lastNameRuby?: string | undefined;
-    role: number;
-    createdAt: Date;
-    createdBy: string;
-    updatedAt: Date;
-    updatedBy: string;
-    deleted: boolean;
-  }>;
-}) {
+type User = {
+  id: string;
+  username: string;
+  firstName?: string | undefined;
+  firstNameRuby?: string | undefined;
+  lastName?: string | undefined;
+  lastNameRuby?: string | undefined;
+  role: number;
+  createdAt: Date;
+  createdBy: string;
+  updatedAt: Date;
+};
+
+export default function UserList({ users }: { users: Array<User> }) {
   const router = useRouter();
 
   // 検索・フィルター用state
@@ -103,24 +115,28 @@ export default function UserList({
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <header className="flex justify-between items-center p-4 bg-blue-500 text-white">
-        <h1 className="text-xl font-bold">ユーザー一覧</h1>
+      <header className="h-15 p-5 flex justify-between items-center bg-blue-500 text-white">
+        <h1 className="text-xl font-bold">ユーザーリスト</h1>
         <h2>Hello! admin</h2>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-            onClick={() => router.push('/users/me')}
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/users/me"
           >
             プロフィール
-          </button>
-          <button
-            type="button"
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-            onClick={handleLogout}
+          </Link>
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/todos"
+          >
+            Todo一覧
+          </Link>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            onPress={handleLogout}
           >
             ログアウト
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -151,13 +167,13 @@ export default function UserList({
                     />
                   </svg>
                 </div>
-                <input
+                <Input
                   type="text"
                   placeholder="ユーザー名、名前、フリガナで検索"
                   id="searchInput"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5"
                 />
               </div>
             </div>
@@ -169,18 +185,20 @@ export default function UserList({
               >
                 役割フィルター
               </label>
-              <select
-                id="roleFilter"
+              <Select
+                id="role"
+                name="role"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(Number(e.target.value))}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                defaultSelectedKeys={roleFilter.toString()}
+                aria-label="役割を選択"
               >
-                <option value="0">全ての役割</option>
-                <option value="1">管理者</option>
-                <option value="2">マネージャー</option>
-                <option value="4">ユーザー</option>
-                <option value="8">ゲスト</option>
-              </select>
+                <SelectItem key={0}>すべての役割</SelectItem>
+                <SelectItem key={1}>管理者</SelectItem>
+                <SelectItem key={2}>マネージャー</SelectItem>
+                <SelectItem key={4}>ユーザー</SelectItem>
+                <SelectItem key={8}>ゲスト</SelectItem>
+              </Select>
             </div>
 
             {/* 統計情報 */}
@@ -193,75 +211,88 @@ export default function UserList({
             </div>
           </div>
         </div>
-        {/* ユーザーリスト */}
-        <div>
-          {pagedUsers.map((user) => (
-            <div
-              key={user.id}
-              className="flex justify-between items-center p-4 drop-shadow-md bg-white rounded-lg mb-2 hover:shadow-lg transition-shadow"
-            >
-              <div>
-                <p className="font-medium text-gray-700">ユーザー名</p>
-                <div className="text-lg">{user.username}</div>
-              </div>
-              <div className="flex flex-col">
-                <p className="font-medium text-gray-700">名前</p>
-                <div className="flex items-center gap-2">
-                  <div>{user.lastName}</div>
-                  <div>{user.firstName}</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-700 mb-1">役割</p>
-                <span
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.role === 1
-                      ? 'bg-red-100 text-red-800'
-                      : user.role === 2
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : user.role === 4
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {getUserRoleName(user.role)}
-                </span>
-              </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-700">作成日</p>
-                <div className="text-sm text-gray-600">
-                  {formatDate(user.createdAt)}
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-700">更新日</p>
-                <div className="text-sm text-gray-600">
-                  {formatDate(user.updatedAt)}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                onClick={() => router.push(`/users/${user.id}`)}
-              >
-                詳細
-              </button>
-            </div>
-          ))}
-          {/* 空状態 */}
-          {pagedUsers.length === 0 && (
-            <div className="text-center p-8 bg-white rounded-lg shadow-md">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                ユーザーが見つかりません
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm || roleFilter !== 0
-                  ? '検索条件に一致するユーザーがいません。'
-                  : 'まだユーザーが登録されていません。'}
-              </p>
-            </div>
-          )}
-        </div>
+
+        {/* ユーザーテーブル */}
+        <Card className="w-full shadow-md">
+          <CardBody className="p-0">
+            <Table aria-label="ユーザーリスト" className="min-w-full" removeWrapper>
+              <TableHeader>
+                <TableColumn className="bg-gray-50 text-left font-semibold text-gray-700 px-4 py-3">
+                  ユーザー名
+                </TableColumn>
+                <TableColumn className="bg-gray-50 text-left font-semibold text-gray-700 px-4 py-3">
+                  名前
+                </TableColumn>
+                <TableColumn className="bg-gray-50 text-center font-semibold text-gray-700 px-4 py-3">
+                  役割
+                </TableColumn>
+                <TableColumn className="bg-gray-50 text-center font-semibold text-gray-700 px-4 py-3">
+                  作成日
+                </TableColumn>
+                <TableColumn className="bg-gray-50 text-center font-semibold text-gray-700 px-4 py-3">
+                  更新日
+                </TableColumn>
+                <TableColumn className="bg-gray-50 text-center font-semibold text-gray-700 px-4 py-3">
+                  操作
+                </TableColumn>
+              </TableHeader>
+              <TableBody emptyContent="ユーザーが見つかりません">
+                {pagedUsers.map((user) => (
+                  <TableRow
+                    key={user.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCell className="px-4 py-3">
+                      <div className="text-lg font-semibold">{user.username}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span>{user.lastName}</span>
+                        <span>{user.firstName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <Chip
+                        className={`${
+                          user.role === 1
+                            ? 'bg-red-100 text-red-800'
+                            : user.role === 2
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : user.role === 4
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {getUserRoleName(user.role)}
+                      </Chip>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <div className="text-sm text-gray-600">
+                        {formatDate(user.createdAt)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <div className="text-sm text-gray-600">
+                        {formatDate(user.updatedAt)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <Button
+                        color="primary"
+                        size="sm"
+                        className="px-4 py-2"
+                        onPress={() => router.push(`/users/${user.id}`)}
+                      >
+                        詳細
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardBody>
+        </Card>
+
         {/* ページネーション */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center mt-8 space-x-4">

@@ -26,7 +26,7 @@ export default async function TodoDetailPage({ params }: TodoDetailPageProps) {
   const auth = new ServerAuth();
   const authState = await auth.getAuthState();
   if (!authState) {
-    redirect('/');
+    redirect('/auth/login');
   }
 
   // Todo詳細データの取得
@@ -38,5 +38,5 @@ export default async function TodoDetailPage({ params }: TodoDetailPageProps) {
     notFound();
   }
 
-  return <TodoDetail todo={todo.data} />;
+  return <TodoDetail todoDetail={todo.data} role={authState.role} />;
 }

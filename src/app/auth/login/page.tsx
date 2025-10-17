@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import LoginForm from '@/features/auth/login/components/LoginForm';
 import { generatePageMetadata } from '@/lib/metadata';
 import { ServerAuth } from '@/lib/server-auth';
@@ -9,15 +8,9 @@ export const metadata = generatePageMetadata({
 });
 
 export default async function LoginPage() {
-  // 認証状態の確認
+  // 認証状態の確認とリダイレクト
   const auth = new ServerAuth();
-  const isAuthenticated = await auth.requireAuth();
-
-  // 既に認証されている場合はリダイレクト
-  if (isAuthenticated) {
-    // サーバーサイドでのリダイレクト
-    return redirect('/todos');
-  }
+  await auth.redirectIfAuthenticated();
 
   return <LoginForm />;
 }

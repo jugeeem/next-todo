@@ -1,59 +1,57 @@
 'use client';
 
-import TodoForm from '@/features/todos/components/TodoForm';
+import { Button, Card, CardBody, CardHeader, Chip, Link } from '@heroui/react';
 import { useRouter } from 'next/navigation';
-import { startTransition, useOptimistic, useState } from 'react';
+import { startTransition, useMemo, useOptimistic, useState } from 'react';
+import TodoForm from '@/features/todos/components/TodoForm';
+
+type TodoDetail = {
+  id: number;
+  title: string;
+  descriptions?: string | undefined;
+  completed: boolean;
+  userId: number;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type TypeTodoForm = {
+  title: string;
+  descriptions: string;
+  completed?: boolean;
+};
+
+type UpdateTodoResponse = {
+  success: boolean;
+  message: string;
+  data: TodoDetail;
+};
 
 export default function TodoDetail({
-  todo,
+  todoDetail,
+  role,
 }: {
-  todo: {
-    id: number;
-    title: string;
-    descriptions?: string | undefined;
-    completed: boolean;
-    userId: number;
-    createdBy: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+  todoDetail: TodoDetail;
+  role: number;
 }) {
-  const [form, setForm] = useState({
-    title: todo.title,
-    descriptions: todo.descriptions || '',
-    completed: todo.completed,
+  const [form, setForm] = useState<TypeTodoForm>({
+    title: todoDetail.title,
+    descriptions: todoDetail.descriptions || '',
+    completed: todoDetail.completed,
   });
-  const [initialTodo, setInitialTodo] = useState(todo);
+  const [initialTodo, setInitialTodo] = useState(todoDetail);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [optimisticTodo, addOptimisticTodo] = useOptimistic(
     initialTodo,
-    (state: Todo, newTodo: Todo) => ({ ...state, ...newTodo }),
+    (state: TodoDetail, newTodo: TodoDetail) => ({ ...state, ...newTodo }),
   );
   const router = useRouter();
 
-  interface Todo {
-    id: number;
-    title: string;
-    descriptions?: string | undefined;
-    completed: boolean;
-    userId: number;
-    createdBy: string;
-    createdAt: string;
-    updatedAt: string;
-  }
-
-  interface UpdateTodoResponse {
-    success: boolean;
-    message: string;
-    data: Todo;
-  }
-
-  const handleTaskUpdate = async (updatedForm: {
-    title: string;
-    descriptions?: string;
-  }) => {
+  const handleTaskUpdate = async (updatedForm: TypeTodoForm) => {
     setIsEditing(false);
     // バリデーション
     if (!updatedForm.title) {
@@ -68,7 +66,7 @@ export default function TodoDetail({
 
       // API呼び出しでタスクを更新
       try {
-        const response = await fetch(`/api/todos/${todo.id}`, {
+        const response = await fetch(`/api/todos/${todoDetail.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -96,10 +94,20 @@ export default function TodoDetail({
     });
   };
 
+  // 日付フォーマット関数
+  const formatDate = useMemo(() => {
+    return (dateValue: Date) => {
+      if (!(dateValue instanceof Date)) {
+        dateValue = new Date(dateValue);
+      }
+      return dateValue.toLocaleDateString();
+    };
+  }, []);
+
   const handleTaskDelete = async () => {
     setIsSending(true);
     try {
-      const response = await fetch(`/api/todos/${todo.id}`, {
+      const response = await fetch(`/api/todos/${todoDetail.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -118,83 +126,136 @@ export default function TodoDetail({
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <header className="flex justify-between items-center p-4 bg-blue-500 text-white">
-        <button
-          type="button"
-          onClick={() => router.push('/todos')}
-          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-        >
-          戻る
-        </button>
-        <h1>Todo Detail</h1>
+      <header className="h-15 p-5 flex justify-between items-center bg-blue-500 text-white">
+        <h1 className="text-xl font-bold">Todo詳細</h1>
+        <div className="flex gap-2">
+          <Link
+            className="bg-blue-600 text-white hover:bg-blue-700 px-3 py-1 rounded transition-colors"
+            href="/users/me"
+          >
+            プロフィール
+          </Link>
+          {role === 1 && (
+            <Link
+              className="bg-blue-600 text-white hover:bg-blue-700 px-3 py-1 rounded transition-colors"
+              href="/users"
+            >
+              ユーザーリスト
+            </Link>
+          )}
+          <Link
+            href="/todos"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+          >
+            Todo一覧
+          </Link>
+        </div>
       </header>
 
-      <main className="p-4 flex flex-col items-center">
-        <h1 className="text-2xl font-bold mb-4">Todo詳細</h1>
-
-        {/* Todo詳細表示 */}
-        <div className="w-full max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div>
-              <div className="space-y-3">
-                <p>
-                  <span className="font-medium">タイトル:</span>
-                  {optimisticTodo.title}
-                </p>
-                <p>
-                  <span className="font-medium">説明:</span>
-                  {optimisticTodo.descriptions}
-                </p>
-                <p>
-                  <span className="font-medium">ステータス:</span>{' '}
-                  <span
-                    className={`px-2 py-1 rounded-full text-white ${optimisticTodo.completed ? 'bg-green-500' : 'bg-red-500'}`}
-                  >
-                    {optimisticTodo.completed ? '完了' : '未完了'}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">作成者:</span>{' '}
-                  {optimisticTodo.createdBy}
-                </p>
-                <p>
-                  <span className="font-medium">作成日:</span>{' '}
-                  {optimisticTodo.createdAt}
-                </p>
-                <p>
-                  <span className="font-medium">更新日:</span>{' '}
-                  {optimisticTodo.updatedAt}
-                </p>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button
-                  type="button"
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
-                  onClick={() => setIsEditing(!isEditing)}
-                >
-                  編集
-                </button>
-                <button
-                  type="button"
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
-                  onClick={handleTaskDelete}
-                >
-                  削除
-                </button>
-              </div>
+      <Card className="max-w-[600px] mx-auto mt-5 relative bg-blue-100 p-3">
+        <CardHeader className="pt-0">
+          <h1 className="text-xl font-bold text-gray-600">Todo詳細</h1>
+        </CardHeader>
+        <CardBody className="bg-white rounded-lg">
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="space-y-3">
+              <p>
+                <span className="font-medium">タイトル:</span>
+                {optimisticTodo.title}
+              </p>
+              <p>
+                <span className="font-medium">説明:</span>
+                {optimisticTodo.descriptions ? (
+                  <span>{optimisticTodo.descriptions}</span>
+                ) : (
+                  <span className="text-gray-500">説明がありません</span>
+                )}
+              </p>
+              <span className="font-medium">ステータス:</span>{' '}
+              <Chip color={optimisticTodo.completed ? 'success' : 'danger'}>
+                {optimisticTodo.completed ? '完了' : '未完了'}
+              </Chip>
+              <p>
+                <span className="font-medium">作成者:</span> {optimisticTodo.createdBy}
+              </p>
+              <p>
+                <span className="font-medium">作成日:</span>{' '}
+                {formatDate(optimisticTodo.createdAt)}
+              </p>
+              <p>
+                <span className="font-medium">更新日:</span>{' '}
+                {formatDate(optimisticTodo.updatedAt)}
+              </p>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button
+                color="primary"
+                className="px-4 py-2"
+                onPress={() => setIsEditing(!isEditing)}
+              >
+                編集
+              </Button>
+              <Button
+                color="danger"
+                className="px-4 py-2"
+                onPress={() => setIsDeleting(true)}
+              >
+                削除
+              </Button>
             </div>
           </div>
-        </div>
-      </main>
+        </CardBody>
+      </Card>
       {isEditing && (
-        <div className="fixed inset-0 bg-white/50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
           <TodoForm
             mode="edit"
-            initialValues={{ title: form.title, descriptions: form.descriptions }}
+            initialValues={{
+              title: form.title,
+              descriptions: form.descriptions,
+            }}
             onSubmit={handleTaskUpdate}
             onCancel={() => setIsEditing(false)}
             isLoading={isSending}
           />
+        </div>
+      )}
+      {/* 削除確認モーダル */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+          <Card shadow="none" className="w-80 p-3">
+            <CardHeader>
+              <h2 className="text-xl font-bold text-red-600">タスクの削除</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <div>
+                <p>本当にこのタスクを削除しますか？</p>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  color="danger"
+                  variant="light"
+                  className={`px-4 py-2 ${
+                    isSending ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  onPress={() => setIsDeleting(false)}
+                  disabled={isSending}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  color="danger"
+                  className={`px-4 py-2 ${
+                    isSending ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  onPress={handleTaskDelete}
+                  disabled={isSending}
+                >
+                  {isSending ? '削除中...' : '削除'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       )}
       {error && (

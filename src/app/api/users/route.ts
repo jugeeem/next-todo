@@ -88,7 +88,6 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // 管理者権限チェック（ADMIN=1 または MANAGER=2）
     const role = parseInt(userRole, 10);
-    console.log('ユーザーロール:', role);
     if (role > UserRole.MANAGER) {
       return forbidden('管理者権限が必要です');
     }
@@ -100,7 +99,6 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // クエリパラメータの拡張
     const roleParam = url.searchParams.get('role');
-    console.log('取得したロール！:------------------', roleParam);
 
     const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
     const perPage = perPageParam
@@ -129,8 +127,6 @@ export async function GET(request: NextRequest): Promise<Response> {
         return error('無効な役割が指定されました', 400);
       }
     }
-    // let roleFilteredUsers = allUsers;
-    console.log('フィルタリング後のユーザー:', roleFilteredUsers);
 
     // ページネーション計算
     const totalUsers = roleFilteredUsers.length;

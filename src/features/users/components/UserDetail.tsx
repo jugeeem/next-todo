@@ -1,30 +1,48 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Checkbox,
+  Chip,
+  Input,
+  Link,
+  Select,
+  SelectItem,
+} from '@heroui/react';
 import { useRouter } from 'next/navigation';
-import { startTransition, useOptimistic, useState } from 'react';
+import { startTransition, useMemo, useOptimistic, useState } from 'react';
+
+type User = {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type Todo = {
+  id: string;
+  title: string;
+  descriptions?: string | undefined;
+  completed: boolean;
+  userId: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export default function UserDetail({
   user,
   todos,
 }: {
-  user: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    role: number;
-    createdAt: string;
-    updatedAt: string;
-  };
-  todos: {
-    id: string;
-    title: string;
-    descriptions?: string | undefined;
-    createdAt: Date;
-    updatedAt: Date;
-    userId: string;
-    completed: boolean;
-  }[];
+  user: User;
+  todos: Array<Todo>;
 }) {
   const [initialUser, setInitialUser] = useState<User>(user);
   const [isEditingOpen, setIsEditingOpen] = useState(false);
@@ -39,6 +57,7 @@ export default function UserDetail({
       return { ...currentUser, ...newUser };
     },
   );
+  const router = useRouter();
 
   // 編集フォーム用state
   const [editForm, setEditForm] = useState({
@@ -58,8 +77,8 @@ export default function UserDetail({
     firstName: string;
     lastName: string;
     role: number;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: Date;
+    updatedAt: Date;
   };
 
   // 役割名取得関数
@@ -81,7 +100,7 @@ export default function UserDetail({
   // アカウント削除処理
   const handleAccountDelete = async () => {
     if (!isDeleteChecked) {
-      alert('確認しましたにチェックを入れてください。');
+      setDeleteError('チェックを入れてください');
       return;
     }
     setIsDeleting(true);
@@ -101,11 +120,12 @@ export default function UserDetail({
   };
 
   // 日付フォーマット関数
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-  const router = useRouter();
+  const formatDate = useMemo(() => {
+    return (dateString: Date) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    };
+  }, []);
 
   // 編集フォームのリアルタイムバリデーション
   const validateEditForm = (target?: { name: string; value: string }) => {
@@ -192,37 +212,58 @@ export default function UserDetail({
 
   return (
     <div className="bg-gray-50 min-h-screen" aria-busy="true">
-      <header className="flex justify-between items-center p-4 bg-blue-500 text-white">
+      <header className="h-15 p-5 flex justify-between items-center bg-blue-500 text-white">
         <h1 className="text-xl font-bold">ユーザー詳細</h1>
         <span className="text-sm"></span>
-        <button
-          type="button"
-          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-          onClick={() => router.push('/users')}
-        >
-          一覧へ戻る
-        </button>
+        <div className="flex gap-2">
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/users/me"
+          >
+            プロフィール
+          </Link>
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/todos"
+          >
+            Todo一覧
+          </Link>
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/users"
+          >
+            一覧へ戻る
+          </Link>
+        </div>
       </header>
 
       {/* Content Sections */}
-      <main className="w-[80%] min-w-[320px] max-w-2xl mt-6 mx-auto flex flex-col gap-6">
-        <section className="w-full max-w-2xl mx-auto flex flex-col items-center bg-white rounded-lg shadow-md p-6">
+      <Card className="max-w-[600px] mx-auto mt-5 relative bg-blue-100 p-3">
+        <CardHeader className="pt-0">
+          <h1 className="text-gray-700 font-bold text-lg">ユーザー情報</h1>
+        </CardHeader>
+        <CardBody className="bg-white rounded-lg">
           {/* Name */}
-          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800 text-center">
-            <p>ユーザー名 {userOptimistic?.username ?? '（ユーザー名なし）'}</p>
+          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800">
+            <p className="text-xs">ユーザー名</p>
+            <p className="text-lg">
+              {userOptimistic?.username ?? '（ユーザー名なし）'}
+            </p>
           </div>
-          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800 text-center">
-            <p>
-              名前{' '}
+          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800">
+            <p className="text-xs">名前</p>
+            <p className="text-lg">
               {`${userOptimistic?.lastName ?? '-'} ${userOptimistic?.firstName ?? '-'}`}
             </p>
           </div>
           {/* Stats */}
-          <div className="flex gap-4 mb-4 w-full justify-center">
-            <div className="h-4 w-16 text-center">
-              <span className="block text-gray-700 font-semibold">役割</span>
-              <span
-                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+          <div className="flex gap-4 mb-4">
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                役割
+              </span>
+              <Chip
+                className={`${
                   userOptimistic?.role === 1
                     ? 'bg-red-100 text-red-800'
                     : userOptimistic?.role === 2
@@ -233,54 +274,60 @@ export default function UserDetail({
                 }`}
               >
                 {getUserRoleName(userOptimistic?.role)}
-              </span>
+              </Chip>
             </div>
-            <div className="h-4 w-16 text-center">
-              <span className="block text-gray-700 font-semibold">作成日</span>
-              <span className="block text-gray-600 text-xs">
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                作成日
+              </span>
+              <p className="text-gray-600 font-bold">
                 {userOptimistic?.createdAt ? formatDate(userOptimistic.createdAt) : '―'}
-              </span>
+              </p>
             </div>
-            <div className="h-4 w-16 text-center">
-              <span className="block text-gray-700 font-semibold">更新日</span>
-              <span className="block text-gray-600 text-xs">
-                {userOptimistic?.updatedAt ? formatDate(userOptimistic.updatedAt) : '―'}
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                更新日
               </span>
+              <p className="text-gray-600 font-bold">
+                {userOptimistic?.updatedAt ? formatDate(userOptimistic.updatedAt) : '―'}
+              </p>
             </div>
           </div>
-        </section>
-        {/* Action Area */}
-        <div className="w-full max-w-2xl flex gap-4 justify-center">
-          <button
-            type="button"
-            className="h-10 w-28 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-            onClick={() => setIsEditingOpen(!isEditingOpen)}
-          >
-            編集
-          </button>
-          <button
-            type="button"
-            className="h-10 w-28 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            onClick={() => setIsDeleteConfirmOpen(!isDeleteConfirmOpen)}
-          >
-            アカウント削除
-          </button>
-        </div>
-        {/* Todo Statistics */}
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
-            <div className="text-gray-700 font-bold text-lg">Todo統計</div>
-            <div className="flex gap-6">
-              <span className="text-gray-700">
-                合計: <span className="font-bold">{totalTodos}</span>件
-              </span>
-              <span className="text-gray-700">
-                完了: <span className="font-bold">{completedTodos}</span>件
-              </span>
-              <span className="text-gray-700">
-                進捗率: <span className="font-bold">{progressRate}%</span>
-              </span>
-            </div>
+          {/* Action Area */}
+          <div className="flex gap-2">
+            <Button
+              color="primary"
+              onPress={() => setIsEditingOpen(!isEditingOpen)}
+              aria-label="userEdit"
+            >
+              編集
+            </Button>
+            <Button
+              color="danger"
+              onPress={() => setIsDeleteConfirmOpen(!isDeleteConfirmOpen)}
+              aria-label="userDelete"
+            >
+              アカウント削除
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+      {/* Todo Statistics */}
+      <Card className="max-w-[600px] mx-auto mt-5 relative bg-blue-100 p-3">
+        <CardHeader className="pt-0">
+          <h1 className="text-gray-700 font-bold text-lg">Todo統計</h1>
+        </CardHeader>
+        <CardBody className="bg-white rounded-lg">
+          <div className="flex gap-6">
+            <span className="text-gray-700">
+              合計: <span className="font-bold">{totalTodos}</span>件
+            </span>
+            <span className="text-gray-700">
+              完了: <span className="font-bold">{completedTodos}</span>件
+            </span>
+            <span className="text-gray-700">
+              進捗率: <span className="font-bold">{progressRate}%</span>
+            </span>
           </div>
           {/* タスク一覧 */}
           <div>
@@ -288,157 +335,163 @@ export default function UserDetail({
             {todos.length === 0 ? (
               <div className="text-gray-500 text-center py-4">タスクがありません</div>
             ) : (
-              <div className="grid gap-4">
+              <div>
                 {todos.map((todo) => (
-                  <div
+                  <Card
                     key={todo.id}
-                    className={`bg-white rounded-lg shadow-md overflow-hidden border ${todo.completed ? 'border-green-400' : 'border-gray-200'}`}
+                    className="max-w-full mx-auto mb-5 p-2 z-0 relative"
                   >
-                    <div
-                      className={`flex justify-between items-center px-4 py-2 ${todo.completed ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}
-                    >
-                      <h4 className="text-lg font-bold">{todo.title}</h4>
-                      <span className="text-xs px-2 py-1 rounded-full bg-white text-green-600 font-semibold">
-                        {todo.completed ? '完了' : '未完了'}
-                      </span>
-                    </div>
-                    <div className="items-center px-4 py-2">
-                      <span className="text-xs mr-2">
-                        {formatDate(todo.descriptions ? todo.descriptions : '')}
-                      </span>
-                    </div>
-                  </div>
+                    <CardHeader className="box-shadow rounded-lg justify-between items-center bg-blue-500 text-white p-2">
+                      <h3 className="text-lg font-bold ml-1">{todo.title}</h3>
+                    </CardHeader>
+                    <CardBody className="min-h-[50px]">
+                      {!todo.descriptions ? (
+                        <p className="text-gray-400">説明がありません</p>
+                      ) : (
+                        <p>{todo.descriptions}</p>
+                      )}
+                    </CardBody>
+                    <CardFooter className="text-sm text-gray-500 my-2 gap-2 flex justify-between items-end py-0">
+                      <div>
+                        <p>作成日: {formatDate(todo.createdAt)}</p>
+                        <p>更新日: {formatDate(todo.updatedAt)}</p>
+                      </div>
+                    </CardFooter>
+                  </Card>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </main>
+        </CardBody>
+      </Card>
 
       {/* プロフィール編集モーダル */}
       {isEditingOpen && (
-        <div className="fixed inset-0 bg-white/50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h2 className="text-lg font-bold mb-4">プロフィール編集</h2>
-            <form onSubmit={handleEditSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2" htmlFor="lastName">
-                  姓
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={editForm.lastName}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="姓"
-                  onChange={handleEditInput}
-                />
-                {editError.lastNameError && (
-                  <p className="text-red-500">{editError.lastNameError}</p>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <Card shadow="none" className="w-80 p-3">
+            <CardHeader>
+              <h2 className="text-lg font-bold">プロフィール編集</h2>
+            </CardHeader>
+            <CardBody>
+              <form onSubmit={handleEditSubmit}>
+                <div className="mb-4">
+                  <Input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={editForm.lastName}
+                    label="姓"
+                    placeholder="姓"
+                    onChange={handleEditInput}
+                  />
+                  {editError.lastNameError && (
+                    <p className="text-red-500">{editError.lastNameError}</p>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <Input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={editForm.firstName}
+                    label="名"
+                    placeholder="名"
+                    onChange={handleEditInput}
+                  />
+                  {editError.firstNameError && (
+                    <p className="text-red-500">{editError.firstNameError}</p>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2" htmlFor="role">
+                    役割
+                  </label>
+                  <Select
+                    id="role"
+                    name="role"
+                    value={editForm.role}
+                    onChange={handleEditInput}
+                    defaultSelectedKeys={userOptimistic.role.toString()}
+                    aria-label="役割を選択"
+                  >
+                    <SelectItem key={1}>管理者</SelectItem>
+                    <SelectItem key={2}>マネージャー</SelectItem>
+                    <SelectItem key={4}>ユーザー</SelectItem>
+                    <SelectItem key={8}>ゲスト</SelectItem>
+                  </Select>
+                </div>
+                {editError.generalError && (
+                  <p className="text-red-500">{editError.generalError}</p>
                 )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2" htmlFor="firstName">
-                  名
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={editForm.firstName}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="名"
-                  onChange={handleEditInput}
-                />
-                {editError.firstNameError && (
-                  <p className="text-red-500">{editError.firstNameError}</p>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2" htmlFor="role">
-                  役割
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={editForm.role}
-                  className="w-full px-3 py-2 border rounded"
-                  onChange={handleEditInput}
-                >
-                  <option value={1}>管理者</option>
-                  <option value={2}>マネージャー</option>
-                  <option value={4}>ユーザー</option>
-                  <option value={8}>ゲスト</option>
-                </select>
-              </div>
-              {editError.generalError && (
-                <p className="text-red-500">{editError.generalError}</p>
-              )}
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingOpen(false)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"
-                  disabled={isEditSending}
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
-                  disabled={isEditSending}
-                >
-                  {isEditSending ? '保存中...' : '保存'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button
+                    color="danger"
+                    variant="light"
+                    onPress={() => setIsEditingOpen(false)}
+                    disabled={isEditSending}
+                    aria-label="cancel"
+                  >
+                    キャンセル
+                  </Button>
+                  <Button
+                    type="submit"
+                    color="primary"
+                    disabled={isEditSending}
+                    aria-label="save"
+                  >
+                    {isEditSending ? '保存中...' : '保存'}
+                  </Button>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
         </div>
       )}
 
       {/* アカウント削除確認モーダル */}
       {isDeleteConfirmOpen && (
-        <div className="fixed inset-0 bg-white/50 flex justify-center items-center z-50">
-          <div className="w-96 bg-white p-6 rounded-lg shadow-xl mx-4">
-            <div className="flex flex-col items-center">
-              <h2 className="text-lg font-bold mb-4 text-red-600">
-                アカウント削除の確認
-              </h2>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <Card shadow="none" className="w-80 p-3">
+            <CardHeader>
+              <h2 className="text-lg font-bold text-red-600">アカウント削除の確認</h2>
+            </CardHeader>
+            <CardBody className="text-center">
               <p className="text-center mb-6 text-gray-700">
                 作成したTodoもすべて削除されます。
                 <br />
                 この操作は取り消すことができません。
               </p>
-              <p>確認しました</p>
-              <input
-                type="checkbox"
-                checked={isDeleteChecked}
+              <Checkbox
+                isSelected={isDeleteChecked}
                 onChange={(e) => setIsDeleteChecked(e.target.checked)}
                 id="confirmDelete"
-                className="mb-4"
-              />
-              {deleteError && <p className="text-red-500 mb-2">{deleteError}</p>}
+                className="mx-auto"
+              >
+                確認しました
+              </Checkbox>
 
-              <div className="flex justify-center gap-4 w-full">
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteConfirmOpen(false)}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"
+              {deleteError && <p className="text-red-500 mb-2">{deleteError}</p>}
+              <div className="flex justify-end gap-2 mt-6">
+                <Button
+                  color="danger"
+                  variant="light"
+                  onPress={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setDeleteError(null);
+                  }}
                 >
                   キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAccountDelete}
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={handleAccountDelete}
                   disabled={isDeleting}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white py-2 px-4 rounded transition-colors"
                 >
                   削除
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
     </div>

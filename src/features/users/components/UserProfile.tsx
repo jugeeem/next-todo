@@ -1,27 +1,31 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { Button, Card, CardBody, CardHeader, Chip, Input, Link } from '@heroui/react';
 import { startTransition, useOptimistic, useState } from 'react';
 
-export default function UserProfile({
-  profile,
-}: {
-  profile: {
-    id: string;
-    username: string;
-    firstName?: string | undefined;
-    firstNameRuby?: string | undefined;
-    lastName?: string | undefined;
-    lastNameRuby?: string | undefined;
-    role: number;
-    createdAt: Date;
-    createdBy: string;
-    updatedAt: Date;
-    updatedBy: string;
-    deleted: boolean;
-  };
-}) {
-  const router = useRouter();
+type Profile = {
+  id: string;
+  username: string;
+  firstName?: string | undefined;
+  firstNameRuby?: string | undefined;
+  lastName?: string | undefined;
+  lastNameRuby?: string | undefined;
+  role: number;
+  createdAt: Date;
+  createdBy: string;
+  updatedAt: Date;
+  updatedBy: string;
+  deleted: boolean;
+};
+
+type Form = {
+  firstName: string;
+  lastName: string;
+  firstNameRuby: string;
+  lastNameRuby: string;
+};
+
+export default function UserProfile({ profile }: { profile: Profile }) {
   const [initialProfile, setInitialProfile] = useState(profile);
   const [form, setForm] = useState<Form>({
     firstName: profile?.firstName || '',
@@ -43,20 +47,6 @@ export default function UserProfile({
     confirmPasswordError: '',
     generalPasswordError: '',
   });
-  type Profile = {
-    id: string;
-    username: string;
-    firstName?: string | undefined;
-    firstNameRuby?: string | undefined;
-    lastName?: string | undefined;
-    lastNameRuby?: string | undefined;
-    role: number;
-    createdAt: Date;
-    createdBy: string;
-    updatedAt: Date;
-    updatedBy: string;
-    deleted: boolean;
-  };
 
   const [optimisticProfile, addOptimisticProfile] = useOptimistic(
     initialProfile,
@@ -65,13 +55,6 @@ export default function UserProfile({
       ...newProfile,
     }),
   );
-
-  type Form = {
-    firstName: string;
-    lastName: string;
-    firstNameRuby: string;
-    lastNameRuby: string;
-  };
 
   // ユーザーの役割名を取得する関数
   const getUserRoleName = (role: number) => {
@@ -172,7 +155,11 @@ export default function UserProfile({
       if (response.ok) {
         alert('パスワードが正常に変更されました。');
         setIsPasswordChangeOpen(false);
-        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
         setPasswordError({
           currentPasswordError: '',
           newPasswordError: '',
@@ -183,7 +170,7 @@ export default function UserProfile({
         setPasswordError((prev) => ({
           ...prev,
           generalPasswordError:
-            result.message || 'パスワード変更中にエラーが発生しました。',
+            result.error || 'パスワード変更中にエラーが発生しました。',
         }));
       }
     } catch (error) {
@@ -229,121 +216,150 @@ export default function UserProfile({
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <header className="flex justify-between items-center p-4 bg-blue-500 text-white">
+      <header className="h-15 p-5 flex justify-between items-center bg-blue-500 text-white">
         <h1 className="text-xl font-bold">プロフィール</h1>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-            onClick={() => router.push('/todos')}
+          <Link
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+            href="/todos"
           >
             Todo一覧
-          </button>
+          </Link>
           {profile?.role === 1 && (
-            <button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
-              onClick={() => router.push('/users')}
+            <Link
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+              href="/users"
             >
-              ユーザー一覧
-            </button>
+              ユーザーリスト
+            </Link>
           )}
         </div>
       </header>
-      <main className="p-6 w-[80%] max-w-2xl bg-white rounded-lg shadow-md mt-6 mx-auto flex flex-col items-center">
-        <h2 className="text-2xl font-bold mb-4">ユーザープロフィール</h2>
-        <div className="w-full">
-          <p className="mb-2">
-            <span className="font-semibold">ユーザー名:</span>{' '}
-            {optimisticProfile.username}
-          </p>
-          <p className="mb-2">
-            <span className="font-semibold">名前:</span>
-            {optimisticProfile.lastName} {optimisticProfile.firstName}
-          </p>
-          <p className="mb-2">
-            <span className="font-semibold">ふりがな:</span>
-            {optimisticProfile.lastNameRuby} {optimisticProfile.firstNameRuby}
-          </p>
-          <p className="mb-2">
-            <span className="font-semibold">役割:</span>{' '}
-            {getUserRoleName(optimisticProfile.role)}
-          </p>
-          <p className="mb-2">
-            <span className="font-semibold">作成日:</span>{' '}
-            {formatDate(optimisticProfile.createdAt)}
-          </p>
-          <p className="mb-2">
-            <span className="font-semibold">更新日:</span>{' '}
-            {formatDate(optimisticProfile.updatedAt)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 justify-center">
-          <button
-            type="button"
-            // onClick={() => setIsProfileEditOpen(!isProfileEditOpen)}
-            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
-            onClick={() => setIsProfileEditOpen(!isProfileEditOpen)}
-          >
-            プロフィール編集
-          </button>
-          <button
-            type="button"
-            className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded transition-colors"
-            onClick={() => setIsPasswordChangeOpen(!isPasswordChangeOpen)}
-          >
-            パスワード変更
-          </button>
-        </div>
-      </main>
+
+      <Card className="max-w-[600px] mx-auto mt-5 relative bg-blue-100 p-3">
+        <CardHeader className="pt-0">
+          <h2 className="text-xl font-bold text-gray-600">ユーザープロフィール</h2>
+        </CardHeader>
+        <CardBody className="bg-white rounded-lg">
+          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800">
+            <p className="text-xs">ユーザー名</p>
+            <p className="text-lg">
+              {optimisticProfile?.username ?? '（ユーザー名なし）'}
+            </p>
+          </div>
+          <div className="h-fit w-full mb-2 text-md font-bold text-gray-800">
+            <p className="text-xs">名前</p>
+            <p className="text-lg">
+              {`${optimisticProfile?.lastName ?? '-'} ${
+                optimisticProfile?.firstName ?? '-'
+              }`}
+            </p>
+          </div>
+          <div className="flex gap-4 mb-4">
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                役割
+              </span>
+              <Chip
+                className={`${
+                  optimisticProfile?.role === 1
+                    ? 'bg-red-100 text-red-800'
+                    : optimisticProfile?.role === 2
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : optimisticProfile?.role === 4
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {getUserRoleName(optimisticProfile?.role)}
+              </Chip>
+            </div>
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                作成日
+              </span>
+              <p className="text-gray-600 font-bold">
+                {optimisticProfile?.createdAt
+                  ? formatDate(optimisticProfile.createdAt)
+                  : '―'}
+              </p>
+            </div>
+            <div className="w-fit text-center">
+              <span className="block text-gray-700 font-semibold text-xs mb-1">
+                更新日
+              </span>
+              <p className="text-gray-600 font-bold">
+                {optimisticProfile?.updatedAt
+                  ? formatDate(optimisticProfile.updatedAt)
+                  : '―'}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              color="primary"
+              className="py-2 px-4"
+              onPress={() => setIsProfileEditOpen(!isProfileEditOpen)}
+            >
+              プロフィール編集
+            </Button>
+            <Button
+              color="secondary"
+              className="py-2 px-4"
+              onPress={() => setIsPasswordChangeOpen(!isPasswordChangeOpen)}
+            >
+              パスワード変更
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
       {/* パスワード変更モーダル */}
       {isPasswordChangeOpen && (
-        <div className="fixed inset-0 bg-white/50 flex justify-center items-center z-50">
-          <div className="w-96 bg-white p-6 rounded-lg shadow-xl mx-4">
-            <div className="flex flex-col relative">
-              <h2 className="text-lg font-bold mb-4 text-center">パスワード変更</h2>
-              <div className="space-y-4">
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={passwordForm.currentPassword}
-                  onChange={handlePasswordInputChange}
-                  placeholder="現在のパスワード"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                {passwordError.currentPasswordError && (
-                  <p className="text-red-500">{passwordError.currentPasswordError}</p>
-                )}
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordForm.newPassword}
-                  onChange={handlePasswordInputChange}
-                  placeholder="新しいパスワード"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                {passwordError.newPasswordError && (
-                  <p className="text-red-500">{passwordError.newPasswordError}</p>
-                )}
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordForm.confirmPassword}
-                  onChange={handlePasswordInputChange}
-                  placeholder="新しいパスワードの確認"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                {passwordError.confirmPasswordError && (
-                  <p className="text-red-500">{passwordError.confirmPasswordError}</p>
-                )}
-                {passwordError.generalPasswordError && (
-                  <p className="text-red-500">{passwordError.generalPasswordError}</p>
-                )}
-              </div>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <Card shadow="none" className="w-80 p-3">
+            <CardHeader>
+              <h2 className="text-lg font-bold">パスワード変更</h2>
+            </CardHeader>
+            <CardBody>
+              <Input
+                type="password"
+                name="currentPassword"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="現在のパスワード"
+                className="mb-5"
+              />
+              {passwordError.currentPasswordError && (
+                <p className="text-red-500">{passwordError.currentPasswordError}</p>
+              )}
+              <Input
+                type="password"
+                name="newPassword"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="新しいパスワード"
+                className="mb-5"
+              />
+              {passwordError.newPasswordError && (
+                <p className="text-red-500">{passwordError.newPasswordError}</p>
+              )}
+              <Input
+                type="password"
+                name="confirmPassword"
+                value={passwordForm.confirmPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="新しいパスワードの確認"
+                className="mb-5"
+              />
+              {passwordError.confirmPasswordError && (
+                <p className="text-red-500">{passwordError.confirmPasswordError}</p>
+              )}
+              {passwordError.generalPasswordError && (
+                <p className="text-red-500">{passwordError.generalPasswordError}</p>
+              )}
               <div className="flex justify-end gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
+                <Button
+                  onPress={() => {
                     setIsPasswordChangeOpen(false);
                     setPasswordError({
                       currentPasswordError: '',
@@ -357,82 +373,74 @@ export default function UserProfile({
                       confirmPassword: '',
                     });
                   }}
-                  className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"
+                  color="danger"
+                  variant="light"
                 >
                   キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePasswordChange}
-                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white py-2 px-4 rounded transition-colors"
-                >
+                </Button>
+                <Button onPress={handlePasswordChange} color="primary">
                   パスワード変更
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
+      {/* プロフィール編集モーダル */}
       {isProfileEditOpen && (
-        <div className="fixed inset-0 bg-white/50 flex justify-center items-center z-50">
-          <div className="w-96 bg-white p-6 rounded-lg shadow-xl mx-4">
-            <div className="flex flex-col relative">
-              <h2 className="text-lg font-bold mb-4 text-center">プロフィール編集</h2>
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  name="lastName"
-                  value={form.lastName}
-                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                  placeholder="名前（姓）"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                <input
-                  type="text"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                  placeholder="名前（名）"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                <input
-                  type="text"
-                  name="lastNameRuby"
-                  value={form.lastNameRuby}
-                  onChange={(e) => setForm({ ...form, lastNameRuby: e.target.value })}
-                  placeholder="ふりがな（姓）"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-                <input
-                  type="text"
-                  name="firstNameRuby"
-                  value={form.firstNameRuby}
-                  onChange={(e) => setForm({ ...form, firstNameRuby: e.target.value })}
-                  placeholder="ふりがな（名）"
-                  className="w-full border py-2 px-4 rounded-lg border-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:ring-1"
-                />
-              </div>
-              {editError && (
-                <p className="text-red-500 mt-2 text-center">{editError}</p>
-              )}
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileEditOpen(false)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors"
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <Card shadow="none" className="w-80 p-3">
+            <CardHeader>
+              <h2 className="text-lg font-bold">プロフィール編集</h2>
+            </CardHeader>
+            <CardBody>
+              <Input
+                type="text"
+                name="lastName"
+                value={form.lastName}
+                label="名前（姓）"
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                className="mb-5"
+              />
+              <Input
+                type="text"
+                name="firstName"
+                value={form.firstName}
+                label="名前（名）"
+                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                className="mb-5                                                             "
+              />
+              <Input
+                type="text"
+                name="lastNameRuby"
+                value={form.lastNameRuby}
+                label="ふりがな（姓）"
+                onChange={(e) => setForm({ ...form, lastNameRuby: e.target.value })}
+                className="mb-5"
+              />
+              <Input
+                type="text"
+                name="firstNameRuby"
+                value={form.firstNameRuby}
+                label="ふりがな（名）"
+                onChange={(e) => setForm({ ...form, firstNameRuby: e.target.value })}
+                className="mb-5"
+              />
+              {editError && <p className="text-red-500 text-center">{editError}</p>}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  onPress={() => setIsProfileEditOpen(false)}
+                  color="danger"
+                  variant="light"
                 >
                   キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={handleProfileUpdate}
-                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white py-2 px-4 rounded transition-colors"
-                >
+                </Button>
+                <Button onPress={handleProfileUpdate} color="primary">
                   プロフィール更新
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
     </div>
