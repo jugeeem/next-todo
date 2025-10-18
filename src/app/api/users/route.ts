@@ -97,6 +97,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     const pageParam = url.searchParams.get('page');
     const perPageParam = url.searchParams.get('perPage');
 
+    // クエリパラメータの拡張
+    const roleParam = url.searchParams.get('role');
+
     const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
     const perPage = perPageParam
       ? Math.min(100, Math.max(1, parseInt(perPageParam, 10)))
@@ -107,12 +110,30 @@ export async function GET(request: NextRequest): Promise<Response> {
     // 全ユーザーを取得
     const allUsers = await container.userUseCase.getAllUsers();
 
+    // 検索条件でのフィルタリング
+    let roleFilteredUsers = allUsers;
+    if (roleParam) {
+      const searchRole = parseInt(roleParam, 10);
+
+      if (+roleParam !== 0) {
+        roleFilteredUsers = allUsers.filter((user) => {
+          if (user.role === searchRole) {
+            return userId;
+          }
+        });
+      }
+
+      if (Number.isNaN(searchRole) || searchRole > 8) {
+        return error('無効な役割が指定されました', 400);
+      }
+    }
+
     // ページネーション計算
-    const totalUsers = allUsers.length;
+    const totalUsers = roleFilteredUsers.length;
     const totalPages = Math.ceil(totalUsers / perPage);
     const startIndex = (page - 1) * perPage;
     const endIndex = startIndex + perPage;
-    const users = allUsers.slice(startIndex, endIndex);
+    const users = roleFilteredUsers.slice(startIndex, endIndex);
 
     // ページネーション情報を含むレスポンス
     const responseData = {
