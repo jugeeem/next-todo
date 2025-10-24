@@ -15,6 +15,7 @@ JWT認証機能を持ったTodoアプリのAPI。クリーンアーキテクチ�
 - **Container**: Docker & Docker Compose
 - **UI Framework**: HeroUI 2.8.1 + Framer Motion 12.23.7
 - **Styling**: Tailwind CSS 4 + PostCSS 4
+- **Date & Time**: date-fns 4.1.0 + date-fns-tz 3.2.0
 - **Additional Libraries**: bcryptjs, JOSE 6.0.12, UUID 9.0.1
 
 ## セットアップ
@@ -60,11 +61,13 @@ docker compose up -d --build
 
 このプロジェクトは包括的なテストスイートを備えています：
 
-- **総テスト数**: 326テスト（全て通過）
-- **テストカバレッジ**: 99.5%（ステートメント）
-- **ブランチカバレッジ**: 96.7%
-- **関数カバレッジ**: 95.38%
-- **実行時間**: 5.408秒
+- **総テスト数**: 425テスト（全て通過）
+- **テストスイート数**: 24スイート
+- **テストカバレッジ**: 95.06%（ステートメント）
+- **ブランチカバレッジ**: 90.57%
+- **関数カバレッジ**: 88.99%
+- **ラインカバレッジ**: 95.06%
+- **実行時間**: 約5.3秒
 
 ### テストの実行
 
@@ -92,6 +95,13 @@ npm run test:coverage
 - バリデーション処理
 - 認証・認可機能
 - エッジケース処理
+
+### 主要なテストファイル
+
+- `src/app/api/*/route.test.ts`: API エンドポイントのテスト
+- `src/usecases/__tests__/*.test.ts`: ユースケースのテスト
+- `src/infrastructure/repositories/__tests__/*.test.ts`: リポジトリのテスト
+- `src/lib/__tests__/*.test.ts`: ライブラリのテスト
 
 ## API エンドポイント
 
@@ -142,6 +152,18 @@ GET /api/users/me
 Authorization: Bearer <token>
 ```
 
+#### 現在ユーザーのTodo一覧取得
+```http
+GET /api/users/me/todos
+Authorization: Bearer <token>
+```
+
+#### 現在ユーザーのTodo統計取得
+```http
+GET /api/users/me/todos/stats
+Authorization: Bearer <token>
+```
+
 #### プロフィール更新
 ```http
 PUT /api/users/me
@@ -153,6 +175,18 @@ Content-Type: application/json
   "lastName": "田中",
   "firstNameRuby": "タロウ",
   "lastNameRuby": "タナカ"
+}
+```
+
+#### パスワード変更
+```http
+PUT /api/users/me/password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "currentPassword": "old_password",
+  "newPassword": "new_password"
 }
 ```
 
@@ -187,6 +221,12 @@ Content-Type: application/json
 #### ユーザー削除（管理者用）
 ```http
 DELETE /api/users/{id}
+Authorization: Bearer <token>
+```
+
+#### 特定ユーザーのTodo一覧取得
+```http
+GET /api/users/{id}/todos
 Authorization: Bearer <token>
 ```
 
@@ -317,9 +357,9 @@ src/
 
 - **依存性の注入**: DIコンテナによる疎結合な設計とシングルトンパターン
 - **レイヤー分離**: クリーンアーキテクチャに従った各層の責務分離
-- **テスタビリティ**: モック可能な設計による99.5%の高テストカバレッジ
+- **テスタビリティ**: モック可能な設計による95%以上の高テストカバレッジ
 - **型安全性**: TypeScript 5.8.3による厳密な型チェック
-- **品質保証**: 326テストケースによる包括的なテストスイート
+- **品質保証**: 425テストケースによる包括的なテストスイート
 - **モダンな開発環境**: Turbopack、HeroUI、Tailwind CSS 4の活用
 
 ## テストユーザー
@@ -406,22 +446,25 @@ Postmanコレクションが提供されています：
 
 | カテゴリ | カバレッジ率 |
 |----------|-------------|
-| ステートメント | 99.5% |
-| ブランチ | 96.7% |
-| 関数 | 95.38% |
-| ライン | 99.5% |
+| ステートメント | 95.06% |
+| ブランチ | 90.57% |
+| 関数 | 88.99% |
+| ライン | 95.06% |
 
 ### テストスイート詳細
 
-- **API エンドポイントテスト**: 17スイート
-- **総テストケース**: 326テスト
+- **テストスイート数**: 24スイート
+- **総テストケース**: 425テスト
 - **成功率**: 100%（全テスト通過）
+- **実行時間**: 約5.3秒
 
 ### 主要機能のテストカバレッジ
 
-- **認証API**: 100% カバレッジ
-- **Todo API**: 100% カバレッジ
-- **ユーザー管理API**: 100% カバレッジ  
-- **ビジネスロジック層**: 100% カバレッジ
-- **データアクセス層**: 99%以上 カバレッジ
-- **共通ライブラリ**: 100% カバレッジ
+- **認証API**: 97%以上カバレッジ
+- **Todo API**: 98%以上カバレッジ
+- **ユーザー管理API**: 99%以上カバレッジ  
+- **ビジネスロジック層（UseCases）**: 96%以上カバレッジ
+- **データアクセス層（Repositories）**: 84%以上カバレッジ
+- **共通ライブラリ**: 98%以上カバレッジ
+- **認証ミドルウェア**: 100%カバレッジ
+- **日時ユーティリティ**: 98%以上カバレッジ
