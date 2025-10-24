@@ -1,44 +1,44 @@
-'use client'
+'use client';
 
-import { useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, useState } from 'react';
 
 export function RegisterPage() {
-  const router = useRouter()
-  const [username, setUsername] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [firstName, setFirstName] = useState<string>('')
-  const [lastName, setLastName] = useState<string>('')
-  const [error, setError] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const router = useRouter();
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
     // クライアント側バリデーション
     if (!username.trim()) {
-      setError('ユーザー名は必須です')
-      return
+      setError('ユーザー名は必須です');
+      return;
     }
 
     if (username.length > 50) {
-      setError('ユーザー名は50文字以内で入力してください')
-      return
+      setError('ユーザー名は50文字以内で入力してください');
+      return;
     }
 
     if (!password) {
-      setError('パスワードは必須です')
-      return
+      setError('パスワードは必須です');
+      return;
     }
 
     if (password.length < 6) {
-      setError('パスワードは6文字以上で入力してください')
-      return
+      setError('パスワードは6文字以上で入力してください');
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -53,28 +53,26 @@ export function RegisterPage() {
           lastName: lastName || undefined,
           role: 4, // ユーザーロール
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'ユーザー登録に失敗しました')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'ユーザー登録に失敗しました');
       }
 
       // 登録成功後、ログインページにリダイレクト
-      router.push('/login')
+      router.push('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ユーザー登録に失敗しました')
+      setError(err instanceof Error ? err.message : 'ユーザー登録に失敗しました');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
       <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
-          新規登録
-        </h1>
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">新規登録</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -179,5 +177,5 @@ export function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

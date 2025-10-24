@@ -1,44 +1,48 @@
-'use client'
+'use client';
 
-import { useState, useEffect, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, useEffect, useState } from 'react';
 
 interface Todo {
-  id: string
-  title: string
-  descriptions?: string
-  completed: boolean
-  userId: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  title: string;
+  descriptions?: string;
+  completed: boolean;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PaginationInfo {
-  currentPage: number
-  totalPages: number
-  totalItems: number
-  itemsPerPage: number
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
 }
 
 export function TodoListPage() {
-  const router = useRouter()
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [page, setPage] = useState<number>(1)
-  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null)
-  const [completedFilter, setCompletedFilter] = useState<'all' | 'completed' | 'incomplete'>('all')
-  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'title'>('createdAt')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [newTodoTitle, setNewTodoTitle] = useState<string>('')
-  const [newTodoDescription, setNewTodoDescription] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
-  const [isCreating, setIsCreating] = useState<boolean>(false)
+  const router = useRouter();
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<
+    'all' | 'completed' | 'incomplete'
+  >('all');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'title'>(
+    'createdAt',
+  );
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [newTodoTitle, setNewTodoTitle] = useState<string>('');
+  const [newTodoDescription, setNewTodoDescription] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [isCreating, setIsCreating] = useState<boolean>(false);
 
   // Todo一覧を取得
   const fetchTodos = async () => {
-    setIsLoading(true)
-    setError('')
+    setIsLoading(true);
+    setError('');
 
     try {
       const params = new URLSearchParams({
@@ -47,58 +51,58 @@ export function TodoListPage() {
         completedFilter,
         sortBy,
         sortOrder,
-      })
+      });
 
-      const response = await fetch(`/api/todos?${params}`)
+      const response = await fetch(`/api/todos?${params}`);
 
       if (response.status === 401) {
-        router.push('/login')
-        return
+        router.push('/login');
+        return;
       }
 
       if (!response.ok) {
-        throw new Error('Todoの取得に失敗しました')
+        throw new Error('Todoの取得に失敗しました');
       }
 
-      const data = await response.json()
-      setTodos(data.data || [])
+      const data = await response.json();
+      setTodos(data.data || []);
       if (data.pagination) {
-        setPaginationInfo(data.pagination)
+        setPaginationInfo(data.pagination);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの取得に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの取得に失敗しました');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // ページ読み込み時・フィルター変更時にTodoを取得
   useEffect(() => {
-    fetchTodos()
+    fetchTodos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, completedFilter, sortBy, sortOrder])
+  }, [fetchTodos]);
 
   // Todo作成
   const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
     if (!newTodoTitle.trim()) {
-      setError('タイトルは必須です')
-      return
+      setError('タイトルは必須です');
+      return;
     }
 
     if (newTodoTitle.length > 32) {
-      setError('タイトルは32文字以内で入力してください')
-      return
+      setError('タイトルは32文字以内で入力してください');
+      return;
     }
 
     if (newTodoDescription && newTodoDescription.length > 128) {
-      setError('説明は128文字以内で入力してください')
-      return
+      setError('説明は128文字以内で入力してください');
+      return;
     }
 
-    setIsCreating(true)
+    setIsCreating(true);
 
     try {
       const response = await fetch('/api/todos', {
@@ -110,47 +114,47 @@ export function TodoListPage() {
           title: newTodoTitle,
           descriptions: newTodoDescription || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Todoの作成に失敗しました')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Todoの作成に失敗しました');
       }
 
       // フォームをリセット
-      setNewTodoTitle('')
-      setNewTodoDescription('')
+      setNewTodoTitle('');
+      setNewTodoDescription('');
 
       // 一覧を再取得
-      await fetchTodos()
+      await fetchTodos();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました');
     } finally {
-      setIsCreating(false)
+      setIsCreating(false);
     }
-  }
+  };
 
   // Todo削除
   const handleDeleteTodo = async (id: string) => {
     if (!confirm('このTodoを削除してもよろしいですか?')) {
-      return
+      return;
     }
 
     try {
       const response = await fetch(`/api/todos/${id}`, {
         method: 'DELETE',
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Todoの削除に失敗しました')
+        throw new Error('Todoの削除に失敗しました');
       }
 
       // 一覧を再取得
-      await fetchTodos()
+      await fetchTodos();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
     }
-  }
+  };
 
   // Todo完了状態の切り替え
   const handleToggleComplete = async (todo: Todo) => {
@@ -165,31 +169,31 @@ export function TodoListPage() {
           descriptions: todo.descriptions,
           completed: !todo.completed,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Todoの更新に失敗しました')
+        throw new Error('Todoの更新に失敗しました');
       }
 
       // 一覧を再取得
-      await fetchTodos()
+      await fetchTodos();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの更新に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの更新に失敗しました');
     }
-  }
+  };
 
   // ログアウト
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-      })
-      router.push('/login')
+      });
+      router.push('/login');
     } catch (err) {
-      console.error('Logout error:', err)
-      router.push('/login')
+      console.error('Logout error:', err);
+      router.push('/login');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -277,15 +281,20 @@ export function TodoListPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 完了状態フィルター */}
             <div>
-              <label htmlFor="completedFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="completedFilter"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 表示フィルター
               </label>
               <select
                 id="completedFilter"
                 value={completedFilter}
                 onChange={(e) => {
-                  setCompletedFilter(e.target.value as 'all' | 'completed' | 'incomplete')
-                  setPage(1)
+                  setCompletedFilter(
+                    e.target.value as 'all' | 'completed' | 'incomplete',
+                  );
+                  setPage(1);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -297,13 +306,18 @@ export function TodoListPage() {
 
             {/* ソート項目 */}
             <div>
-              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="sortBy"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 並び順
               </label>
               <select
                 id="sortBy"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'updatedAt' | 'title')}
+                onChange={(e) =>
+                  setSortBy(e.target.value as 'createdAt' | 'updatedAt' | 'title')
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="createdAt">作成日時</option>
@@ -314,7 +328,10 @@ export function TodoListPage() {
 
             {/* ソート順 */}
             <div>
-              <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="sortOrder"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 順序
               </label>
               <select
@@ -375,10 +392,7 @@ export function TodoListPage() {
                           className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
                         />
                         <div className="flex-1">
-                          <Link
-                            href={`/todos/${todo.id}`}
-                            className="block"
-                          >
+                          <Link href={`/todos/${todo.id}`} className="block">
                             <h3
                               className={`font-medium ${
                                 todo.completed
@@ -453,5 +467,5 @@ export function TodoListPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

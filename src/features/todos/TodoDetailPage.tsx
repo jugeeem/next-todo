@@ -1,95 +1,95 @@
-'use client'
+'use client';
 
-import { useState, useEffect, type FormEvent } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import Link from 'next/link'
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { type FormEvent, useEffect, useState } from 'react';
 
 interface Todo {
-  id: string
-  title: string
-  descriptions?: string
-  completed: boolean
-  userId: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  title: string;
+  descriptions?: string;
+  completed: boolean;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function TodoDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const todoId = params?.id as string
+  const router = useRouter();
+  const params = useParams();
+  const todoId = params?.id as string;
 
-  const [todo, setTodo] = useState<Todo | null>(null)
-  const [title, setTitle] = useState<string>('')
-  const [descriptions, setDescriptions] = useState<string>('')
-  const [isEditing, setIsEditing] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [isSaving, setIsSaving] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
+  const [todo, setTodo] = useState<Todo | null>(null);
+  const [title, setTitle] = useState<string>('');
+  const [descriptions, setDescriptions] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   // Todo詳細を取得
   const fetchTodoDetail = async () => {
-    setIsLoading(true)
-    setError('')
+    setIsLoading(true);
+    setError('');
 
     try {
-      const response = await fetch(`/api/todos/${todoId}`)
+      const response = await fetch(`/api/todos/${todoId}`);
 
       if (response.status === 401) {
-        router.push('/login')
-        return
+        router.push('/login');
+        return;
       }
 
       if (response.status === 404) {
-        setError('Todoが見つかりません')
-        return
+        setError('Todoが見つかりません');
+        return;
       }
 
       if (!response.ok) {
-        throw new Error('Todoの取得に失敗しました')
+        throw new Error('Todoの取得に失敗しました');
       }
 
-      const data = await response.json()
-      const todoData = data.data
-      setTodo(todoData)
-      setTitle(todoData.title)
-      setDescriptions(todoData.descriptions || '')
+      const data = await response.json();
+      const todoData = data.data;
+      setTodo(todoData);
+      setTitle(todoData.title);
+      setDescriptions(todoData.descriptions || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの取得に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの取得に失敗しました');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // 初回読み込み時にTodo詳細を取得
   useEffect(() => {
     if (todoId) {
-      fetchTodoDetail()
+      fetchTodoDetail();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todoId])
+  }, [todoId, fetchTodoDetail]);
 
   // Todo更新
   const handleUpdateTodo = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
     if (!title.trim()) {
-      setError('タイトルは必須です')
-      return
+      setError('タイトルは必須です');
+      return;
     }
 
     if (title.length > 32) {
-      setError('タイトルは32文字以内で入力してください')
-      return
+      setError('タイトルは32文字以内で入力してください');
+      return;
     }
 
     if (descriptions && descriptions.length > 128) {
-      setError('説明は128文字以内で入力してください')
-      return
+      setError('説明は128文字以内で入力してください');
+      return;
     }
 
-    setIsSaving(true)
+    setIsSaving(true);
 
     try {
       const response = await fetch(`/api/todos/${todoId}`, {
@@ -102,67 +102,67 @@ export function TodoDetailPage() {
           descriptions: descriptions || undefined,
           completed: todo?.completed || false,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Todoの更新に失敗しました')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Todoの更新に失敗しました');
       }
 
       // 更新成功後、編集モードを解除して最新データを取得
-      setIsEditing(false)
-      await fetchTodoDetail()
+      setIsEditing(false);
+      await fetchTodoDetail();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの更新に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの更新に失敗しました');
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   // Todo削除
   const handleDeleteTodo = async () => {
     if (!confirm('このTodoを削除してもよろしいですか?')) {
-      return
+      return;
     }
 
     try {
       const response = await fetch(`/api/todos/${todoId}`, {
         method: 'DELETE',
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Todoの削除に失敗しました')
+        throw new Error('Todoの削除に失敗しました');
       }
 
       // 削除成功後、一覧ページに戻る
-      router.push('/todos')
+      router.push('/todos');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました')
+      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
     }
-  }
+  };
 
   // 編集キャンセル
   const handleCancelEdit = () => {
     if (todo) {
-      setTitle(todo.title)
-      setDescriptions(todo.descriptions || '')
+      setTitle(todo.title);
+      setDescriptions(todo.descriptions || '');
     }
-    setIsEditing(false)
-    setError('')
-  }
+    setIsEditing(false);
+    setError('');
+  };
 
   // ログアウト
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-      })
-      router.push('/login')
+      });
+      router.push('/login');
     } catch (err) {
-      console.error('Logout error:', err)
-      router.push('/login')
+      console.error('Logout error:', err);
+      router.push('/login');
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -172,7 +172,7 @@ export function TodoDetailPage() {
           <p className="mt-4 text-gray-600">読み込み中...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -317,7 +317,9 @@ export function TodoDetailPage() {
                 {todo.descriptions && (
                   <div>
                     <h3 className="text-sm font-medium text-gray-700 mb-2">説明</h3>
-                    <p className="text-gray-900 whitespace-pre-wrap">{todo.descriptions}</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">
+                      {todo.descriptions}
+                    </p>
                   </div>
                 )}
 
@@ -363,5 +365,5 @@ export function TodoDetailPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

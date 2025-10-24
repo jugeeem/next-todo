@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { RegisterPage } from '@/features/auth/RegisterPage'
+import { RegisterPage } from '@/features/auth/RegisterPage';
 
 export default function Page() {
-  return <RegisterPage />
+  return <RegisterPage />;
 }

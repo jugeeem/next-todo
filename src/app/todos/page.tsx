@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { TodoListPage } from '@/features/todos/TodoListPage'
+import { TodoListPage } from '@/features/todos/TodoListPage';
 
 export default function Page() {
-  return <TodoListPage />
+  return <TodoListPage />;
 }

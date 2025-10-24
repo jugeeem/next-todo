@@ -1,130 +1,126 @@
-'use client'
+'use client';
 
-import { useState, useEffect, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, useEffect, useState } from 'react';
 
 interface User {
-  id: string
-  username: string
-  firstName?: string
-  lastName?: string
-  role: number
+  id: string;
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  role: number;
 }
 
 interface TodoStats {
-  total: number
-  completed: number
-  pending: number
-  completionRate: number
+  total: number;
+  completed: number;
+  pending: number;
+  completionRate: number;
 }
 
 interface Todo {
-  id: string
-  title: string
-  descriptions?: string
-  completed: boolean
-  createdAt: string
-  updatedAt: string
+  id: string;
+  title: string;
+  descriptions?: string;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function ProfilePage() {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [firstName, setFirstName] = useState<string>('')
-  const [lastName, setLastName] = useState<string>('')
-  const [stats, setStats] = useState<TodoStats | null>(null)
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [currentPassword, setCurrentPassword] = useState<string>('')
-  const [newPassword, setNewPassword] = useState<string>('')
-  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false)
-  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false)
-  const [isSavingPassword, setIsSavingPassword] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
-  const [passwordError, setPasswordError] = useState<string>('')
-  const [successMessage, setSuccessMessage] = useState<string>('')
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+  const [stats, setStats] = useState<TodoStats | null>(null);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [currentPassword, setCurrentPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
+  const [isSavingPassword, setIsSavingPassword] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // ユーザー情報を取得
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('/api/users/me')
+      const response = await fetch('/api/users/me');
 
       if (response.status === 401) {
-        router.push('/login')
-        return
+        router.push('/login');
+        return;
       }
 
       if (!response.ok) {
-        throw new Error('ユーザー情報の取得に失敗しました')
+        throw new Error('ユーザー情報の取得に失敗しました');
       }
 
-      const data = await response.json()
-      const userData = data.data
-      setUser(userData)
-      setFirstName(userData.firstName || '')
-      setLastName(userData.lastName || '')
+      const data = await response.json();
+      const userData = data.data;
+      setUser(userData);
+      setFirstName(userData.firstName || '');
+      setLastName(userData.lastName || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました')
+      setError(err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました');
     }
-  }
+  };
 
   // Todo統計を取得
   const fetchTodoStats = async () => {
     try {
-      const response = await fetch('/api/users/me/todos/stats')
+      const response = await fetch('/api/users/me/todos/stats');
 
       if (!response.ok) {
-        throw new Error('Todo統計の取得に失敗しました')
+        throw new Error('Todo統計の取得に失敗しました');
       }
 
-      const data = await response.json()
-      setStats(data.data)
+      const data = await response.json();
+      setStats(data.data);
     } catch (err) {
-      console.error('Todo統計の取得エラー:', err)
+      console.error('Todo統計の取得エラー:', err);
     }
-  }
+  };
 
   // Todo一覧を取得
   const fetchTodos = async () => {
     try {
-      const response = await fetch('/api/users/me/todos?page=1&perPage=10')
+      const response = await fetch('/api/users/me/todos?page=1&perPage=10');
 
       if (!response.ok) {
-        throw new Error('Todo一覧の取得に失敗しました')
+        throw new Error('Todo一覧の取得に失敗しました');
       }
 
-      const data = await response.json()
-      setTodos(data.data || [])
+      const data = await response.json();
+      setTodos(data.data || []);
     } catch (err) {
-      console.error('Todo一覧の取得エラー:', err)
+      console.error('Todo一覧の取得エラー:', err);
     }
-  }
+  };
 
   // 初回読み込み時に全データを取得
   useEffect(() => {
     const fetchAllData = async () => {
-      setIsLoading(true)
-      await Promise.all([
-        fetchUserInfo(),
-        fetchTodoStats(),
-        fetchTodos(),
-      ])
-      setIsLoading(false)
-    }
+      setIsLoading(true);
+      await Promise.all([fetchUserInfo(), fetchTodoStats(), fetchTodos()]);
+      setIsLoading(false);
+    };
 
-    fetchAllData()
+    fetchAllData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchTodoStats, fetchTodos, fetchUserInfo]);
 
   // プロフィール更新
   const handleUpdateProfile = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError('')
-    setSuccessMessage('')
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
 
-    setIsSavingProfile(true)
+    setIsSavingProfile(true);
 
     try {
       const response = await fetch('/api/users/me', {
@@ -136,46 +132,46 @@ export function ProfilePage() {
           firstName: firstName || undefined,
           lastName: lastName || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'プロフィールの更新に失敗しました')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'プロフィールの更新に失敗しました');
       }
 
-      await fetchUserInfo()
-      setIsEditingProfile(false)
-      setSuccessMessage('プロフィールを更新しました')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      await fetchUserInfo();
+      setIsEditingProfile(false);
+      setSuccessMessage('プロフィールを更新しました');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'プロフィールの更新に失敗しました')
+      setError(err instanceof Error ? err.message : 'プロフィールの更新に失敗しました');
     } finally {
-      setIsSavingProfile(false)
+      setIsSavingProfile(false);
     }
-  }
+  };
 
   // パスワード変更
   const handleChangePassword = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setPasswordError('')
-    setSuccessMessage('')
+    e.preventDefault();
+    setPasswordError('');
+    setSuccessMessage('');
 
     if (!currentPassword) {
-      setPasswordError('現在のパスワードは必須です')
-      return
+      setPasswordError('現在のパスワードは必須です');
+      return;
     }
 
     if (!newPassword) {
-      setPasswordError('新しいパスワードは必須です')
-      return
+      setPasswordError('新しいパスワードは必須です');
+      return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordError('新しいパスワードは6文字以上で入力してください')
-      return
+      setPasswordError('新しいパスワードは6文字以上で入力してください');
+      return;
     }
 
-    setIsSavingPassword(true)
+    setIsSavingPassword(true);
 
     try {
       const response = await fetch('/api/users/me/password', {
@@ -187,37 +183,39 @@ export function ProfilePage() {
           currentPassword,
           newPassword,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'パスワードの変更に失敗しました')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'パスワードの変更に失敗しました');
       }
 
-      setCurrentPassword('')
-      setNewPassword('')
-      setIsChangingPassword(false)
-      setSuccessMessage('パスワードを変更しました')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      setCurrentPassword('');
+      setNewPassword('');
+      setIsChangingPassword(false);
+      setSuccessMessage('パスワードを変更しました');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'パスワードの変更に失敗しました')
+      setPasswordError(
+        err instanceof Error ? err.message : 'パスワードの変更に失敗しました',
+      );
     } finally {
-      setIsSavingPassword(false)
+      setIsSavingPassword(false);
     }
-  }
+  };
 
   // ログアウト
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-      })
-      router.push('/login')
+      });
+      router.push('/login');
     } catch (err) {
-      console.error('Logout error:', err)
-      router.push('/login')
+      console.error('Logout error:', err);
+      router.push('/login');
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -227,7 +225,7 @@ export function ProfilePage() {
           <p className="mt-4 text-gray-600">読み込み中...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -308,7 +306,9 @@ export function ProfilePage() {
                       disabled
                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
                     />
-                    <p className="text-xs text-gray-500 mt-1">ユーザー名は変更できません</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ユーザー名は変更できません
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,10 +360,10 @@ export function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setIsEditingProfile(false)
-                        setFirstName(user?.firstName || '')
-                        setLastName(user?.lastName || '')
-                        setError('')
+                        setIsEditingProfile(false);
+                        setFirstName(user?.firstName || '');
+                        setLastName(user?.lastName || '');
+                        setError('');
                       }}
                       disabled={isSavingProfile}
                       className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -375,7 +375,9 @@ export function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">ユーザー名</h3>
+                    <h3 className="text-sm font-medium text-gray-700 mb-1">
+                      ユーザー名
+                    </h3>
                     <p className="text-gray-900">{user?.username}</p>
                   </div>
 
@@ -463,10 +465,10 @@ export function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setIsChangingPassword(false)
-                        setCurrentPassword('')
-                        setNewPassword('')
-                        setPasswordError('')
+                        setIsChangingPassword(false);
+                        setCurrentPassword('');
+                        setNewPassword('');
+                        setPasswordError('');
                       }}
                       disabled={isSavingPassword}
                       className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -497,11 +499,15 @@ export function ProfilePage() {
                   </div>
                   <div className="bg-green-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">完了数</p>
-                    <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {stats.completed}
+                    </p>
                   </div>
                   <div className="bg-yellow-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">未完了数</p>
-                    <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+                    <p className="text-3xl font-bold text-yellow-600">
+                      {stats.pending}
+                    </p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">完了率</p>
@@ -570,5 +576,5 @@ export function ProfilePage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

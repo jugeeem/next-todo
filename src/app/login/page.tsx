@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { LoginPage } from '@/features/auth/LoginPage'
+import { LoginPage } from '@/features/auth/LoginPage';
 
 export default function Page() {
-  return <LoginPage />
+  return <LoginPage />;
 }
