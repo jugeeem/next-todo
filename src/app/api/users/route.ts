@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { UserRole } from '@/domain/entities/User';
 import { Container } from '@/lib/container';
 import { error, forbidden, internalError, success, unauthorized } from '@/lib/response';
-import { createUserSchema } from '@/types/validation';
+import { createUserSchema, getUsersQuerySchema } from '@/types/validation';
 
 /**
  * @typedef {Object} Pagination
@@ -33,21 +33,32 @@ import { createUserSchema } from '@/types/validation';
 /**
  * @summary ユーザー一覧取得
  * @description
- * 管理者（ADMIN=1）またはマネージャー（MANAGER=2）のみが全ユーザー一覧を取得できます。結果にはページネーション情報が含まれます。
+ * 管理者（ADMIN=1）またはマネージャー（MANAGER=2）のみが全ユーザー一覧を取得できます。
+ * 削除ステータスのフィルタリング、複数フィールドでの検索、ソート機能をサポートします。
  *
  * 認証ヘッダー:
  * - `x-user-id`
  * - `x-user-role`
  *
  * クエリパラメータ:
- * - `page`    : number >= 1（省略時 1）。数値以外や0以下は1に正規化。
- * - `perPage` : number 1..100（省略時 20）。1未満は1、100超は100に丸め。
+ * - `page`            : number >= 1（省略時 1）
+ * - `perPage`         : number 1..100（省略時 20）
+ * - `id`              : string（部分一致）
+ * - `username`        : string（部分一致）
+ * - `firstName`       : string（部分一致）
+ * - `firstNameRuby`   : string（部分一致）
+ * - `lastName`        : string（部分一致）
+ * - `lastNameRuby`    : string（部分一致）
+ * - `role`            : number
+ * - `sortBy`          : 'id' | 'username' | 'first_name' | 'first_name_ruby' | 'last_name' | 'last_name_ruby' | 'role' | 'created_at'（省略時 'created_at'）
+ * - `sortOrder`       : 'asc' | 'desc'（省略時 'asc'）
  *
  * 成功時: 200 OK / application/json
  * - 形式: `ApiResponse<UsersListResponse>`
  * - メッセージ: "ユーザー一覧を取得しました"
  *
  * エラー時:
+ * - 400 Bad Request: クエリパラメータのバリデーションエラー
  * - 401 Unauthorized: 認証ヘッダー不足/不正（Authentication required）
  * - 403 Forbidden   : 許可ロール以外（管理者権限が必要です）
  * - 500 Internal Server Error: 予期せぬエラー（ユーザー一覧の取得に失敗しました）
@@ -55,26 +66,28 @@ import { createUserSchema } from '@/types/validation';
  * @param {import('next/server').NextRequest} request Next.js のリクエスト
  * @returns {Promise<Response>} ApiResponse<UsersListResponse> を含むJSONレスポンス
  *
- * @example <caption>cURL</caption>
+ * @example <caption>cURL - ページネーション指定</caption>
  * curl -sS -X GET \
- *   "http://localhost:3000/api/users?page=2&perPage=10" \
+ *   "http://localhost:3000/api/users?page=1&perPage=20" \
+ *   -H "x-user-id: admin-123" \
+ *   -H "x-user-role: 1"
+ *
+ * @example <caption>cURL - ユーザー名で検索してソート</caption>
+ * curl -sS -X GET \
+ *   "http://localhost:3000/api/users?username=john&sortBy=username&sortOrder=asc" \
  *   -H "x-user-id: admin-123" \
  *   -H "x-user-role: 1"
  *
  * @example <caption>TypeScript (fetch)</caption>
- * const res = await fetch('/api/users?page=1&perPage=20', {
+ * const res = await fetch('/api/users?sortBy=first_name&sortOrder=asc', {
  *   headers: { 'x-user-id': 'admin-123', 'x-user-role': '1' },
  * });
  * const json = await res.json();
- * // { success: true, data: { data: User[], pagination: { currentPage, totalPages, totalUsers, perPage } }, message, timestamp }
  *
+ * @throws {Error} 400 Bad Request - バリデーションエラー
  * @throws {Error} 401 Unauthorized - Authentication required
  * @throws {Error} 403 Forbidden - 管理者権限が必要です
  * @throws {Error} 500 Internal Server Error - ユーザー一覧の取得に失敗しました
- *
- * @remarks
- * - Userオブジェクトにパスワード等の機微情報は含まれません。
- * - ページネーションは現状、全件取得後のスライスで行われます（将来の最適化対象）。
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -92,42 +105,74 @@ export async function GET(request: NextRequest): Promise<Response> {
       return forbidden('管理者権限が必要です');
     }
 
-    // クエリパラメータの取得と検証
+    // クエリパラメータの取得とバリデーション
     const url = new URL(request.url);
-    const pageParam = url.searchParams.get('page');
-    const perPageParam = url.searchParams.get('perPage');
+    const queryParams = {
+      page: url.searchParams.get('page'),
+      perPage: url.searchParams.get('perPage'),
+      id: url.searchParams.get('id'),
+      username: url.searchParams.get('username'),
+      firstName: url.searchParams.get('firstName'),
+      firstNameRuby: url.searchParams.get('firstNameRuby'),
+      lastName: url.searchParams.get('lastName'),
+      lastNameRuby: url.searchParams.get('lastNameRuby'),
+      role: url.searchParams.get('role'),
+      sortBy: url.searchParams.get('sortBy'),
+      sortOrder: url.searchParams.get('sortOrder'),
+    };
 
-    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
-    const perPage = perPageParam
-      ? Math.min(100, Math.max(1, parseInt(perPageParam, 10)))
-      : 20;
+    const validatedQuery = getUsersQuerySchema.parse(queryParams);
 
     const container = Container.getInstance();
 
-    // 全ユーザーを取得
-    const allUsers = await container.userUseCase.getAllUsers();
+    // フィルタ条件の構築（削除済みユーザーは除外）
+    const filters = {
+      id: validatedQuery.id,
+      username: validatedQuery.username,
+      firstName: validatedQuery.firstName,
+      firstNameRuby: validatedQuery.firstNameRuby,
+      lastName: validatedQuery.lastName,
+      lastNameRuby: validatedQuery.lastNameRuby,
+      role: validatedQuery.role,
+    };
+
+    // ソート条件の構築
+    const sortOptions = {
+      sortBy: validatedQuery.sortBy,
+      sortOrder: validatedQuery.sortOrder,
+    };
+
+    // フィルタリング・ソートされたユーザーを取得
+    const allUsers = await container.userUseCase.getUsersWithFilters(
+      filters,
+      sortOptions,
+    );
 
     // ページネーション計算
     const totalUsers = allUsers.length;
-    const totalPages = Math.ceil(totalUsers / perPage);
-    const startIndex = (page - 1) * perPage;
-    const endIndex = startIndex + perPage;
+    const totalPages = Math.ceil(totalUsers / validatedQuery.perPage);
+    const startIndex = (validatedQuery.page - 1) * validatedQuery.perPage;
+    const endIndex = startIndex + validatedQuery.perPage;
     const users = allUsers.slice(startIndex, endIndex);
 
     // ページネーション情報を含むレスポンス
     const responseData = {
       data: users,
       pagination: {
-        currentPage: page,
+        currentPage: validatedQuery.page,
         totalPages,
         totalUsers,
-        perPage,
+        perPage: validatedQuery.perPage,
       },
     };
 
     return success(responseData, 'ユーザー一覧を取得しました');
   } catch (err) {
     console.error('ユーザー一覧取得エラー:', err);
+
+    if (err instanceof z.ZodError) {
+      return error('クエリパラメータが正しくありません', 400);
+    }
 
     return internalError('ユーザー一覧の取得に失敗しました');
   }

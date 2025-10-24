@@ -85,6 +85,52 @@ export interface TodoRepository {
   findByUserId(userId: string): Promise<Todo[]>;
 
   /**
+   * ユーザーIDによるToDoタスク一覧取得（ページネーション、フィルター、ソート対応）
+   *
+   * 指定されたユーザーが所有するToDoタスクを、ページネーション、フィルタリング、
+   * ソート機能を使用して取得します。削除済みのタスクは除外されます。
+   *
+   * @param userId - 取得対象のユーザーID
+   * @param options - 検索オプション
+   * @param options.page - ページ番号（1から開始、デフォルト: 1）
+   * @param options.perPage - 1ページあたりの件数（デフォルト: 20）
+   * @param options.completedFilter - 完了状態フィルター（'all': 全件、'completed': 完了済みのみ、'incomplete': 未完了のみ、デフォルト: 'all'）
+   * @param options.sortBy - ソート基準フィールド（デフォルト: 'createdAt'）
+   * @param options.sortOrder - ソート順序（'asc': 昇順、'desc': 降順、デフォルト: 'asc'）
+   * @returns ページネーション情報を含むToDoタスクデータ
+   * @throws {Error} データベース接続エラーまたはクエリエラー
+   *
+   * @example
+   * ```typescript
+   * // 基本的な使用例
+   * const result = await todoRepository.findByUserIdWithOptions("user-123", {
+   *   page: 1,
+   *   perPage: 20,
+   *   completedFilter: 'incomplete',
+   *   sortBy: 'createdAt',
+   *   sortOrder: 'asc'
+   * });
+   * console.log(`総件数: ${result.total}, ページ: ${result.page}/${result.totalPages}`);
+   * ```
+   */
+  findByUserIdWithOptions(
+    userId: string,
+    options?: {
+      page?: number;
+      perPage?: number;
+      completedFilter?: 'all' | 'completed' | 'incomplete';
+      sortBy?: 'createdAt' | 'updatedAt' | 'title';
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    data: Todo[];
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  }>;
+
+  /**
    * 新規ToDoタスク作成
    *
    * 新しいToDoタスクをデータストアに永続化します。

@@ -508,6 +508,46 @@ export class TodoUseCase {
   }
 
   /**
+   * ユーザー固有のタスク一覧取得（ページネーション、フィルター、ソート対応）
+   *
+   * 指定されたユーザーID に属するタスクを、ページネーション、フィルタリング、
+   * ソート機能を使用して取得します。削除済みのタスクは除外されます。
+   *
+   * @param {string} userId - 対象ユーザーのID
+   * @param {Object} options - 検索オプション
+   * @returns {Promise<Object>} ページネーション情報を含むタスクデータ
+   *
+   * @example
+   * ```typescript
+   * const result = await todoUseCase.getTodosByUserIdWithOptions('user-123', {
+   *   page: 2,
+   *   perPage: 10,
+   *   completedFilter: 'incomplete',
+   *   sortBy: 'createdAt',
+   *   sortOrder: 'desc'
+   * });
+   * ```
+   */
+  async getTodosByUserIdWithOptions(
+    userId: string,
+    options?: {
+      page?: number;
+      perPage?: number;
+      completedFilter?: 'all' | 'completed' | 'incomplete';
+      sortBy?: 'createdAt' | 'updatedAt' | 'title';
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    data: Todo[];
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  }> {
+    return this.todoRepository.findByUserIdWithOptions(userId, options);
+  }
+
+  /**
    * タスク情報更新
    *
    * 指定されたタスクID のタスクを、提供された更新データで更新します。

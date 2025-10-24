@@ -6,51 +6,87 @@ import { createTodoSchema } from '@/types/validation';
 /**
  * ユーザーのTODOリスト取得API
  *
- * 認証されたユーザーが所有するすべてのTODOアイテムを取得します。
- * 認証はJWTトークンを使用して行われます。
+ * 認証されたユーザーが所有するTODOアイテムを取得します。
+ * ページネーション、フィルタリング、ソート機能をサポートします。
  *
  * @route GET /api/todos
  *
  * @headers {string} Authorization - JWTトークン（例: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."）
  *
+ * @query {number} [page=1] - ページ番号（1以上）
+ * @query {number} [perPage=20] - 1ページあたりの件数（1〜100）
+ * @query {string} [completedFilter=all] - 完了状態フィルター（all: 全件、completed: 完了済みのみ、incomplete: 未完了のみ）
+ * @query {string} [sortBy=createdAt] - ソート基準（createdAt, updatedAt, title）
+ * @query {string} [sortOrder=asc] - ソート順序（asc: 昇順、desc: 降順）
+ *
  * @returns {Object} レスポンス
  * @returns {boolean} success - 成功フラグ
  * @returns {string} message - レスポンスメッセージ
- * @returns {Array} data - TODOアイテムの配列
- * @returns {number} data[].id - TODO ID
- * @returns {string} data[].title - TODOタイトル
- * @returns {string} [data[].descriptions] - TODO説明（任意）
- * @returns {number} data[].userId - ユーザーID
- * @returns {string} data[].createdAt - 作成日時（ISO8601形式）
- * @returns {string} data[].updatedAt - 更新日時（ISO8601形式）
+ * @returns {Object} data - レスポンスデータ
+ * @returns {Array} data.data - TODOアイテムの配列
+ * @returns {number} data.data[].id - TODO ID
+ * @returns {string} data.data[].title - TODOタイトル
+ * @returns {string} [data.data[].descriptions] - TODO説明（任意）
+ * @returns {boolean} data.data[].completed - 完了状態
+ * @returns {number} data.data[].userId - ユーザーID
+ * @returns {string} data.data[].createdAt - 作成日時（ISO8601形式）
+ * @returns {string} data.data[].updatedAt - 更新日時（ISO8601形式）
+ * @returns {number} data.total - 総件数
+ * @returns {number} data.page - 現在のページ番号
+ * @returns {number} data.perPage - 1ページあたりの件数
+ * @returns {number} data.totalPages - 総ページ数
  *
  * @example
- * // リクエスト例
+ * // リクエスト例（デフォルト）
  * GET /api/todos
+ * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *
+ * // リクエスト例（ページネーション）
+ * GET /api/todos?page=2&perPage=10
+ * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *
+ * // リクエスト例（未完了のみ取得）
+ * GET /api/todos?completedFilter=incomplete
+ * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *
+ * // リクエスト例（完了済みのみ取得）
+ * GET /api/todos?completedFilter=completed
+ * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *
+ * // リクエスト例（作成日時の降順ソート）
+ * GET /api/todos?sortBy=createdAt&sortOrder=desc
  * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *
  * // 成功レスポンス例 (200)
  * {
  *   "success": true,
  *   "message": "Request successful",
- *   "data": [
- *     {
- *       "id": 1,
- *       "title": "買い物リスト作成",
- *       "descriptions": "今週の食材を買う",
- *       "userId": 1,
- *       "createdAt": "2025-07-24T10:00:00.000Z",
- *       "updatedAt": "2025-07-24T10:00:00.000Z"
- *     },
- *     {
- *       "id": 2,
- *       "title": "プロジェクト資料作成",
- *       "descriptions": null,
- *       "userId": 1,
- *       "createdAt": "2025-07-24T11:00:00.000Z",
- *       "updatedAt": "2025-07-24T11:00:00.000Z"
- *     }
- *   ]
+ *   "data": {
+ *     "data": [
+ *       {
+ *         "id": 1,
+ *         "title": "買い物リスト作成",
+ *         "descriptions": "今週の食材を買う",
+ *         "completed": false,
+ *         "userId": 1,
+ *         "createdAt": "2025-07-24T10:00:00.000Z",
+ *         "updatedAt": "2025-07-24T10:00:00.000Z"
+ *       },
+ *       {
+ *         "id": 2,
+ *         "title": "プロジェクト資料作成",
+ *         "descriptions": null,
+ *         "completed": true,
+ *         "userId": 1,
+ *         "createdAt": "2025-07-24T11:00:00.000Z",
+ *         "updatedAt": "2025-07-24T11:00:00.000Z"
+ *       }
+ *     ],
+ *     "total": 50,
+ *     "page": 1,
+ *     "perPage": 20,
+ *     "totalPages": 3
+ *   }
  * }
  *
  * // 認証エラー例 (401)
@@ -71,10 +107,42 @@ export async function GET(request: NextRequest) {
       return unauthorized('Authentication required');
     }
 
-    const container = Container.getInstance();
-    const todos = await container.todoUseCase.getTodosByUserId(userId);
+    // クエリパラメータの取得
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const perPage = Math.max(
+      1,
+      Math.min(100, parseInt(searchParams.get('perPage') ?? '20', 10)),
+    );
+    const completedFilter = searchParams.get('completedFilter') ?? 'all';
+    const sortBy = searchParams.get('sortBy') ?? 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') ?? 'asc';
 
-    return success(todos);
+    // 完了状態フィルタのバリデーション
+    const validCompletedFilter =
+      completedFilter === 'completed' || completedFilter === 'incomplete'
+        ? completedFilter
+        : 'all';
+
+    // ソート基準のバリデーション
+    const validSortBy =
+      sortBy === 'createdAt' || sortBy === 'updatedAt' || sortBy === 'title'
+        ? sortBy
+        : 'createdAt';
+
+    // ソート順序のバリデーション
+    const validSortOrder = sortOrder === 'desc' ? 'desc' : 'asc';
+
+    const container = Container.getInstance();
+    const result = await container.todoUseCase.getTodosByUserIdWithOptions(userId, {
+      page,
+      perPage,
+      completedFilter: validCompletedFilter,
+      sortBy: validSortBy,
+      sortOrder: validSortOrder,
+    });
+
+    return success(result);
   } catch (err) {
     console.error('Get todos error:', err);
 

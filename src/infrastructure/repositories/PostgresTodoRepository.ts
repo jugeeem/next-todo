@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { CreateTodoInput, Todo, UpdateTodoInput } from '@/domain/entities/Todo';
 import type { TodoRepository } from '@/domain/repositories/TodoRepository';
 import { database } from '@/infrastructure/database/connection';
+import { dbNowJST, dbValueToJST } from '@/lib/date-utils';
 
 /**
  * PostgreSQL ToDoリポジトリ実装クラス
@@ -134,6 +135,132 @@ export class PostgresTodoRepository implements TodoRepository {
   }
 
   /**
+   * ユーザー別ToDoタスク一覧取得（ページネーション、フィルター、ソート対応）
+   *
+   * 指定されたユーザーIDに紐づくToDoタスクを、ページネーション、フィルタリング、
+   * ソート機能を使用して取得します。削除済みのタスクは除外されます。
+   *
+   * @param {string} userId - 検索対象のユーザーID（UUID形式）
+   * @param {Object} options - 検索オプション
+   * @param {number} options.page - ページ番号（1から開始、デフォルト: 1）
+   * @param {number} options.perPage - 1ページあたりの件数（デフォルト: 20）
+   * @param {string} options.completedFilter - 完了状態フィルター（'all': 全件、'completed': 完了済みのみ、'incomplete': 未完了のみ、デフォルト: 'all'）
+   * @param {string} options.sortBy - ソート基準フィールド（デフォルト: 'createdAt'）
+   * @param {string} options.sortOrder - ソート順序（'asc': 昇順、'desc': 降順、デフォルト: 'asc'）
+   * @returns {Promise<Object>} ページネーション情報を含むToDoタスクデータ
+   * @throws {Error} データベース接続エラーまたはクエリエラー
+   *
+   * @example
+   * ```typescript
+   * const repository = new PostgresTodoRepository();
+   *
+   * // 基本的な使用例
+   * const result = await repository.findByUserIdWithOptions('user-123', {
+   *   page: 1,
+   *   perPage: 20,
+   *   completedFilter: 'incomplete',
+   *   sortBy: 'createdAt',
+   *   sortOrder: 'asc'
+   * });
+   *
+   * console.log(`総件数: ${result.total}`);
+   * console.log(`現在のページ: ${result.page}/${result.totalPages}`);
+   * console.log(`取得したタスク数: ${result.data.length}`);
+   *
+   * // 完了済みタスクのみ取得
+   * const completedResult = await repository.findByUserIdWithOptions('user-123', {
+   *   completedFilter: 'completed'
+   * });
+   *
+   * // タイトルで降順ソート
+   * const sortedResult = await repository.findByUserIdWithOptions('user-123', {
+   *   sortBy: 'title',
+   *   sortOrder: 'desc'
+   * });
+   * ```
+   */
+  async findByUserIdWithOptions(
+    userId: string,
+    options: {
+      page?: number;
+      perPage?: number;
+      completedFilter?: 'all' | 'completed' | 'incomplete';
+      sortBy?: 'createdAt' | 'updatedAt' | 'title';
+      sortOrder?: 'asc' | 'desc';
+    } = {},
+  ): Promise<{
+    data: Todo[];
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  }> {
+    // デフォルト値の設定
+    const page = Math.max(1, options.page ?? 1);
+    const perPage = Math.max(1, Math.min(100, options.perPage ?? 20));
+    const completedFilter = options.completedFilter ?? 'all';
+    const sortBy = options.sortBy ?? 'createdAt';
+    const sortOrder = options.sortOrder ?? 'asc';
+
+    // WHERE句の構築（削除済みを除外）
+    let whereClause = 'WHERE user_id = $1 AND deleted = FALSE';
+
+    // 完了状態フィルターの追加
+    if (completedFilter === 'completed') {
+      whereClause += ' AND completed = TRUE';
+    } else if (completedFilter === 'incomplete') {
+      whereClause += ' AND completed = FALSE';
+    }
+    // 'all' の場合は completed の条件を追加しない
+
+    // ソートカラムのマッピング
+    const sortColumnMap: Record<string, string> = {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      title: 'title',
+    };
+    const sortColumn = sortColumnMap[sortBy] ?? 'created_at';
+
+    // ORDER BY句の構築
+    const orderByClause = `ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`;
+
+    // 総件数取得クエリ
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM todos 
+      ${whereClause}
+    `;
+
+    // データ取得クエリ
+    const offset = (page - 1) * perPage;
+    const dataQuery = `
+      SELECT id, title, descriptions, completed, created_at, created_by, updated_at, updated_by, deleted, user_id
+      FROM todos 
+      ${whereClause}
+      ${orderByClause}
+      LIMIT $2 OFFSET $3
+    `;
+
+    // クエリ実行
+    const countResult = await database.query(countQuery, [userId]);
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / perPage);
+
+    const dataResult = await database.query(dataQuery, [userId, perPage, offset]);
+    const data = dataResult.rows.map((row: Record<string, unknown>) =>
+      this.mapRowToTodo(row),
+    );
+
+    return {
+      data,
+      total,
+      page,
+      perPage,
+      totalPages,
+    };
+  }
+
+  /**
    * 新規ToDoタスク作成
    *
    * 新しいToDoタスクを作成します。UUIDが自動生成され、作成・更新タイムスタンプが設定されます。
@@ -168,7 +295,7 @@ export class PostgresTodoRepository implements TodoRepository {
    */
   async create(input: CreateTodoInput): Promise<Todo> {
     const id = uuidv4();
-    const now = new Date();
+    const now = dbNowJST();
 
     const query = `
       INSERT INTO todos (id, title, descriptions, completed, user_id, created_at, updated_at)
@@ -255,7 +382,7 @@ export class PostgresTodoRepository implements TodoRepository {
     }
 
     updateFields.push(`updated_at = $${paramIndex++}`);
-    values.push(new Date());
+    values.push(dbNowJST());
 
     values.push(id);
 
@@ -313,7 +440,7 @@ export class PostgresTodoRepository implements TodoRepository {
       WHERE id = $2 AND deleted = FALSE
     `;
 
-    const result = await database.query(query, [new Date(), id]);
+    const result = await database.query(query, [dbNowJST(), id]);
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -422,9 +549,9 @@ export class PostgresTodoRepository implements TodoRepository {
       title: row.title as string,
       descriptions: row.descriptions as string | undefined,
       completed: row.completed as boolean,
-      createdAt: new Date(row.created_at as string),
+      createdAt: dbValueToJST(row.created_at) ?? dbNowJST(),
       createdBy: row.created_by as string,
-      updatedAt: new Date(row.updated_at as string),
+      updatedAt: dbValueToJST(row.updated_at) ?? dbNowJST(),
       updatedBy: row.updated_by as string,
       deleted: row.deleted as boolean,
       userId: row.user_id as string,

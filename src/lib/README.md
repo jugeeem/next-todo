@@ -18,6 +18,8 @@
 src/lib/
 ├── auth-middleware.ts    # JWT認証ミドルウェア
 ├── container.ts          # 依存性注入コンテナ（Singleton）
+├── cookie.ts            # Cookie管理ユーティリティ
+├── date-utils.ts        # JST日時ユーティリティ
 ├── jwt.ts               # JWT トークンサービス（HMAC SHA256）
 ├── response.ts          # 統一APIレスポンスヘルパー
 ├── validation.ts        # バリデーション再エクスポート（レガシー互換）
@@ -395,6 +397,34 @@ export function paginated<T>(
     pagination
   });
 }
+```
+
+### JST日時管理の統合
+
+#### `date-utils.ts` - JST日時ユーティリティ
+- **目的**: システム全体で一貫したJST（日本標準時）の日時処理
+- **主要機能**:
+  - 現在のJST日時取得
+  - 任意の日時をJSTに変換
+  - ISO文字列からJST日時への変換
+  - データベース用のJST日時生成
+  - 日時の妥当性検証
+- **設計方針**: システム内では常にDate型でJST時刻を表現
+
+```typescript
+import { nowJST, dbNowJST, dbValueToJST } from '@/lib/date-utils';
+
+// 現在のJST日時を取得
+const now = nowJST();
+
+// データベース保存用
+const user = {
+  createdAt: dbNowJST(),
+  updatedAt: dbNowJST()
+};
+
+// データベースから取得した値をJSTに変換
+const createdAt = dbValueToJST(row.created_at);
 ```
 
 ### UserUseCase の統合

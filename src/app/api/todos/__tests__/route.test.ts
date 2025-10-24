@@ -13,6 +13,7 @@ describe('/api/todos API エンドポイント', () => {
   let mockContainer: {
     todoUseCase: {
       getTodosByUserId: jest.Mock;
+      getTodosByUserIdWithOptions: jest.Mock;
       createTodo: jest.Mock;
     };
   };
@@ -32,6 +33,7 @@ describe('/api/todos API エンドポイント', () => {
     mockContainer = {
       todoUseCase: {
         getTodosByUserId: jest.fn(),
+        getTodosByUserIdWithOptions: jest.fn(),
         createTodo: jest.fn(),
       },
     };
@@ -53,11 +55,15 @@ describe('/api/todos API エンドポイント', () => {
   });
 
   describe('GET /api/todos - TODO一覧取得', () => {
-    const createMockRequest = (headers: Record<string, string> = {}) => {
+    const createMockRequest = (
+      headers: Record<string, string> = {},
+      url = 'http://localhost:3000/api/todos',
+    ) => {
       return {
         headers: {
           get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
         },
+        url,
       } as unknown as NextRequest;
     };
 
@@ -67,19 +73,35 @@ describe('/api/todos API エンドポイント', () => {
         'x-user-role': '1',
       });
 
-      const mockTodos = [
-        { id: '1', title: 'Test Todo 1', userId: 'user-123' },
-        { id: '2', title: 'Test Todo 2', userId: 'user-123' },
-      ];
+      const mockResult = {
+        data: [
+          { id: '1', title: 'Test Todo 1', userId: 'user-123' },
+          { id: '2', title: 'Test Todo 2', userId: 'user-123' },
+        ],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 2,
+          perPage: 20,
+        },
+      };
 
-      mockContainer.todoUseCase.getTodosByUserId.mockResolvedValue(mockTodos);
+      mockContainer.todoUseCase.getTodosByUserIdWithOptions.mockResolvedValue(
+        mockResult,
+      );
 
       await GET(request);
 
-      expect(mockContainer.todoUseCase.getTodosByUserId).toHaveBeenCalledWith(
-        'user-123',
-      );
-      expect(mockResponseLib.success).toHaveBeenCalledWith(mockTodos);
+      expect(
+        mockContainer.todoUseCase.getTodosByUserIdWithOptions,
+      ).toHaveBeenCalledWith('user-123', {
+        page: 1,
+        perPage: 20,
+        completedFilter: 'all',
+        sortBy: 'createdAt',
+        sortOrder: 'asc',
+      });
+      expect(mockResponseLib.success).toHaveBeenCalledWith(mockResult);
     });
 
     it('認証ヘッダーが無い場合は401エラーを返す', async () => {
@@ -101,7 +123,7 @@ describe('/api/todos API エンドポイント', () => {
       // console.errorをモック
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockContainer.todoUseCase.getTodosByUserId.mockRejectedValue(
+      mockContainer.todoUseCase.getTodosByUserIdWithOptions.mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -118,12 +140,14 @@ describe('/api/todos API エンドポイント', () => {
     const createMockRequest = (
       headers: Record<string, string> = {},
       body: Record<string, unknown> = {},
+      url = 'http://localhost:3000/api/todos',
     ) => {
       return {
         headers: {
           get: jest.fn((name: string) => headers[name.toLowerCase()] || null),
         },
         json: jest.fn().mockResolvedValue(body),
+        url,
       } as unknown as NextRequest;
     };
 

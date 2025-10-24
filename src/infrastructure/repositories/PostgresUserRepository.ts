@@ -23,8 +23,13 @@ import {
   type User,
   UserRole,
 } from '@/domain/entities/User';
-import type { UserRepository } from '@/domain/repositories/UserRepository';
+import type {
+  UserRepository,
+  UserSearchFilters,
+  UserSortOptions,
+} from '@/domain/repositories/UserRepository';
 import { database } from '@/infrastructure/database/connection';
+import { dbNowJST, dbValueToJST } from '@/lib/date-utils';
 
 /**
  * PostgreSQL ユーザーリポジトリ実装クラス
@@ -181,7 +186,7 @@ export class PostgresUserRepository implements UserRepository {
   async create(input: CreateUserInput): Promise<User> {
     const id = uuidv4();
     const hashedPassword = await bcrypt.hash(input.password, 10);
-    const now = new Date();
+    const now = dbNowJST();
 
     const query = `
       INSERT INTO users (id, username, first_name, first_name_ruby, last_name, last_name_ruby, password_hash, role, created_at, updated_at)
@@ -275,7 +280,7 @@ export class PostgresUserRepository implements UserRepository {
     }
 
     updateFields.push(`updated_at = $${paramIndex++}`);
-    values.push(new Date());
+    values.push(dbNowJST());
 
     values.push(id);
 
@@ -296,11 +301,11 @@ export class PostgresUserRepository implements UserRepository {
   }
 
   /**
-   * ユーザー削除（論理削除）
+   * ユーザー削除（物理削除）
    *
-   * 指定されたIDのユーザーを論理削除します。物理削除は行わず、
-   * deletedフラグをTRUEに設定してデータ履歴を保持します。
-   * 関連するToDoデータとの整合性を保つため、論理削除を採用しています。
+   * 指定されたIDのユーザーを物理削除します。
+   * データベースから完全にレコードを削除するため、この操作は元に戻せません。
+   * 関連するToDoデータはCASCADE設定により自動的に削除されます。
    *
    * @param {string} id - 削除対象のユーザーID（UUID形式）
    * @returns {Promise<boolean>} 削除が成功した場合true、対象が見つからない場合false
@@ -319,17 +324,18 @@ export class PostgresUserRepository implements UserRepository {
    *
    * // 削除後の確認
    * const user = await repository.findById('123e4567-e89b-12d3-a456-426614174000');
-   * console.log(user); // null（論理削除により検索対象外）
+   * console.log(user); // null（物理削除により完全に削除）
    * ```
+   *
+   * @warning この操作は元に戻せません。関連データも含めて完全に削除されます。
    */
   async delete(id: string): Promise<boolean> {
     const query = `
-      UPDATE users 
-      SET deleted = TRUE, updated_at = $1
-      WHERE id = $2 AND deleted = FALSE
+      DELETE FROM users 
+      WHERE id = $1 AND deleted = FALSE
     `;
 
-    const result = await database.query(query, [new Date(), id]);
+    const result = await database.query(query, [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -372,6 +378,104 @@ export class PostgresUserRepository implements UserRepository {
     `;
 
     const result = await database.query(query);
+    return result.rows.map((row: Record<string, unknown>) => this.mapRowToUser(row));
+  }
+
+  /**
+   * ユーザー検索・フィルタリング・ソート
+   *
+   * 指定された条件に基づいてユーザーを検索し、ソートして返します。
+   * WHERE句を動的に構築し、複数の検索条件を組み合わせてフィルタリングします。
+   * 削除済みユーザーは常に除外されます。
+   *
+   * @param filters - 検索フィルタ条件
+   * @param sortOptions - ソート条件
+   * @returns フィルタリング・ソートされたユーザーの配列
+   * @throws {Error} データベース接続エラーまたはクエリエラー
+   *
+   * @example
+   * ```typescript
+   * const repository = new PostgresUserRepository();
+   *
+   * // 管理者ユーザーを名前順で取得
+   * const admins = await repository.findWithFilters(
+   *   { role: 1 },
+   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   * );
+   *
+   * // ユーザー名で部分検索
+   * const users = await repository.findWithFilters(
+   *   { username: 'john' },
+   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   * );
+   * ```
+   */
+  async findWithFilters(
+    filters: UserSearchFilters,
+    sortOptions: UserSortOptions,
+  ): Promise<User[]> {
+    const whereClauses: string[] = ['deleted = FALSE'];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    // ID検索
+    if (filters.id) {
+      whereClauses.push(`id = $${paramIndex++}`);
+      values.push(filters.id);
+    }
+
+    // ユーザー名検索（部分一致）
+    if (filters.username) {
+      whereClauses.push(`username ILIKE $${paramIndex++}`);
+      values.push(`%${filters.username}%`);
+    }
+
+    // 名前検索（部分一致）
+    if (filters.firstName) {
+      whereClauses.push(`first_name ILIKE $${paramIndex++}`);
+      values.push(`%${filters.firstName}%`);
+    }
+
+    // 名前ふりがな検索（部分一致）
+    if (filters.firstNameRuby) {
+      whereClauses.push(`first_name_ruby ILIKE $${paramIndex++}`);
+      values.push(`%${filters.firstNameRuby}%`);
+    }
+
+    // 姓検索（部分一致）
+    if (filters.lastName) {
+      whereClauses.push(`last_name ILIKE $${paramIndex++}`);
+      values.push(`%${filters.lastName}%`);
+    }
+
+    // 姓ふりがな検索（部分一致）
+    if (filters.lastNameRuby) {
+      whereClauses.push(`last_name_ruby ILIKE $${paramIndex++}`);
+      values.push(`%${filters.lastNameRuby}%`);
+    }
+
+    // 権限レベル検索
+    if (filters.role !== undefined) {
+      whereClauses.push(`role = $${paramIndex++}`);
+      values.push(filters.role);
+    }
+
+    // WHERE句の構築
+    const whereClause =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    // ORDER BY句の構築
+    const orderByClause = `ORDER BY ${sortOptions.sortBy} ${sortOptions.sortOrder.toUpperCase()}`;
+
+    // クエリの実行
+    const query = `
+      SELECT id, username, first_name, first_name_ruby, last_name, last_name_ruby, password_hash, role, created_at, created_by, updated_at, updated_by, deleted
+      FROM users 
+      ${whereClause}
+      ${orderByClause}
+    `;
+
+    const result = await database.query(query, values);
     return result.rows.map((row: Record<string, unknown>) => this.mapRowToUser(row));
   }
 
@@ -453,7 +557,7 @@ export class PostgresUserRepository implements UserRepository {
       RETURNING id, username, first_name, first_name_ruby, last_name, last_name_ruby, password_hash, role, created_at, created_by, updated_at, updated_by, deleted
     `;
 
-    const result = await database.query(query, [newPasswordHash, new Date(), id]);
+    const result = await database.query(query, [newPasswordHash, dbNowJST(), id]);
 
     if (result.rows.length === 0) {
       throw new Error('パスワードの更新に失敗しました');
@@ -524,9 +628,9 @@ export class PostgresUserRepository implements UserRepository {
       lastNameRuby: row.last_name_ruby as string | undefined,
       passwordHash: row.password_hash as string,
       role: row.role as UserRole,
-      createdAt: new Date(row.created_at as string),
+      createdAt: dbValueToJST(row.created_at) ?? dbNowJST(),
       createdBy: row.created_by as string,
-      updatedAt: new Date(row.updated_at as string),
+      updatedAt: dbValueToJST(row.updated_at) ?? dbNowJST(),
       updatedBy: row.updated_by as string,
       deleted: row.deleted as boolean,
     };

@@ -665,3 +665,88 @@ export const changePasswordSchema = z
  * ```
  */
 export type ChangePasswordValidation = z.infer<typeof changePasswordSchema>;
+
+/**
+ * ユーザー一覧クエリパラメータバリデーションスキーマ
+ *
+ * ユーザー一覧取得APIのクエリパラメータを検証するためのZodスキーマです。
+ * ページネーション、フィルタリング、ソート、検索機能をサポートします。
+ *
+ * @constant getUsersQuerySchema
+ * @type {z.ZodObject}
+ *
+ * @example
+ * ```typescript
+ * // APIルートでの使用例
+ * export async function GET(request: NextRequest) {
+ *   const url = new URL(request.url);
+ *   const queryParams = {
+ *     page: url.searchParams.get('page'),
+ *     perPage: url.searchParams.get('perPage'),
+ *     deleted: url.searchParams.get('deleted'),
+ *     search: url.searchParams.get('search'),
+ *     sortBy: url.searchParams.get('sortBy'),
+ *     sortOrder: url.searchParams.get('sortOrder'),
+ *   };
+ *
+ *   const validatedQuery = getUsersQuerySchema.parse(queryParams);
+ *   const users = await userUseCase.getUsers(validatedQuery);
+ *   return success(users);
+ * }
+ * ```
+ */
+export const getUsersQuerySchema = z.object({
+  /** ページ番号（1始まり） */
+  page: z.coerce.number().int().min(1).default(1),
+
+  /** 1ページあたりの件数（1〜100） */
+  perPage: z.coerce.number().int().min(1).max(100).default(20),
+
+  /** ID検索 */
+  id: z.string().optional(),
+
+  /** ユーザー名検索（部分一致） */
+  username: z.string().optional(),
+
+  /** 名前検索（部分一致） */
+  firstName: z.string().optional(),
+
+  /** 名前ふりがな検索（部分一致） */
+  firstNameRuby: z.string().optional(),
+
+  /** 姓検索（部分一致） */
+  lastName: z.string().optional(),
+
+  /** 姓ふりがな検索（部分一致） */
+  lastNameRuby: z.string().optional(),
+
+  /** 権限レベル検索 */
+  role: z.coerce.number().int().optional(),
+
+  /** ソート対象フィールド */
+  sortBy: z
+    .enum([
+      'id',
+      'username',
+      'first_name',
+      'first_name_ruby',
+      'last_name',
+      'last_name_ruby',
+      'role',
+      'created_at',
+    ])
+    .default('created_at'),
+
+  /** ソート順序 */
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+});
+
+/**
+ * ユーザー一覧クエリパラメータ型
+ *
+ * getUsersQuerySchema から推論された TypeScript 型です。
+ * ユーザー検索・フィルタリング機能で使用されます。
+ *
+ * @type GetUsersQuery
+ */
+export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;

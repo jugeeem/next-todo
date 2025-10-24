@@ -247,7 +247,9 @@
 							"script": {
 								"exec": [
 									"const response = pm.response.json();\r",
-									"pm.environment.set(\"todosId\", response.data[0].id);"
+									"if (response.data && response.data.data && response.data.data.length > 0) {\r",
+									"    pm.environment.set(\"todosId\", response.data.data[0].id);\r",
+									"}"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -269,7 +271,7 @@
 							}
 						],
 						"url": {
-							"raw": "http://localhost:3000/api/todos",
+							"raw": "http://localhost:3000/api/todos?page=1&perPage=20&completedFilter=all&sortBy=createdAt&sortOrder=asc",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -278,9 +280,36 @@
 							"path": [
 								"api",
 								"todos"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "ページ番号（1以上）"
+								},
+								{
+									"key": "perPage",
+									"value": "20",
+									"description": "1ページあたりの件数（1〜100）"
+								},
+								{
+									"key": "completedFilter",
+									"value": "all",
+									"description": "完了状態フィルター（all: 全件、completed: 完了済みのみ、incomplete: 未完了のみ）"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt",
+									"description": "ソート基準（createdAt, updatedAt, title）"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc",
+									"description": "ソート順序（asc: 昇順、desc: 降順）"
+								}
 							]
 						},
-						"description": "### APIエンドポイント: Todo一覧取得\n\n**メソッド:** `GET`\n\n**URL:** `http://localhost/api/todos`\n\n#### 説明\n\nこのエンドポイントは、サーバーからTodoアイテムの一覧を取得します。入力パラメータを必要としないシンプルなGETリクエストです。\n\n#### リクエストパラメータ\n\n- このリクエストには入力パラメータは必要ありません。\n    \n\n#### レスポンス構造\n\nリクエストが成功すると、レスポンスは以下の構造を持つJSONオブジェクトを返します：\n\n- **success** (boolean): リクエストが成功したかどうかを示します。\n    \n- **data** (array): Todoアイテムの一覧を含む配列。Todoが存在しない場合、この配列は空になります。\n    \n\n#### レスポンス例\n\n```json\n{\n  \"success\": true,\n  \"data\": []\n}\n```\n\nこのレスポンス例では、`success`キーはリクエストが成功したことを示し、`data`配列は空であることから、現在利用可能なTodoアイテムがないことを意味しています。"
+						"description": "### APIエンドポイント: Todo一覧取得\n\n**メソッド:** `GET`\n\n**URL:** `http://localhost:3000/api/todos`\n\n#### 説明\n\nこのエンドポイントは、認証されたユーザーが所有するTodoアイテムの一覧を取得します。ページネーション、フィルタリング、ソート機能をサポートします。\n\n#### 認証\n\nこのエンドポイントには認証が必要です。Authorizationヘッダーに有効なJWTトークンを含めてください。\n\n#### クエリパラメータ\n\n- **page** (number, 任意): ページ番号（1以上）。デフォルト: 1\n- **perPage** (number, 任意): 1ページあたりの件数（1〜100）。デフォルト: 20\n- **completedFilter** (string, 任意): 完了状態フィルター\n  - `all`: 全件（デフォルト）\n  - `completed`: 完了済みのみ\n  - `incomplete`: 未完了のみ\n- **sortBy** (string, 任意): ソート基準。デフォルト: createdAt\n  - `createdAt`: 作成日時\n  - `updatedAt`: 更新日時\n  - `title`: タイトル\n- **sortOrder** (string, 任意): ソート順序。デフォルト: asc\n  - `asc`: 昇順\n  - `desc`: 降順\n\n#### レスポンス構造\n\nリクエストが成功すると、レスポンスは以下の構造を持つJSONオブジェクトを返します：\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Request successful\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": 1,\n        \"title\": \"買い物リスト作成\",\n        \"descriptions\": \"今週の食材を買う\",\n        \"completed\": false,\n        \"userId\": 1,\n        \"createdAt\": \"2025-07-24T10:00:00.000Z\",\n        \"updatedAt\": \"2025-07-24T10:00:00.000Z\"\n      }\n    ],\n    \"total\": 50,\n    \"page\": 1,\n    \"perPage\": 20,\n    \"totalPages\": 3\n  }\n}\n```\n\n#### エラーレスポンス\n\n- **401 Unauthorized**: 認証が必要です\n- **500 Internal Server Error**: サーバーエラー"
 					},
 					"response": []
 				},
@@ -321,7 +350,7 @@
 								"todos"
 							]
 						},
-						"description": "## Todoアイテムの追加\n\nこのエンドポイントは、`/api/todos`エンドポイントにPOSTリクエストを送信することで、ユーザーが新しいTodoアイテムを作成することを可能にします。\n\n### リクエストメソッド\n\n- **POST**\n    \n\n### リクエストURL\n\n- `http://localhost/api/todos`\n    \n\n### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **title** (string): Todoアイテムのタイトル。\n    \n- **descriptions** (string): Todoアイテムの詳細な説明。\n    \n\n#### リクエストボディの例\n\n```json\n{\n  \"title\": \"test\",\n  \"descriptions\": \"descriptions\"\n}\n```\n\n### 期待されるレスポンス\n\nリクエストが成功すると、サーバーは操作の結果を示すステータスコードで応答します。レスポンスには通常、新しく作成されたTodoアイテムが含まれ、リストに追加されたことが確認されます。\n\n### レスポンス形式\n\nレスポンスはJSON形式で、作成されたTodoアイテムの詳細（一意識別子や送信されたパラメータを含む）が含まれることが期待されます。\n\n### 注意事項\n\nTodoアイテムの作成中にエラーが発生することを避けるため、リクエストボディが正しくJSON形式でフォーマットされていることを確認してください。"
+						"description": "## Todoアイテムの追加\n\nこのエンドポイントは、`/api/todos`エンドポイントにPOSTリクエストを送信することで、ユーザーが新しいTodoアイテムを作成することを可能にします。\n\n### リクエストメソッド\n\n- **POST**\n    \n\n### リクエストURL\n\n- `http://localhost:3000/api/todos`\n    \n\n### 認証\n\nこのエンドポイントには認証が必要です。Authorizationヘッダーに有効なJWTトークンを含めてください。\n\n### リクエストボディ\n\nリクエストボディはJSON形式である必要があり、以下のパラメータを含む必要があります：\n\n- **title** (string, 必須): Todoアイテムのタイトル（1〜32文字）。\n- **descriptions** (string, 任意): Todoアイテムの詳細な説明（128文字以下）。\n    \n\n#### リクエストボディの例\n\n```json\n{\n  \"title\": \"test\",\n  \"descriptions\": \"descriptions\"\n}\n```\n\n### 期待されるレスポンス\n\nリクエストが成功すると、サーバーはステータスコード200で応答します。レスポンスには新しく作成されたTodoアイテムの詳細が含まれます。\n\n### レスポンス形式\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Todo created successfully\",\n  \"data\": {\n    \"id\": 3,\n    \"title\": \"test\",\n    \"descriptions\": \"descriptions\",\n    \"userId\": 1,\n    \"createdAt\": \"2025-07-24T12:00:00.000Z\",\n    \"updatedAt\": \"2025-07-24T12:00:00.000Z\"\n  }\n}\n```\n\n### エラーレスポンス\n\n- **400 Bad Request**: バリデーションエラー（タイトルが必須、文字数制限など）\n- **401 Unauthorized**: 認証エラー\n- **500 Internal Server Error**: サーバーエラー"
 					},
 					"response": []
 				}
@@ -662,7 +691,7 @@
 							}
 						],
 						"url": {
-							"raw": "http://localhost:3000/api/users",
+							"raw": "http://localhost:3000/api/users?page=1&perPage=20&sortBy=created_at&sortOrder=asc",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -671,9 +700,73 @@
 							"path": [
 								"api",
 								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "ページ番号（1以上）"
+								},
+								{
+									"key": "perPage",
+									"value": "20",
+									"description": "1ページあたりの件数（1〜100）"
+								},
+								{
+									"key": "id",
+									"value": "",
+									"description": "ユーザーIDで部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "username",
+									"value": "",
+									"description": "ユーザー名で部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "firstName",
+									"value": "",
+									"description": "名前で部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "firstNameRuby",
+									"value": "",
+									"description": "名前（ふりがな）で部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "lastName",
+									"value": "",
+									"description": "姓で部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "lastNameRuby",
+									"value": "",
+									"description": "姓（ふりがな）で部分一致検索",
+									"disabled": true
+								},
+								{
+									"key": "role",
+									"value": "",
+									"description": "ロールで検索",
+									"disabled": true
+								},
+								{
+									"key": "sortBy",
+									"value": "created_at",
+									"description": "ソート基準（id, username, first_name, first_name_ruby, last_name, last_name_ruby, role, created_at）"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc",
+									"description": "ソート順序（asc: 昇順、desc: 降順）"
+								}
 							]
 						},
-						"description": "## APIエンドポイント: ユーザー一覧取得\n\n### リクエスト\n\n**メソッド:** GET  \n**URL:** `http://localhost/api/users`\n\n### 説明\n\nこのエンドポイントは、システムからユーザーの一覧を取得します。リクエストパラメータは必要ありません。\n\n### 期待されるレスポンス\n\nレスポンスには、以下の構造を持つJSONオブジェクトが含まれます：\n\n- **users**: ユーザーオブジェクトの配列。それぞれに以下が含まれます：\n    \n    - **id**: ユーザーの一意識別子。\n        \n    - **name**: ユーザーの名前。\n        \n    - **email**: ユーザーのメールアドレス。\n        \n    - **created_at**: ユーザーが作成された日時を示すタイムスタンプ。\n        \n\n### 注意事項\n\n- サーバーが稼働しており、指定されたURLでアクセス可能であることを確認してください。\n    \n- レスポンスはJSON形式であり、適切にパースする必要があります。\n    \n- このエンドポイントは、表示やさらなる処理のために、すべてのユーザーレコードを取得するのに便利です。"
+						"description": "## APIエンドポイント: ユーザー一覧取得\n\n### リクエスト\n\n**メソッド:** GET  \n**URL:** `http://localhost:3000/api/users`\n\n### 説明\n\nこのエンドポイントは、管理者（ADMIN=1）またはマネージャー（MANAGER=2）が全ユーザー一覧を取得できます。フィルタリング、ソート、ページネーション機能をサポートします。\n\n### 認証\n\nこのエンドポイントには管理者権限が必要です。Authorizationヘッダーに有効なJWTトークンを含めてください。\n\n### クエリパラメータ\n\n- **page** (number, 任意): ページ番号（1以上）。デフォルト: 1\n- **perPage** (number, 任意): 1ページあたりの件数（1〜100）。デフォルト: 20\n- **id** (string, 任意): ユーザーIDで部分一致検索\n- **username** (string, 任意): ユーザー名で部分一致検索\n- **firstName** (string, 任意): 名前で部分一致検索\n- **firstNameRuby** (string, 任意): 名前（ふりがな）で部分一致検索\n- **lastName** (string, 任意): 姓で部分一致検索\n- **lastNameRuby** (string, 任意): 姓（ふりがな）で部分一致検索\n- **role** (number, 任意): ロールで検索\n- **sortBy** (string, 任意): ソート基準。デフォルト: created_at\n  - `id`, `username`, `first_name`, `first_name_ruby`, `last_name`, `last_name_ruby`, `role`, `created_at`\n- **sortOrder** (string, 任意): ソート順序。デフォルト: asc\n  - `asc`: 昇順\n  - `desc`: 降順\n\n### レスポンス構造\n\nリクエストが成功すると、レスポンスは以下の構造を持つJSONオブジェクトを返します：\n\n```json\n{\n  \"success\": true,\n  \"message\": \"ユーザー一覧を取得しました\",\n  \"data\": {\n    \"data\": [\n      {\n        \"id\": \"user-123\",\n        \"username\": \"john_doe\",\n        \"firstName\": \"John\",\n        \"firstNameRuby\": \"ジョン\",\n        \"lastName\": \"Doe\",\n        \"lastNameRuby\": \"ドウ\",\n        \"role\": 8,\n        \"createdAt\": \"2025-07-24T10:00:00.000Z\",\n        \"updatedAt\": \"2025-07-24T10:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"currentPage\": 1,\n      \"totalPages\": 5,\n      \"totalUsers\": 100,\n      \"perPage\": 20\n    }\n  }\n}\n```\n\n### エラーレスポンス\n\n- **400 Bad Request**: クエリパラメータのバリデーションエラー\n- **401 Unauthorized**: 認証エラー\n- **403 Forbidden**: 管理者権限が必要です\n- **500 Internal Server Error**: サーバーエラー"
 					},
 					"response": []
 				},
@@ -709,7 +802,7 @@
 								"users"
 							]
 						},
-						"description": "## APIエンドポイント: ユーザー作成\n\n### メソッド\n\n`POST`\n\n### URL\n\n`http://localhost/api/users`\n\n### 説明\n\nこのエンドポイントは、システムに新しいユーザーを作成するために使用されます。リクエストボディでユーザーの詳細情報を受け取り、ユーザー作成プロセスの成功または失敗を示すレスポンスを返します。\n\n### リクエストパラメータ\n\nリクエストボディはJSON形式で送信する必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string): ユーザーの一意識別子。\n    \n- **password** (string): ユーザーアカウントのパスワード。\n    \n- **firstName** (string): ユーザーの名前（任意）。\n    \n- **firstNameRuby** (string): 名前のふりがな表記（任意）。\n    \n- **lastName** (string): ユーザーの姓（任意）。\n    \n- **lastNameRuby** (string): 姓のふりがな表記（任意）。\n    \n- **role** (integer): ユーザーに割り当てられる権限（例：管理者の場合は1など）。\n    \n\n### 期待されるレスポンス形式\n\nユーザーの作成が成功すると、APIはJSON形式でレスポンスを返します。通常、成功メッセージと作成されたユーザーの詳細情報が含まれます。エラーが発生した場合は、適切なエラーメッセージが返されます。\n\n### リクエストボディの例\n\n```json\n{\n  \"username\": \"user\",\n  \"password\": \"password\",\n  \"firstName\": \"\",\n  \"firstNameRuby\": \"\",\n  \"lastName\": \"\",\n  \"lastNameRuby\": \"\",\n  \"role\": 1\n}\n```"
+						"description": "## APIエンドポイント: ユーザー作成\n\n### メソッド\n\n`POST`\n\n### URL\n\n`http://localhost:3000/api/users`\n\n### 説明\n\nこのエンドポイントは、管理者権限を持つユーザーがシステムに新しいユーザーを作成するために使用されます。リクエストボディでユーザーの詳細情報を受け取り、ユーザー作成プロセスの成功または失敗を示すレスポンスを返します。\n\n### 認証\n\nこのエンドポイントには管理者権限（ADMIN または MANAGER）が必要です。Authorizationヘッダーに有効なJWTトークンを含めてください。\n\n### リクエストパラメータ\n\nリクエストボディはJSON形式で送信する必要があり、以下のパラメータを含む必要があります：\n\n- **username** (string, 必須): ユーザーの一意識別子（1〜50文字）。\n- **password** (string, 必須): ユーザーアカウントのパスワード（6文字以上）。\n- **firstName** (string, 任意): ユーザーの名前（50文字以下）。\n- **firstNameRuby** (string, 任意): 名前のふりがな表記（50文字以下）。\n- **lastName** (string, 任意): ユーザーの姓（50文字以下）。\n- **lastNameRuby** (string, 任意): 姓のふりがな表記（50文字以下）。\n- **role** (integer, 任意): ユーザーに割り当てられる権限。\n    \n\n### リクエストボディの例\n\n```json\n{\n  \"username\": \"user\",\n  \"password\": \"password\",\n  \"firstName\": \"\",\n  \"firstNameRuby\": \"\",\n  \"lastName\": \"\",\n  \"lastNameRuby\": \"\",\n  \"role\": 1\n}\n```\n\n### レスポンス形式\n\nユーザーの作成が成功すると、APIは以下の構造でJSON形式のレスポンスを返します：\n\n```json\n{\n  \"success\": true,\n  \"message\": \"新規ユーザーを作成しました\",\n  \"data\": {\n    \"id\": \"user-456\",\n    \"username\": \"user\",\n    \"firstName\": \"\",\n    \"firstNameRuby\": \"\",\n    \"lastName\": \"\",\n    \"lastNameRuby\": \"\",\n    \"role\": 1,\n    \"createdAt\": \"2025-07-24T12:00:00.000Z\",\n    \"updatedAt\": \"2025-07-24T12:00:00.000Z\"\n  }\n}\n```\n\n### エラーレスポンス\n\n- **400 Bad Request**: 入力データのバリデーションエラー\n- **401 Unauthorized**: 認証エラー\n- **403 Forbidden**: 管理者権限が必要です\n- **409 Conflict**: ユーザー名が既に使用されています\n- **500 Internal Server Error**: サーバーエラー"
 					},
 					"response": []
 				}

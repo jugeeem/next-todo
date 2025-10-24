@@ -4,6 +4,7 @@
 
 import type { NextRequest } from 'next/server';
 import { type CreateUserInput, type User, UserRole } from '@/domain/entities/User';
+import type { GetUsersQuery } from '@/types/validation';
 import { GET, POST } from '../route';
 
 // モック設定
@@ -11,6 +12,9 @@ jest.mock('@/lib/container');
 jest.mock('@/lib/response');
 jest.mock('@/types/validation', () => ({
   createUserSchema: {
+    parse: jest.fn(),
+  },
+  getUsersQuerySchema: {
     parse: jest.fn(),
   },
 }));
@@ -29,11 +33,17 @@ describe('/api/users API エンドポイント', () => {
   let mockContainer: {
     userUseCase: {
       getAllUsers: jest.MockedFunction<() => Promise<User[]>>;
+      getUsersWithFilters: jest.MockedFunction<
+        (filters: unknown, sortOptions: unknown) => Promise<User[]>
+      >;
       createUser: jest.MockedFunction<(userData: CreateUserInput) => Promise<User>>;
     };
   };
   let mockCreateUserSchema: {
     parse: jest.MockedFunction<(data: unknown) => CreateUserInput>;
+  };
+  let mockGetUsersQuerySchema: {
+    parse: jest.MockedFunction<(data: Record<string, string | null>) => GetUsersQuery>;
   };
 
   beforeEach(() => {
@@ -42,6 +52,7 @@ describe('/api/users API エンドポイント', () => {
     mockContainer = {
       userUseCase: {
         getAllUsers: jest.fn(),
+        getUsersWithFilters: jest.fn(),
         createUser: jest.fn(),
       },
     };
@@ -50,13 +61,47 @@ describe('/api/users API エンドポイント', () => {
       parse: jest.fn(),
     };
 
+    mockGetUsersQuerySchema = {
+      parse: jest.fn((data: Record<string, string | null>) => {
+        // クエリパラメータから値を取得し、適切な型に変換
+        const page = data.page ? Number.parseInt(data.page, 10) : 1;
+        const perPage = data.perPage ? Number.parseInt(data.perPage, 10) : 20;
+        const sortBy = (data.sortBy || 'created_at') as
+          | 'id'
+          | 'username'
+          | 'role'
+          | 'first_name'
+          | 'first_name_ruby'
+          | 'last_name'
+          | 'last_name_ruby'
+          | 'created_at';
+        const sortOrder = (data.sortOrder || 'asc') as 'asc' | 'desc';
+
+        return {
+          page,
+          perPage,
+          sortBy,
+          sortOrder,
+          id: data.id || undefined,
+          username: data.username || undefined,
+          firstName: data.firstName || undefined,
+          firstNameRuby: data.firstNameRuby || undefined,
+          lastName: data.lastName || undefined,
+          lastNameRuby: data.lastNameRuby || undefined,
+          role: data.role ? Number.parseInt(data.role, 10) : undefined,
+        };
+      }),
+    };
+
     // Container のモック設定
     const { Container } = jest.requireMock('@/lib/container');
     Container.getInstance = jest.fn(() => mockContainer);
 
     // createUserSchema のモック設定
-    const { createUserSchema } = jest.requireMock('@/types/validation');
+    const { createUserSchema, getUsersQuerySchema } =
+      jest.requireMock('@/types/validation');
     Object.assign(createUserSchema, mockCreateUserSchema);
+    Object.assign(getUsersQuerySchema, mockGetUsersQuerySchema);
 
     // Response関数のモック設定
     const responseLib = jest.requireMock('@/lib/response');
@@ -104,13 +149,13 @@ describe('/api/users API エンドポイント', () => {
         },
       ];
 
-      mockContainer.userUseCase.getAllUsers.mockResolvedValue(mockUsers);
+      mockContainer.userUseCase.getUsersWithFilters.mockResolvedValue(mockUsers);
 
       const responseLib = jest.requireMock('@/lib/response');
 
       await GET(request);
 
-      expect(mockContainer.userUseCase.getAllUsers).toHaveBeenCalledTimes(1);
+      expect(mockContainer.userUseCase.getUsersWithFilters).toHaveBeenCalledTimes(1);
       expect(responseLib.success).toHaveBeenCalledWith(
         {
           data: mockUsers,
@@ -173,7 +218,7 @@ describe('/api/users API エンドポイント', () => {
         deleted: false,
       }));
 
-      mockContainer.userUseCase.getAllUsers.mockResolvedValue(mockUsers);
+      mockContainer.userUseCase.getUsersWithFilters.mockResolvedValue(mockUsers);
 
       const responseLib = jest.requireMock('@/lib/response');
 
@@ -200,13 +245,13 @@ describe('/api/users API エンドポイント', () => {
       });
 
       const mockUsers: User[] = [];
-      mockContainer.userUseCase.getAllUsers.mockResolvedValue(mockUsers);
+      mockContainer.userUseCase.getUsersWithFilters.mockResolvedValue(mockUsers);
 
       const responseLib = jest.requireMock('@/lib/response');
 
       await GET(request);
 
-      expect(mockContainer.userUseCase.getAllUsers).toHaveBeenCalledTimes(1);
+      expect(mockContainer.userUseCase.getUsersWithFilters).toHaveBeenCalledTimes(1);
       expect(responseLib.success).toHaveBeenCalledWith(
         {
           data: [],
@@ -227,7 +272,7 @@ describe('/api/users API エンドポイント', () => {
         'x-user-role': String(UserRole.ADMIN),
       });
 
-      mockContainer.userUseCase.getAllUsers.mockRejectedValue(
+      mockContainer.userUseCase.getUsersWithFilters.mockRejectedValue(
         new Error('Database error'),
       );
 

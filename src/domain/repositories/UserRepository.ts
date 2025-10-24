@@ -13,6 +13,44 @@
 import type { CreateUserInput, UpdateUserInput, User } from '../entities/User';
 
 /**
+ * ユーザー検索フィルタ条件
+ */
+export interface UserSearchFilters {
+  /** ID検索 */
+  id?: string;
+  /** ユーザー名検索（部分一致） */
+  username?: string;
+  /** 名前検索（部分一致） */
+  firstName?: string;
+  /** 名前ふりがな検索（部分一致） */
+  firstNameRuby?: string;
+  /** 姓検索（部分一致） */
+  lastName?: string;
+  /** 姓ふりがな検索（部分一致） */
+  lastNameRuby?: string;
+  /** 権限レベル検索 */
+  role?: number;
+}
+
+/**
+ * ユーザーソート条件
+ */
+export interface UserSortOptions {
+  /** ソート対象フィールド */
+  sortBy:
+    | 'id'
+    | 'username'
+    | 'first_name'
+    | 'first_name_ruby'
+    | 'last_name'
+    | 'last_name_ruby'
+    | 'role'
+    | 'created_at';
+  /** ソート順序 */
+  sortOrder: 'asc' | 'desc';
+}
+
+/**
  * ユーザーリポジトリインターフェース
  *
  * ユーザーエンティティに対するデータアクセス操作を定義します。
@@ -133,10 +171,11 @@ export interface UserRepository {
   update(id: string, input: UpdateUserInput): Promise<User | null>;
 
   /**
-   * ユーザー削除（論理削除）
+   * ユーザー削除（物理削除）
    *
-   * 指定されたIDのユーザーを論理削除します。
-   * データは物理的には削除されず、deletedフラグがtrueに設定されます。
+   * 指定されたIDのユーザーを物理削除します。
+   * データベースから完全にレコードを削除するため、この操作は元に戻せません。
+   * 関連するToDoデータはCASCADE設定により自動的に削除されます。
    *
    * @param id - 削除対象のユーザーID
    * @returns 削除処理が成功した場合はtrue、対象が見つからない場合はfalse
@@ -151,6 +190,8 @@ export interface UserRepository {
    *   console.log("削除対象のユーザーが見つかりません");
    * }
    * ```
+   *
+   * @warning この操作は元に戻せません。関連データも含めて完全に削除されます。
    */
   delete(id: string): Promise<boolean>;
 
@@ -177,6 +218,37 @@ export interface UserRepository {
    * @todo 大量データ対応のためのページネーション実装を検討
    */
   findAll(): Promise<User[]>;
+
+  /**
+   * ユーザー検索・フィルタリング・ソート
+   *
+   * 指定された条件に基づいてユーザーを検索し、ソートして返します。
+   * 複数の検索条件を組み合わせてフィルタリングできます。
+   *
+   * @param filters - 検索フィルタ条件
+   * @param sortOptions - ソート条件
+   * @returns フィルタリング・ソートされたユーザーの配列
+   * @throws {Error} データベース接続エラーまたはクエリエラー
+   *
+   * @example
+   * ```typescript
+   * // アクティブな管理者ユーザーを名前順で取得
+   * const admins = await userRepository.findWithFilters(
+   *   { deleted: false, role: 1 },
+   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   * );
+   *
+   * // ユーザー名で検索
+   * const users = await userRepository.findWithFilters(
+   *   { username: 'john' },
+   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   * );
+   * ```
+   */
+  findWithFilters(
+    filters: UserSearchFilters,
+    sortOptions: UserSortOptions,
+  ): Promise<User[]>;
 
   /**
    * ユーザーパスワード変更

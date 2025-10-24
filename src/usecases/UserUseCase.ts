@@ -29,7 +29,12 @@
 
 import bcrypt from 'bcryptjs';
 import type { CreateUserInput, UpdateUserInput, User } from '@/domain/entities/User';
-import type { UserRepository } from '@/domain/repositories/UserRepository';
+import type {
+  UserRepository,
+  UserSearchFilters,
+  UserSortOptions,
+} from '@/domain/repositories/UserRepository';
+import { dbNowJST } from '@/lib/date-utils';
 
 /**
  * 安全なユーザー情報型（パスワードハッシュを除外）
@@ -147,6 +152,44 @@ export class UserUseCase {
    */
   async getAllUsers(): Promise<SafeUser[]> {
     const users = await this.userRepository.findAll();
+
+    return users.map((user: User) => {
+      const { passwordHash, ...safeUser } = user;
+      return safeUser;
+    });
+  }
+
+  /**
+   * ユーザー検索・フィルタリング・ソート取得処理
+   *
+   * 指定された条件に基づいてユーザーを検索し、ソートした結果を取得します。
+   * パスワードハッシュを除外した安全なユーザー情報のリストを返します。
+   *
+   * @param filters - 検索フィルタ条件
+   * @param sortOptions - ソート条件
+   * @returns パスワードハッシュを除外したユーザー一覧
+   * @throws {Error} データベースアクセスエラー時
+   *
+   * @example
+   * ```typescript
+   * // アクティブな管理者ユーザーを取得
+   * const admins = await userUseCase.getUsersWithFilters(
+   *   { deleted: false, role: 1 },
+   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   * );
+   *
+   * // ユーザー名で検索
+   * const users = await userUseCase.getUsersWithFilters(
+   *   { username: 'john' },
+   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   * );
+   * ```
+   */
+  async getUsersWithFilters(
+    filters: UserSearchFilters,
+    sortOptions: UserSortOptions,
+  ): Promise<SafeUser[]> {
+    const users = await this.userRepository.findWithFilters(filters, sortOptions);
 
     return users.map((user: User) => {
       const { passwordHash, ...safeUser } = user;
@@ -293,7 +336,7 @@ export class UserUseCase {
       `;
 
       const db = await import('@/infrastructure/database/connection');
-      await db.database.query(query, [passwordHash, new Date(), id]);
+      await db.database.query(query, [passwordHash, dbNowJST(), id]);
 
       // 更新後のユーザー情報を取得
       updatedUser = await this.userRepository.findById(id);
@@ -320,7 +363,7 @@ export class UserUseCase {
       `;
 
       const db = await import('@/infrastructure/database/connection');
-      await db.database.query(query, [input.username, new Date(), id]);
+      await db.database.query(query, [input.username, dbNowJST(), id]);
 
       // 更新後のユーザー情報を取得
       updatedUser = await this.userRepository.findById(id);
@@ -334,11 +377,11 @@ export class UserUseCase {
   }
 
   /**
-   * ユーザー削除処理（論理削除）
+   * ユーザー削除処理（物理削除）
    *
-   * 指定されたIDのユーザーを論理削除します。
-   * 物理削除ではなく、deleted フラグを true に設定することで
-   * データの整合性を保ちながら削除状態を管理します。
+   * 指定されたIDのユーザーを物理削除します。
+   * データベースから完全にレコードを削除するため、この操作は元に戻せません。
+   * 関連するToDoデータはCASCADE設定により自動的に削除されます。
    *
    * @param {string} id - 削除対象ユーザーのID
    * @returns {Promise<void>}
@@ -355,6 +398,8 @@ export class UserUseCase {
    *   console.error('ユーザー削除エラー:', error);
    * }
    * ```
+   *
+   * @warning この操作は元に戻せません。関連データも含めて完全に削除されます。
    */
   async deleteUser(id: string): Promise<void> {
     const existingUser = await this.userRepository.findById(id);
