@@ -57,7 +57,7 @@ export function RegisterPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'ユーザー登録に失敗しました');
+        throw new Error(errorData.error || 'ユーザー登録に失敗しました');
       }
 
       // 登録成功後、ログインページにリダイレクト

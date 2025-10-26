@@ -38,6 +38,7 @@ export function TodoListPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [currentUserRole, setCurrentUserRole] = useState<number>(4);
 
   // Todo一覧を取得
   const fetchTodos = useCallback(async () => {
@@ -65,16 +66,38 @@ export function TodoListPage() {
       }
 
       const data = await response.json();
-      setTodos(data.data || []);
-      if (data.pagination) {
-        setPaginationInfo(data.pagination);
-      }
+      // APIレスポンス構造: { success: true, data: { data: [...], total, page, perPage, totalPages } }
+      const responseData = data.data;
+      setTodos(responseData.data || []);
+      setPaginationInfo({
+        currentPage: responseData.page,
+        totalPages: responseData.totalPages,
+        totalItems: responseData.total,
+        itemsPerPage: responseData.perPage,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの取得に失敗しました');
     } finally {
       setIsLoading(false);
     }
   }, [page, completedFilter, sortBy, sortOrder, router]);
+
+  // ユーザー情報を取得してロールを設定
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUserRole(data.data.role);
+        }
+      } catch (err) {
+        console.error('Failed to fetch user info:', err);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   // ページ読み込み時・フィルター変更時にTodoを取得
   useEffect(() => {
@@ -213,6 +236,14 @@ export function TodoListPage() {
             >
               プロフィール
             </Link>
+            {currentUserRole <= 2 && (
+              <Link
+                href="/users"
+                className="text-gray-700 hover:text-blue-500 font-medium"
+              >
+                ユーザー管理
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}

@@ -13,9 +13,9 @@ interface User {
 }
 
 interface TodoStats {
-  total: number;
-  completed: number;
-  pending: number;
+  totalTodos: number;
+  completedTodos: number;
+  pendingTodos: number;
   completionRate: number;
 }
 
@@ -37,6 +37,7 @@ export function ProfilePage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -123,7 +124,7 @@ export function ProfilePage() {
 
     try {
       const response = await fetch('/api/users/me', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -170,6 +171,16 @@ export function ProfilePage() {
       return;
     }
 
+    if (!confirmPassword) {
+      setPasswordError('パスワード確認は必須です');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('新しいパスワードとパスワード確認が一致しません');
+      return;
+    }
+
     setIsSavingPassword(true);
 
     try {
@@ -181,6 +192,7 @@ export function ProfilePage() {
         body: JSON.stringify({
           currentPassword,
           newPassword,
+          confirmPassword,
         }),
       });
 
@@ -191,6 +203,7 @@ export function ProfilePage() {
 
       setCurrentPassword('');
       setNewPassword('');
+      setConfirmPassword('');
       setIsChangingPassword(false);
       setSuccessMessage('パスワードを変更しました');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -453,6 +466,24 @@ export function ProfilePage() {
                     />
                   </div>
 
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      新しいパスワード（確認） <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="新しいパスワードを再入力"
+                      disabled={isSavingPassword}
+                    />
+                  </div>
+
                   <div className="flex items-center gap-4 pt-4">
                     <button
                       type="submit"
@@ -467,6 +498,7 @@ export function ProfilePage() {
                         setIsChangingPassword(false);
                         setCurrentPassword('');
                         setNewPassword('');
+                        setConfirmPassword('');
                         setPasswordError('');
                       }}
                       disabled={isSavingPassword}
@@ -494,18 +526,20 @@ export function ProfilePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">総数</p>
-                    <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {stats.totalTodos}
+                    </p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">完了数</p>
                     <p className="text-3xl font-bold text-green-600">
-                      {stats.completed}
+                      {stats.completedTodos}
                     </p>
                   </div>
                   <div className="bg-yellow-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">未完了数</p>
                     <p className="text-3xl font-bold text-yellow-600">
-                      {stats.pending}
+                      {stats.pendingTodos}
                     </p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">

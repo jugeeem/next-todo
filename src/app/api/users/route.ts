@@ -107,18 +107,25 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // クエリパラメータの取得とバリデーション
     const url = new URL(request.url);
+
+    // ヘルパー関数: null または空文字列を undefined に変換
+    const getParam = (name: string): string | undefined => {
+      const value = url.searchParams.get(name);
+      return value || undefined;
+    };
+
     const queryParams = {
-      page: url.searchParams.get('page'),
-      perPage: url.searchParams.get('perPage'),
-      id: url.searchParams.get('id'),
-      username: url.searchParams.get('username'),
-      firstName: url.searchParams.get('firstName'),
-      firstNameRuby: url.searchParams.get('firstNameRuby'),
-      lastName: url.searchParams.get('lastName'),
-      lastNameRuby: url.searchParams.get('lastNameRuby'),
-      role: url.searchParams.get('role'),
-      sortBy: url.searchParams.get('sortBy'),
-      sortOrder: url.searchParams.get('sortOrder'),
+      page: getParam('page'),
+      perPage: getParam('perPage'),
+      id: getParam('id'),
+      username: getParam('username'),
+      firstName: getParam('firstName'),
+      firstNameRuby: getParam('firstNameRuby'),
+      lastName: getParam('lastName'),
+      lastNameRuby: getParam('lastNameRuby'),
+      role: getParam('role'),
+      sortBy: getParam('sortBy'),
+      sortOrder: getParam('sortOrder'),
     };
 
     const validatedQuery = getUsersQuerySchema.parse(queryParams);
