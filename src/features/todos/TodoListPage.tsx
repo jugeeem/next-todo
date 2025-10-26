@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 
 interface Todo {
   id: string;
@@ -40,7 +40,7 @@ export function TodoListPage() {
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
   // Todo一覧を取得
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -74,12 +74,11 @@ export function TodoListPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, completedFilter, sortBy, sortOrder, router]);
 
   // ページ読み込み時・フィルター変更時にTodoを取得
   useEffect(() => {
     fetchTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchTodos]);
 
   // Todo作成

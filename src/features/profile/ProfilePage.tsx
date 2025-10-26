@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 
 interface User {
   id: string;
@@ -47,7 +47,7 @@ export function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   // ユーザー情報を取得
-  const fetchUserInfo = async () => {
+  const fetchUserInfo = useCallback(async () => {
     try {
       const response = await fetch('/api/users/me');
 
@@ -68,10 +68,10 @@ export function ProfilePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました');
     }
-  };
+  }, [router]);
 
   // Todo統計を取得
-  const fetchTodoStats = async () => {
+  const fetchTodoStats = useCallback(async () => {
     try {
       const response = await fetch('/api/users/me/todos/stats');
 
@@ -84,10 +84,10 @@ export function ProfilePage() {
     } catch (err) {
       console.error('Todo統計の取得エラー:', err);
     }
-  };
+  }, []);
 
   // Todo一覧を取得
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     try {
       const response = await fetch('/api/users/me/todos?page=1&perPage=10');
 
@@ -100,7 +100,7 @@ export function ProfilePage() {
     } catch (err) {
       console.error('Todo一覧の取得エラー:', err);
     }
-  };
+  }, []);
 
   // 初回読み込み時に全データを取得
   useEffect(() => {
@@ -111,7 +111,6 @@ export function ProfilePage() {
     };
 
     fetchAllData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchTodoStats, fetchTodos, fetchUserInfo]);
 
   // プロフィール更新

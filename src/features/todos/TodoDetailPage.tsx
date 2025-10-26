@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 
 interface Todo {
   id: string;
@@ -28,7 +28,7 @@ export function TodoDetailPage() {
   const [error, setError] = useState<string>('');
 
   // Todo詳細を取得
-  const fetchTodoDetail = async () => {
+  const fetchTodoDetail = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -59,14 +59,13 @@ export function TodoDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, todoId]);
 
   // 初回読み込み時にTodo詳細を取得
   useEffect(() => {
     if (todoId) {
       fetchTodoDetail();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todoId, fetchTodoDetail]);
 
   // Todo更新
