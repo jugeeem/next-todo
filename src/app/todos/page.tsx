@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { TodoListPage } from '@/features/todos/TodoListPage';
-import { fetchCurrentUser, fetchTodos } from '@/lib/api';
+import { fetchTodos } from '@/lib/api';
 
 export default async function TodosServerPage({
   searchParams,
@@ -23,16 +23,17 @@ export default async function TodosServerPage({
     const sortBy = params.sortBy || 'createdAt';
     const sortOrder = params.sortOrder || 'desc';
 
-    const [initialData, currentUser] = await Promise.all([
-      fetchTodos({ page, perPage, completedFilter, sortBy, sortOrder }),
-      fetchCurrentUser(),
-    ]);
+    const initialData = await fetchTodos({
+      page,
+      perPage,
+      completedFilter,
+      sortBy,
+      sortOrder,
+    });
 
     // APIから取得したデータは既にシリアライズ済み（日時は文字列）
     // そのまま渡す
-    return (
-      <TodoListPage initialData={initialData} currentUserRole={currentUser.role} />
-    );
+    return <TodoListPage initialData={initialData} />;
   } catch (error) {
     // 認証エラーの場合はログインページにリダイレクト
     if (error instanceof Error && error.message === 'Unauthorized') {
