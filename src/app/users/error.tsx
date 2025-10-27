@@ -3,7 +3,7 @@
 import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react';
 import { useEffect } from 'react';
 
-export default function TodosError({
+export default function UsersError({
   error,
   reset,
 }: {
@@ -12,7 +12,7 @@ export default function TodosError({
 }) {
   useEffect(() => {
     // エラーログをコンソールに出力（本番環境では外部ログサービスに送信）
-    console.error('Todo page error:', error);
+    console.error('Users page error:', error);
   }, [error]);
 
   return (
@@ -26,11 +26,11 @@ export default function TodosError({
         </CardHeader>
         <CardBody>
           <p className="text-default-700 mb-2">
-            Todoページの読み込み中にエラーが発生しました。
+            ユーザー一覧の読み込み中にエラーが発生しました。
           </p>
           <div className="bg-danger-50 border-l-4 border-danger p-3 rounded">
             <p className="text-small text-danger-800">
-              {error.message || 'Todoの読み込み中にエラーが発生しました。'}
+              {error.message || 'ユーザー一覧の読み込み中にエラーが発生しました。'}
             </p>
           </div>
         </CardBody>

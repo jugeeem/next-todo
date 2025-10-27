@@ -1,5 +1,37 @@
 # Step 3: UIライブラリを使用した画面のリプレイス
 
+## 目次
+1. [Step 3 の概要](#1-step-3-の概要)
+2. [HeroUI の基本](#2-heroui-の基本)
+3. [コンポーネント別リプレイスガイド](#3-コンポーネント別リプレイスガイド)
+   - 3.1 フォーム要素
+   - 3.2 カード
+   - 3.3 モーダル
+   - 3.4 ナビゲーション
+   - 3.5 Select
+   - 3.6 Checkbox
+   - 3.7 Table
+   - 3.8 Error Boundary
+   - 3.9 Loading State
+4. [ページ別リプレイスガイド](#4-ページ別リプレイスガイド)
+   - 4.1 ログインページ
+   - 4.2 ユーザー登録ページ
+   - 4.3 Todo 一覧ページ
+   - 4.4 Todo 詳細ページ
+   - 4.5 プロフィールページ
+   - 4.6 ユーザー作成ページ
+   - 4.7 ユーザー詳細ページ
+   - 4.8 ユーザー一覧ページ
+   - 4.9 Error Boundary の実装
+   - 4.10 Loading State の実装
+5. [スタイリングのベストプラクティス](#5-スタイリングのベストプラクティス)
+6. [アクセシビリティの考慮](#6-アクセシビリティの考慮)
+7. [実装チェックリスト](#7-実装チェックリスト)
+8. [動作確認項目](#8-動作確認項目)
+9. [次のステップへの準備](#9-次のステップへの準備)
+
+---
+
 ## 1. Step 3 の概要
 
 ### 1.1 目的
@@ -17,6 +49,8 @@ Step 1・Step 2 で Tailwind CSS のみで実装していた UI を、HeroUI の
 - テーブル・リスト表示
 - ナビゲーション（Navbar）
 - ドロップダウン（Select, Dropdown）
+- エラー表示（Error Boundary）
+- ローディング表示（Loading State）
 
 ### 1.3 制約条件
 - **コンポーネントの分割は行わない**（Step 4 で実施）
@@ -404,6 +438,174 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from 
 
 ---
 
+### 3.8 Error Boundary（エラー表示）
+
+**Before (Tailwind CSS)**:
+```typescript
+// error.tsx
+'use client'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">エラーが発生しました</h2>
+        <p className="text-gray-600 mb-6">{error.message}</p>
+        <button
+          onClick={reset}
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+        >
+          再試行
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+**After (HeroUI)**:
+```typescript
+// error.tsx
+'use client'
+
+import { Card, CardHeader, CardBody, CardFooter, Button } from '@heroui/react'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-start gap-1">
+          <h2 className="text-2xl font-bold text-danger">エラーが発生しました</h2>
+          {error.digest && (
+            <p className="text-small text-default-500">エラーID: {error.digest}</p>
+          )}
+        </CardHeader>
+        <CardBody>
+          <p className="text-default-700">{error.message}</p>
+        </CardBody>
+        <CardFooter>
+          <Button
+            color="primary"
+            onPress={reset}
+            className="w-full"
+          >
+            再試行
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  )
+}
+```
+
+**ポイント**:
+- `Card` でエラー表示を構造化
+- `text-danger` でエラーを視覚的に強調
+- `error.digest` がある場合はエラーIDを表示
+- `Button` の `color="primary"` で再試行アクションを明確化
+
+---
+
+### 3.9 Loading State（ローディング表示）
+
+**Before (Tailwind CSS)**:
+```typescript
+// loading.tsx
+export default function Loading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-gray-600">読み込み中...</p>
+      </div>
+    </div>
+  )
+}
+```
+
+**After (HeroUI)**:
+```typescript
+// loading.tsx
+import { Spinner, Card, CardBody } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardBody className="flex flex-col items-center justify-center py-12 gap-4">
+          <Spinner size="lg" color="primary" />
+          <p className="text-default-600">読み込み中...</p>
+        </CardBody>
+      </Card>
+    </div>
+  )
+}
+```
+
+**Spinner のバリエーション**:
+
+**サイズ**:
+- `sm`: 小（16px）
+- `md`: 中（32px、デフォルト）
+- `lg`: 大（64px）
+
+**カラー**:
+- `primary`: プライマリカラー
+- `secondary`: セカンダリカラー
+- `success`: 成功色
+- `warning`: 警告色
+- `danger`: 危険色
+- `default`: デフォルト色
+- `current`: 現在のテキスト色
+
+**シンプルなローディング表示**:
+```typescript
+// ページ全体ではなく、インライン表示の場合
+import { Spinner } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="flex justify-center items-center p-8">
+      <Spinner />
+    </div>
+  )
+}
+```
+
+**カスタムメッセージ付きローディング**:
+```typescript
+// loading.tsx
+import { Spinner } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <Spinner size="lg" color="primary" label="データを取得中..." />
+    </div>
+  )
+}
+```
+
+**ポイント**:
+- `Spinner` コンポーネントで統一されたローディングアニメーション
+- `label` プロパティで直接テキストを表示可能
+- `Card` で囲むことで、より目立つローディング画面に
+- サイズとカラーを状況に応じて使い分ける
+
+---
+
 ## 4. ページ別リプレイスガイド
 
 ### 4.1 ログインページ
@@ -529,6 +731,268 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from 
 
 ---
 
+### 4.9 Error Boundary（エラーページ）の実装
+
+各ページディレクトリに配置する `error.tsx` ファイルの実装パターンを紹介します。
+
+#### 基本的な error.tsx
+
+```typescript
+// src/app/todos/error.tsx
+'use client'
+
+import { Card, CardHeader, CardBody, CardFooter, Button } from '@heroui/react'
+import { useEffect } from 'react'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    // エラーログをコンソールに出力（本番環境では外部ログサービスに送信）
+    console.error('Todo page error:', error)
+  }, [error])
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-start gap-1">
+          <h2 className="text-2xl font-bold text-danger">エラーが発生しました</h2>
+          {error.digest && (
+            <p className="text-small text-default-500">エラーID: {error.digest}</p>
+          )}
+        </CardHeader>
+        <CardBody>
+          <p className="text-default-700 mb-2">
+            Todoページの読み込み中にエラーが発生しました。
+          </p>
+          <p className="text-small text-default-500">{error.message}</p>
+        </CardBody>
+        <CardFooter className="gap-2">
+          <Button
+            color="default"
+            variant="flat"
+            onPress={() => window.location.href = '/todos'}
+            className="flex-1"
+          >
+            Todoページに戻る
+          </Button>
+          <Button
+            color="primary"
+            onPress={reset}
+            className="flex-1"
+          >
+            再試行
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  )
+}
+```
+
+#### 詳細ページ用の error.tsx
+
+```typescript
+// src/app/todos/[id]/error.tsx
+'use client'
+
+import { Card, CardHeader, CardBody, CardFooter, Button } from '@heroui/react'
+import Link from 'next/link'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-start gap-1">
+          <h2 className="text-2xl font-bold text-danger">Todo詳細の読み込みエラー</h2>
+          {error.digest && (
+            <p className="text-small text-default-500">エラーID: {error.digest}</p>
+          )}
+        </CardHeader>
+        <CardBody>
+          <p className="text-default-700 mb-4">
+            指定されたTodoの詳細を取得できませんでした。
+          </p>
+          <div className="bg-danger-50 border-l-4 border-danger p-3 rounded">
+            <p className="text-small text-danger-800">{error.message}</p>
+          </div>
+        </CardBody>
+        <CardFooter className="flex flex-col gap-2">
+          <Button
+            color="primary"
+            onPress={reset}
+            className="w-full"
+          >
+            再試行
+          </Button>
+          <Button
+            as={Link}
+            href="/todos"
+            color="default"
+            variant="flat"
+            className="w-full"
+          >
+            Todo一覧に戻る
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  )
+}
+```
+
+**実装のポイント**:
+- ページの種類に応じてエラーメッセージをカスタマイズ
+- `error.digest` でエラーIDを表示（デバッグに有用）
+- `useEffect` でエラーログを記録
+- 複数のアクションボタンを提供（再試行、戻る）
+- `bg-danger-50` などでエラー詳細を視覚的に強調
+
+---
+
+### 4.10 Loading State（ローディングページ）の実装
+
+各ページディレクトリに配置する `loading.tsx` ファイルの実装パターンを紹介します。
+
+#### 基本的な loading.tsx（Todo一覧）
+
+```typescript
+// src/app/todos/loading.tsx
+import { Spinner, Card, CardBody } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardBody className="flex flex-col items-center justify-center py-12 gap-4">
+          <Spinner size="lg" color="primary" />
+          <div className="text-center">
+            <p className="text-default-700 font-medium">Todoを読み込み中...</p>
+            <p className="text-small text-default-500 mt-1">しばらくお待ちください</p>
+          </div>
+        </CardBody>
+      </Card>
+    </div>
+  )
+}
+```
+
+#### スケルトン表示を含む loading.tsx
+
+```typescript
+// src/app/todos/loading.tsx
+import { Card, CardHeader, CardBody, Skeleton } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="container mx-auto p-4 max-w-6xl">
+      {/* ヘッダースケルトン */}
+      <div className="mb-6">
+        <Skeleton className="w-48 h-8 rounded-lg mb-4" />
+        <Skeleton className="w-full h-12 rounded-lg" />
+      </div>
+
+      {/* Todoリストスケルトン */}
+      <div className="space-y-4">
+        {[...Array(5)].map((_, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <Skeleton className="w-3/4 h-6 rounded-lg" />
+            </CardHeader>
+            <CardBody>
+              <Skeleton className="w-full h-4 rounded-lg mb-2" />
+              <Skeleton className="w-2/3 h-4 rounded-lg" />
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+#### シンプルな loading.tsx（詳細ページ）
+
+```typescript
+// src/app/todos/[id]/loading.tsx
+import { Spinner } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <Spinner size="lg" color="primary" label="Todo詳細を読み込み中..." />
+    </div>
+  )
+}
+```
+
+#### ユーザー管理ページ用の loading.tsx
+
+```typescript
+// src/app/users/loading.tsx
+import { Card, CardBody, Skeleton } from '@heroui/react'
+
+export default function Loading() {
+  return (
+    <div className="container mx-auto p-4 max-w-6xl">
+      {/* 検索・フィルタースケルトン */}
+      <Card className="mb-6">
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="w-full h-10 rounded-lg" />
+            <Skeleton className="w-full h-10 rounded-lg" />
+            <Skeleton className="w-full h-10 rounded-lg" />
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* ユーザーカードスケルトン */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, index) => (
+          <Card key={index}>
+            <CardBody className="gap-3">
+              <Skeleton className="w-full h-6 rounded-lg" />
+              <Skeleton className="w-3/4 h-4 rounded-lg" />
+              <Skeleton className="w-1/2 h-4 rounded-lg" />
+              <div className="flex gap-2 mt-2">
+                <Skeleton className="flex-1 h-10 rounded-lg" />
+                <Skeleton className="flex-1 h-10 rounded-lg" />
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+**実装のポイント**:
+- ページのレイアウトに合わせた `Skeleton` 表示
+- `Spinner` の `label` プロパティでわかりやすいメッセージ
+- リスト表示の場合は複数のスケルトンを配置
+- 実際のコンテンツ構造を模倣することでユーザー体験を向上
+
+**Skeleton のカスタマイズ**:
+```typescript
+<Skeleton 
+  className="w-full h-10 rounded-lg"
+  isLoaded={false} // ローディング状態
+/>
+```
+
+---
+
 ## 5. スタイリングのベストプラクティス
 
 ### 5.1 レスポンシブデザイン
@@ -584,7 +1048,7 @@ HeroUI のコンポーネントは自動的にキーボードナビゲーショ�
 
 ## 7. 実装チェックリスト
 
-### 8.1 コンポーネント置き換え
+### 7.1 コンポーネント置き換え
 - [ ] Input コンポーネントの置き換え
 - [ ] Textarea コンポーネントの置き換え
 - [ ] Button コンポーネントの置き換え
@@ -593,25 +1057,41 @@ HeroUI のコンポーネントは自動的にキーボードナビゲーショ�
 - [ ] Select コンポーネントの置き換え
 - [ ] Checkbox コンポーネントの置き換え
 - [ ] Navbar コンポーネントの置き換え
+- [ ] Spinner コンポーネントの追加
+- [ ] Skeleton コンポーネントの追加
 
-### 8.2 ページごとの確認
+### 7.2 ページごとの確認
 - [ ] ログインページの UI 更新
 - [ ] ユーザー登録ページの UI 更新
 - [ ] Todo 一覧ページの UI 更新
+- [ ] Todo 一覧ページの loading.tsx 実装
+- [ ] Todo 一覧ページの error.tsx 実装
 - [ ] Todo 詳細ページの UI 更新
+- [ ] Todo 詳細ページの loading.tsx 実装
+- [ ] Todo 詳細ページの error.tsx 実装
 - [ ] プロフィールページの UI 更新
+- [ ] プロフィールページの loading.tsx 実装
+- [ ] プロフィールページの error.tsx 実装
 - [ ] ユーザー作成ページの UI 更新
 - [ ] ユーザー詳細ページの UI 更新
+- [ ] ユーザー詳細ページの loading.tsx 実装
+- [ ] ユーザー詳細ページの error.tsx 実装
 - [ ] ユーザー一覧ページの UI 更新
+- [ ] ユーザー一覧ページの loading.tsx 実装
+- [ ] ユーザー一覧ページの error.tsx 実装
 
-### 8.3 スタイリング
+### 7.3 スタイリング
 - [ ] レスポンシブデザインの確認
 - [ ] カラーテーマの統一
 - [ ] スペーシングの統一
+- [ ] ローディング表示の統一
+- [ ] エラー表示の統一
 
-### 8.4 アクセシビリティ
+### 7.4 アクセシビリティ
 - [ ] aria-label の設定
 - [ ] キーボードナビゲーションの確認
+- [ ] Spinner の label 属性設定
+- [ ] エラーメッセージの視覚的な強調
 
 ---
 
@@ -630,6 +1110,21 @@ HeroUI のコンポーネントは自動的にキーボードナビゲーショ�
 - [ ] レスポンシブデザインが適切に動作する
 - [ ] ローディング状態が適切に表示される
 - [ ] エラーメッセージが適切に表示される
+- [ ] Skeleton表示が実際のコンテンツ構造と一致している
+- [ ] エラーページからの復帰が適切に動作する
+
+### 8.3 エラーハンドリング確認
+- [ ] ネットワークエラー時にエラーページが表示される
+- [ ] 存在しないIDへのアクセス時にエラーページが表示される
+- [ ] エラーページの「再試行」ボタンが正常に動作する
+- [ ] エラーページの「戻る」ボタンが正常に動作する
+- [ ] エラーIDが適切に表示される（該当する場合）
+
+### 8.4 ローディング状態確認
+- [ ] データ取得中にローディングページが表示される
+- [ ] Spinner のサイズとカラーが適切である
+- [ ] Skeleton表示がちらつかない
+- [ ] ローディング完了後、適切にコンテンツが表示される
 
 ---
 
@@ -641,10 +1136,14 @@ Step 3 完了後、以下を確認してください。
 - [ ] デザインが統一され、モダンな見た目になっている
 - [ ] すべての機能が正常に動作する
 - [ ] アクセシビリティが確保されている
+- [ ] すべてのページに loading.tsx が実装されている
+- [ ] すべてのページに error.tsx が実装されている
+- [ ] エラーハンドリングが適切に動作する
+- [ ] ローディング状態が適切に表示される
 
 これらが完了したら、**Step 4: UIコンポーネントの分割** に進みましょう。
 
 ---
 
-**Document Version**: 1.0.0  
-**Last Updated**: 2025-10-24
+**Document Version**: 1.1.0  
+**Last Updated**: 2025-10-27
