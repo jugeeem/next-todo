@@ -21,11 +21,39 @@ interface PaginationInfo {
   itemsPerPage: number;
 }
 
-export function TodoListPage() {
+interface TodoListResponse {
+  success: boolean;
+  data: {
+    data: Todo[];
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  };
+}
+
+interface TodoListPageProps {
+  initialData?: TodoListResponse;
+  currentUserRole?: number;
+}
+
+export function TodoListPage({
+  initialData,
+  currentUserRole: initialUserRole,
+}: TodoListPageProps) {
   const router = useRouter();
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [page, setPage] = useState<number>(1);
-  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
+  const [todos, setTodos] = useState<Todo[]>(initialData?.data?.data || []);
+  const [page, setPage] = useState<number>(initialData?.data?.page || 1);
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(
+    initialData
+      ? {
+          currentPage: initialData.data.page,
+          totalPages: initialData.data.totalPages,
+          totalItems: initialData.data.total,
+          itemsPerPage: initialData.data.perPage,
+        }
+      : null,
+  );
   const [completedFilter, setCompletedFilter] = useState<
     'all' | 'completed' | 'incomplete'
   >('all');
@@ -38,7 +66,7 @@ export function TodoListPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [currentUserRole, setCurrentUserRole] = useState<number>(4);
+  const [currentUserRole, setCurrentUserRole] = useState<number>(initialUserRole || 4);
 
   // Todo一覧を取得
   const fetchTodos = useCallback(async () => {
@@ -82,8 +110,13 @@ export function TodoListPage() {
     }
   }, [page, completedFilter, sortBy, sortOrder, router]);
 
-  // ユーザー情報を取得してロールを設定
+  // ユーザー情報を取得してロールを設定（初期値がない場合のみ）
   useEffect(() => {
+    if (initialUserRole !== undefined) {
+      // サーバーから渡された場合はスキップ
+      return;
+    }
+
     const fetchUserInfo = async () => {
       try {
         const response = await fetch('/api/users/me');
@@ -97,7 +130,7 @@ export function TodoListPage() {
     };
 
     fetchUserInfo();
-  }, []);
+  }, [initialUserRole]);
 
   // ページ読み込み時・フィルター変更時にTodoを取得
   useEffect(() => {

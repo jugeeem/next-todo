@@ -28,13 +28,23 @@ interface Todo {
   updatedAt: string;
 }
 
-export function ProfilePage() {
+interface ProfilePageProps {
+  initialUser?: User;
+  initialStats?: TodoStats;
+  initialTodos?: Todo[];
+}
+
+export function ProfilePage({
+  initialUser,
+  initialStats,
+  initialTodos,
+}: ProfilePageProps) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [firstName, setFirstName] = useState<string>('');
-  const [lastName, setLastName] = useState<string>('');
-  const [stats, setStats] = useState<TodoStats | null>(null);
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [user, setUser] = useState<User | null>(initialUser || null);
+  const [firstName, setFirstName] = useState<string>(initialUser?.firstName || '');
+  const [lastName, setLastName] = useState<string>(initialUser?.lastName || '');
+  const [stats, setStats] = useState<TodoStats | null>(initialStats || null);
+  const [todos, setTodos] = useState<Todo[]>(initialTodos || []);
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -103,8 +113,13 @@ export function ProfilePage() {
     }
   }, []);
 
-  // 初回読み込み時に全データを取得
+  // 初回読み込み時に全データを取得（初期データがない場合のみ）
   useEffect(() => {
+    if (initialUser && initialStats && initialTodos) {
+      // サーバーから渡された場合はスキップ
+      return;
+    }
+
     const fetchAllData = async () => {
       setIsLoading(true);
       await Promise.all([fetchUserInfo(), fetchTodoStats(), fetchTodos()]);
@@ -112,7 +127,14 @@ export function ProfilePage() {
     };
 
     fetchAllData();
-  }, [fetchTodoStats, fetchTodos, fetchUserInfo]);
+  }, [
+    fetchTodoStats,
+    fetchTodos,
+    fetchUserInfo,
+    initialUser,
+    initialStats,
+    initialTodos,
+  ]);
 
   // プロフィール更新
   const handleUpdateProfile = async (e: FormEvent<HTMLFormElement>) => {
@@ -259,6 +281,15 @@ export function ProfilePage() {
             >
               プロフィール
             </Link>
+            {/* ADMIN(1) または MANAGER(2) の場合のみユーザー管理リンクを表示 */}
+            {user && user.role <= 2 && (
+              <Link
+                href="/users"
+                className="text-gray-700 hover:text-blue-500 font-medium"
+              >
+                ユーザー管理
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}

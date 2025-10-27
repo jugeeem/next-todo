@@ -194,6 +194,7 @@ const [currentUserRole, setCurrentUserRole] = useState<number>(4) // 現在の�
 - 保存ボタン
 - キャンセルボタン（一覧に戻る）
 - 削除ボタン
+- ヘッダーナビゲーション（ユーザー管理リンクを含む）
 - ローディング状態の表示
 - エラーメッセージの表示
 
@@ -205,6 +206,7 @@ const [descriptions, setDescriptions] = useState<string>('')
 const [isEditing, setIsEditing] = useState<boolean>(false)
 const [isLoading, setIsLoading] = useState<boolean>(false)
 const [error, setError] = useState<string>('')
+const [currentUserRole, setCurrentUserRole] = useState<number>(4) // 現在のユーザーのロール
 ```
 
 **API エンドポイント**:
@@ -217,6 +219,35 @@ const [error, setError] = useState<string>('')
 - `useEffect` でページ読み込み時に Todo 詳細を取得
 - 編集モードと表示モードを切り替え可能に
 - 更新成功後は編集モードを解除して最新データを表示
+- **ユーザーロール取得**: ページ読み込み時に現在のユーザー情報を取得してロールを設定
+  ```typescript
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUserRole(data.data.role);
+        }
+      } catch (err) {
+        console.error('Failed to fetch current user:', err);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+  ```
+- **ヘッダーナビゲーション**: ADMIN・MANAGER（role <= 2）の場合のみユーザー管理リンクを表示
+  ```typescript
+  <nav className="flex items-center gap-4">
+    <Link href="/todos">Todo一覧</Link>
+    <Link href="/profile">プロフィール</Link>
+    {currentUserRole <= 2 && (
+      <Link href="/users">ユーザー管理</Link>
+    )}
+    <button onClick={handleLogout}>ログアウト</button>
+  </nav>
+  ```
 
 ---
 
@@ -231,6 +262,7 @@ const [error, setError] = useState<string>('')
 - Todo 統計情報の表示（総数、完了数、未完了数、完了率）
 - 自分の Todo 一覧表示（簡易版）
 - パスワード変更フォーム
+- ヘッダーナビゲーション（ユーザー管理リンクを含む）
 - ログアウトボタン
 
 **必要な状態管理**:
@@ -277,6 +309,17 @@ const [successMessage, setSuccessMessage] = useState<string>('') // 成功メッ
 - **エラー分離**: プロフィール編集とパスワード変更でエラー状態を分離 (`error` と `passwordError`)
 - **ローディング状態の分離**: 全体、プロフィール、パスワードでローディング状態を分離
 - **認証エラー処理**: 401レスポンスの場合はログインページにリダイレクト
+- **ヘッダーナビゲーション**: ADMIN・MANAGER（role <= 2）の場合のみユーザー管理リンクを表示
+  ```typescript
+  <nav className="flex items-center gap-4">
+    <Link href="/todos">Todo一覧</Link>
+    <Link href="/profile">プロフィール</Link>
+    {user && user.role <= 2 && (
+      <Link href="/users">ユーザー管理</Link>
+    )}
+    <button onClick={handleLogout}>ログアウト</button>
+  </nav>
+  ```
 
 ---
 
@@ -302,7 +345,7 @@ const [users, setUsers] = useState<User[]>([])
 const [page, setPage] = useState<number>(1)
 const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null)
 const [roleFilter, setRoleFilter] = useState<number | 'all'>('all')
-const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'username'>('createdAt')
+const [sortBy, setSortBy] = useState<'created_at' | 'username' | 'first_name' | 'last_name' | 'role'>('created_at');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 const [searchQuery, setSearchQuery] = useState<string>('')
 const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -940,9 +983,10 @@ Step 1 完了後、以下を確認してください。
 
 ---
 
-**Document Version**: 1.2.0  
-**Last Updated**: 2025-10-26  
+**Document Version**: 1.3.0  
+**Last Updated**: 2025-10-27  
 **Changes**:
+- v1.3.0 (2025-10-27): TodoDetailPage と ProfilePage のヘッダーナビゲーションにユーザー管理リンクの実装詳細を追加
 - v1.2.0 (2025-10-26): TodoListPageのヘッダーナビゲーションにユーザー管理リンクの実装詳細を追加
 - v1.1.0 (2025-10-26): ADMIN・MANAGER向けユーザー管理機能の基本設計を追加
 - v1.0.0 (2025-10-24): 初版作成

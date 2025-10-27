@@ -14,18 +14,38 @@ interface Todo {
   updatedAt: string;
 }
 
-export function TodoDetailPage() {
+interface TodoDetailPageProps {
+  initialTodo?: Todo;
+}
+
+export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
   const router = useRouter();
   const params = useParams();
   const todoId = params?.id as string;
 
-  const [todo, setTodo] = useState<Todo | null>(null);
-  const [title, setTitle] = useState<string>('');
-  const [descriptions, setDescriptions] = useState<string>('');
+  const [todo, setTodo] = useState<Todo | null>(initialTodo || null);
+  const [title, setTitle] = useState<string>(initialTodo?.title || '');
+  const [descriptions, setDescriptions] = useState<string>(
+    initialTodo?.descriptions || '',
+  );
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [currentUserRole, setCurrentUserRole] = useState<number>(4); // デフォルトはUSER
+
+  // 現在のユーザー情報を取得
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users/me');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUserRole(data.data.role);
+      }
+    } catch (err) {
+      console.error('Failed to fetch current user:', err);
+    }
+  }, []);
 
   // Todo詳細を取得
   const fetchTodoDetail = useCallback(async () => {
@@ -61,12 +81,14 @@ export function TodoDetailPage() {
     }
   }, [router, todoId]);
 
-  // 初回読み込み時にTodo詳細を取得
+  // 初回読み込み時にTodo詳細を取得（初期データがない場合のみ）
   useEffect(() => {
-    if (todoId) {
+    if (!initialTodo && todoId) {
       fetchTodoDetail();
     }
-  }, [todoId, fetchTodoDetail]);
+    // 現在のユーザー情報を取得
+    fetchCurrentUser();
+  }, [todoId, fetchTodoDetail, initialTodo, fetchCurrentUser]);
 
   // Todo更新
   const handleUpdateTodo = async (e: FormEvent<HTMLFormElement>) => {
@@ -193,6 +215,14 @@ export function TodoDetailPage() {
             >
               プロフィール
             </Link>
+            {currentUserRole <= 2 && (
+              <Link
+                href="/users"
+                className="text-gray-700 hover:text-blue-500 font-medium"
+              >
+                ユーザー管理
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}
