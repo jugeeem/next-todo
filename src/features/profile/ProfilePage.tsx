@@ -1,5 +1,16 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
@@ -265,41 +276,37 @@ export function ProfilePage({
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/todos"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+      <Navbar>
+        <NavbarBrand>
+          <p className="font-bold text-inherit">Todo アプリ</p>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
+            <Link href="/todos" className="text-foreground">
               Todo一覧
             </Link>
-            <Link
-              href="/profile"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+          </NavbarItem>
+          <NavbarItem>
+            <Link href="/profile" className="text-foreground">
               プロフィール
             </Link>
-            {/* ADMIN(1) または MANAGER(2) の場合のみユーザー管理リンクを表示 */}
-            {user && user.role <= 2 && (
-              <Link
-                href="/users"
-                className="text-gray-700 hover:text-blue-500 font-medium"
-              >
+          </NavbarItem>
+          {user && user.role <= 2 && (
+            <NavbarItem>
+              <Link href="/users" className="text-foreground">
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* 成功メッセージ */}
@@ -313,281 +320,221 @@ export function ProfilePage({
           {/* 左カラム: ユーザー情報とパスワード変更 */}
           <div className="space-y-8">
             {/* ユーザー情報 */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
+            <Card>
+              <CardHeader className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">プロフィール</h2>
                 {!isEditingProfile && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfile(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                  >
+                  <Button color="primary" onPress={() => setIsEditingProfile(true)}>
                     編集
-                  </button>
+                  </Button>
                 )}
-              </div>
-
-              {error && (
-                <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-                  {error}
-                </div>
-              )}
-
-              {isEditingProfile ? (
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="username"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      ユーザー名
-                    </label>
-                    <input
-                      type="text"
-                      id="username"
-                      value={user?.username || ''}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      ユーザー名は変更できません
-                    </p>
+              </CardHeader>
+              <CardBody>
+                {error && (
+                  <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                    {error}
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="lastName"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        姓
-                      </label>
-                      <input
+                {isEditingProfile ? (
+                  <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    <Input
+                      type="text"
+                      label="ユーザー名"
+                      value={user?.username || ''}
+                      isDisabled
+                      description="ユーザー名は変更できません"
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
                         type="text"
-                        id="lastName"
+                        label="姓"
+                        placeholder="姓"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="姓"
-                        disabled={isSavingProfile}
+                        isDisabled={isSavingProfile}
                       />
-                    </div>
 
-                    <div>
-                      <label
-                        htmlFor="firstName"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        名
-                      </label>
-                      <input
+                      <Input
                         type="text"
-                        id="firstName"
+                        label="名"
+                        placeholder="名"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="名"
-                        disabled={isSavingProfile}
+                        isDisabled={isSavingProfile}
                       />
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-4 pt-4">
-                    <button
-                      type="submit"
-                      disabled={isSavingProfile}
-                      className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isSavingProfile ? '保存中...' : '保存'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditingProfile(false);
-                        setFirstName(user?.firstName || '');
-                        setLastName(user?.lastName || '');
-                        setError('');
-                      }}
-                      disabled={isSavingProfile}
-                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">
-                      ユーザー名
-                    </h3>
-                    <p className="text-gray-900">{user?.username}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
-                      <p className="text-gray-900">{user?.lastName || '未設定'}</p>
+                    <div className="flex items-center gap-4 pt-4">
+                      <Button type="submit" color="primary" isLoading={isSavingProfile}>
+                        保存
+                      </Button>
+                      <Button
+                        color="default"
+                        variant="flat"
+                        onPress={() => {
+                          setIsEditingProfile(false);
+                          setFirstName(user?.firstName || '');
+                          setLastName(user?.lastName || '');
+                          setError('');
+                        }}
+                        isDisabled={isSavingProfile}
+                      >
+                        キャンセル
+                      </Button>
                     </div>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
-                      <p className="text-gray-900">{user?.firstName || '未設定'}</p>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        ユーザー名
+                      </h3>
+                      <p className="text-gray-900">{user?.username}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
+                        <p className="text-gray-900">{user?.lastName || '未設定'}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
+                        <p className="text-gray-900">{user?.firstName || '未設定'}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </CardBody>
+            </Card>
 
             {/* パスワード変更 */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
+            <Card>
+              <CardHeader className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">パスワード変更</h2>
                 {!isChangingPassword && (
-                  <button
-                    type="button"
-                    onClick={() => setIsChangingPassword(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                  >
+                  <Button color="primary" onPress={() => setIsChangingPassword(true)}>
                     変更
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </CardHeader>
+              <CardBody>
+                {isChangingPassword ? (
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    {passwordError && (
+                      <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+                        {passwordError}
+                      </div>
+                    )}
 
-              {isChangingPassword ? (
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  {passwordError && (
-                    <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
-                      {passwordError}
-                    </div>
-                  )}
-
-                  <div>
-                    <label
-                      htmlFor="currentPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      現在のパスワード <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <Input
                       type="password"
-                      id="currentPassword"
+                      label="現在のパスワード"
+                      placeholder="現在のパスワード"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="現在のパスワード"
-                      disabled={isSavingPassword}
+                      isDisabled={isSavingPassword}
+                      isRequired
                     />
-                  </div>
 
-                  <div>
-                    <label
-                      htmlFor="newPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      新しいパスワード <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <Input
                       type="password"
-                      id="newPassword"
+                      label="新しいパスワード"
+                      placeholder="新しいパスワード（6文字以上）"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="新しいパスワード（6文字以上）"
-                      disabled={isSavingPassword}
+                      isDisabled={isSavingPassword}
+                      isRequired
                     />
-                  </div>
 
-                  <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      新しいパスワード（確認） <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <Input
                       type="password"
-                      id="confirmPassword"
+                      label="新しいパスワード（確認）"
+                      placeholder="新しいパスワードを再入力"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="新しいパスワードを再入力"
-                      disabled={isSavingPassword}
+                      isDisabled={isSavingPassword}
+                      isRequired
                     />
-                  </div>
 
-                  <div className="flex items-center gap-4 pt-4">
-                    <button
-                      type="submit"
-                      disabled={isSavingPassword}
-                      className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isSavingPassword ? '変更中...' : '変更'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsChangingPassword(false);
-                        setCurrentPassword('');
-                        setNewPassword('');
-                        setConfirmPassword('');
-                        setPasswordError('');
-                      }}
-                      disabled={isSavingPassword}
-                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <p className="text-gray-600">
-                  パスワードを変更する場合は「変更」ボタンをクリックしてください。
-                </p>
-              )}
-            </div>
+                    <div className="flex items-center gap-4 pt-4">
+                      <Button
+                        type="submit"
+                        color="primary"
+                        isLoading={isSavingPassword}
+                      >
+                        変更
+                      </Button>
+                      <Button
+                        color="default"
+                        variant="flat"
+                        onPress={() => {
+                          setIsChangingPassword(false);
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setPasswordError('');
+                        }}
+                        isDisabled={isSavingPassword}
+                      >
+                        キャンセル
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="text-gray-600">
+                    パスワードを変更する場合は「変更」ボタンをクリックしてください。
+                  </p>
+                )}
+              </CardBody>
+            </Card>
           </div>
 
           {/* 右カラム: Todo統計と一覧 */}
           <div className="space-y-8">
             {/* Todo統計 */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Todo統計</h2>
-
-              {stats ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">総数</p>
-                    <p className="text-3xl font-bold text-blue-600">
-                      {stats.totalTodos}
-                    </p>
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-bold text-gray-900">Todo統計</h2>
+              </CardHeader>
+              <CardBody>
+                {stats ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">総数</p>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {stats.totalTodos}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">完了数</p>
+                      <p className="text-3xl font-bold text-green-600">
+                        {stats.completedTodos}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">未完了数</p>
+                      <p className="text-3xl font-bold text-yellow-600">
+                        {stats.pendingTodos}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">完了率</p>
+                      <p className="text-3xl font-bold text-purple-600">
+                        {stats.completionRate.toFixed(1)}%
+                      </p>
+                    </div>
                   </div>
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">完了数</p>
-                    <p className="text-3xl font-bold text-green-600">
-                      {stats.completedTodos}
-                    </p>
-                  </div>
-                  <div className="bg-yellow-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">未完了数</p>
-                    <p className="text-3xl font-bold text-yellow-600">
-                      {stats.pendingTodos}
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">完了率</p>
-                    <p className="text-3xl font-bold text-purple-600">
-                      {stats.completionRate.toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500">統計情報を読み込めませんでした</p>
-              )}
-            </div>
+                ) : (
+                  <p className="text-gray-500">統計情報を読み込めませんでした</p>
+                )}
+              </CardBody>
+            </Card>
 
             {/* Todo一覧（簡易版） */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
+            <Card>
+              <CardHeader className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">最近のTodo</h2>
                 <Link
                   href="/todos"
@@ -595,47 +542,48 @@ export function ProfilePage({
                 >
                   すべて見る →
                 </Link>
-              </div>
-
-              {todos.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Todoがありません</p>
-              ) : (
-                <div className="space-y-2">
-                  {todos.map((todo) => (
-                    <Link
-                      key={todo.id}
-                      href={`/todos/${todo.id}`}
-                      className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          readOnly
-                          className="w-4 h-4 text-blue-500 rounded"
-                        />
-                        <div className="flex-1">
-                          <h3
-                            className={`font-medium ${
-                              todo.completed
-                                ? 'line-through text-gray-500'
-                                : 'text-gray-900'
-                            }`}
-                          >
-                            {todo.title}
-                          </h3>
-                          {todo.descriptions && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              {todo.descriptions}
-                            </p>
-                          )}
+              </CardHeader>
+              <CardBody>
+                {todos.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Todoがありません</p>
+                ) : (
+                  <div className="space-y-2">
+                    {todos.map((todo) => (
+                      <Link
+                        key={todo.id}
+                        href={`/todos/${todo.id}`}
+                        className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={todo.completed}
+                            readOnly
+                            className="w-4 h-4 text-blue-500 rounded pointer-events-none"
+                          />
+                          <div className="flex-1">
+                            <h3
+                              className={`font-medium ${
+                                todo.completed
+                                  ? 'line-through text-gray-500'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {todo.title}
+                            </h3>
+                            {todo.descriptions && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {todo.descriptions}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
         </div>
       </main>

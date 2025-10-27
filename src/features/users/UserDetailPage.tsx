@@ -1,5 +1,21 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
@@ -61,6 +77,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isCheckingPermission, setIsCheckingPermission] = useState<boolean>(true);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // 権限チェック
   useEffect(() => {
@@ -194,11 +211,12 @@ export function UserDetailPage({ userId }: { userId: string }) {
   };
 
   // ユーザー削除
-  const handleDeleteUser = async () => {
-    if (!confirm(`ユーザー「${user?.username}」を削除してもよろしいですか?`)) {
-      return;
-    }
+  const handleDeleteUser = () => {
+    onOpen();
+  };
 
+  // ユーザー削除を実行
+  const confirmDeleteUser = async () => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
@@ -209,9 +227,11 @@ export function UserDetailPage({ userId }: { userId: string }) {
         throw new Error(errorData.error || 'ユーザーの削除に失敗しました');
       }
 
+      onClose();
       router.push('/users');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザーの削除に失敗しました');
+      onClose();
     }
   };
 
@@ -260,40 +280,46 @@ export function UserDetailPage({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
+      <Navbar>
+        <NavbarBrand>
+          <h1 className="text-2xl font-bold">Todo アプリ</h1>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
             <Link
               href="/todos"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               Todo一覧
             </Link>
+          </NavbarItem>
+          <NavbarItem>
             <Link
               href="/profile"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               プロフィール
             </Link>
-            {currentUserRole <= 2 && (
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
               <Link
                 href="/users"
                 className="text-gray-700 hover:text-blue-500 font-medium"
               >
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* 戻るリンク */}
@@ -321,227 +347,248 @@ export function UserDetailPage({ userId }: { userId: string }) {
           {/* 左カラム: ユーザー情報 */}
           <div className="space-y-8">
             {/* ユーザー情報 */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">ユーザー情報</h2>
-                <div className="flex items-center gap-2">
-                  {currentUserRole === 1 && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                    >
-                      編集
-                    </button>
-                  )}
-                  {currentUserRole === 1 && user?.id !== currentUserId && (
-                    <button
-                      type="button"
-                      onClick={handleDeleteUser}
-                      className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                    >
-                      削除
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isEditing ? (
-                <form onSubmit={handleUpdateUser} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="username"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      ユーザー名
-                    </label>
-                    <input
-                      type="text"
-                      id="username"
-                      value={user?.username || ''}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      ユーザー名は変更できません
-                    </p>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between w-full">
+                  <h2 className="text-xl font-bold">ユーザー情報</h2>
+                  <div className="flex items-center gap-2">
+                    {currentUserRole === 1 && !isEditing && (
+                      <Button color="primary" onPress={() => setIsEditing(true)}>
+                        編集
+                      </Button>
+                    )}
+                    {currentUserRole === 1 && user?.id !== currentUserId && (
+                      <Button color="danger" onPress={handleDeleteUser}>
+                        削除
+                      </Button>
+                    )}
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </div>
+              </CardHeader>
+              <CardBody>
+                {isEditing ? (
+                  <form onSubmit={handleUpdateUser} className="space-y-4">
                     <div>
                       <label
-                        htmlFor="lastName"
+                        htmlFor="username"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        姓
+                        ユーザー名
                       </label>
                       <input
                         type="text"
-                        id="lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="姓"
-                        disabled={isSaving}
+                        id="username"
+                        value={user?.username || ''}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        ユーザー名は変更できません
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="lastName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          姓
+                        </label>
+                        <input
+                          type="text"
+                          id="lastName"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="姓"
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="firstName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          名
+                        </label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="名"
+                          disabled={isSaving}
+                        />
+                      </div>
                     </div>
 
                     <div>
                       <label
-                        htmlFor="firstName"
+                        htmlFor="role"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        名
+                        ロール
                       </label>
-                      <input
-                        type="text"
-                        id="firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                      <select
+                        id="role"
+                        value={role}
+                        onChange={(e) => setRole(Number(e.target.value))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="名"
                         disabled={isSaving}
-                      />
+                      >
+                        <option value={1}>ADMIN</option>
+                        <option value={2}>MANAGER</option>
+                        <option value={3}>USER</option>
+                        <option value={4}>GUEST</option>
+                      </select>
                     </div>
-                  </div>
 
-                  <div>
-                    <label
-                      htmlFor="role"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      ロール
-                    </label>
-                    <select
-                      id="role"
-                      value={role}
-                      onChange={(e) => setRole(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={isSaving}
-                    >
-                      <option value={1}>ADMIN</option>
-                      <option value={2}>MANAGER</option>
-                      <option value={3}>USER</option>
-                      <option value={4}>GUEST</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-4 pt-4">
-                    <button
-                      type="submit"
-                      disabled={isSaving}
-                      className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isSaving ? '保存中...' : '保存'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setFirstName(user?.firstName || '');
-                        setLastName(user?.lastName || '');
-                        setRole(user?.role || 4);
-                        setError('');
-                      }}
-                      disabled={isSaving}
-                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">
-                      ユーザー名
-                    </h3>
-                    <p className="text-gray-900">{user?.username}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-4 pt-4">
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isSaving ? '保存中...' : '保存'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setFirstName(user?.firstName || '');
+                          setLastName(user?.lastName || '');
+                          setRole(user?.role || 4);
+                          setError('');
+                        }}
+                        disabled={isSaving}
+                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
-                      <p className="text-gray-900">{user?.lastName || '未設定'}</p>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        ユーザー名
+                      </h3>
+                      <p className="text-gray-900">{user?.username}</p>
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
+                        <p className="text-gray-900">{user?.lastName || '未設定'}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
+                        <p className="text-gray-900">{user?.firstName || '未設定'}</p>
+                      </div>
+                    </div>
+
                     <div>
-                      <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
-                      <p className="text-gray-900">{user?.firstName || '未設定'}</p>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">ロール</h3>
+                      <span className={getRoleBadgeClass(user?.role || 4)}>
+                        {roleLabels[user?.role || 4]}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        作成日時
+                      </h3>
+                      <p className="text-gray-900">
+                        {user?.createdAt
+                          ? new Date(user.createdAt).toLocaleString('ja-JP')
+                          : '-'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        更新日時
+                      </h3>
+                      <p className="text-gray-900">
+                        {user?.updatedAt
+                          ? new Date(user.updatedAt).toLocaleString('ja-JP')
+                          : '-'}
+                      </p>
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">ロール</h3>
-                    <span className={getRoleBadgeClass(user?.role || 4)}>
-                      {roleLabels[user?.role || 4]}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">作成日時</h3>
-                    <p className="text-gray-900">
-                      {user?.createdAt
-                        ? new Date(user.createdAt).toLocaleString('ja-JP')
-                        : '-'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">更新日時</h3>
-                    <p className="text-gray-900">
-                      {user?.updatedAt
-                        ? new Date(user.updatedAt).toLocaleString('ja-JP')
-                        : '-'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
 
           {/* 右カラム: Todo一覧 */}
           <div className="space-y-8">
             {/* Todo一覧（簡易版） */}
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">最近のTodo</h2>
-
-              {todos.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Todoがありません</p>
-              ) : (
-                <div className="space-y-2">
-                  {todos.map((todo) => (
-                    <div key={todo.id} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          readOnly
-                          className="w-4 h-4 text-blue-500 rounded"
-                        />
-                        <div className="flex-1">
-                          <h3
-                            className={`font-medium ${
-                              todo.completed
-                                ? 'line-through text-gray-500'
-                                : 'text-gray-900'
-                            }`}
-                          >
-                            {todo.title}
-                          </h3>
-                          {todo.descriptions && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              {todo.descriptions}
-                            </p>
-                          )}
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-bold">最近のTodo</h2>
+              </CardHeader>
+              <CardBody>
+                {todos.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Todoがありません</p>
+                ) : (
+                  <div className="space-y-2">
+                    {todos.map((todo) => (
+                      <div key={todo.id} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={todo.completed}
+                            readOnly
+                            className="w-4 h-4 text-blue-500 rounded"
+                          />
+                          <div className="flex-1">
+                            <h3
+                              className={`font-medium ${
+                                todo.completed
+                                  ? 'line-through text-gray-500'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {todo.title}
+                            </h3>
+                            {todo.descriptions && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {todo.descriptions}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
         </div>
+
+        {/* 削除確認モーダル */}
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader>ユーザー削除の確認</ModalHeader>
+            <ModalBody>
+              <p>ユーザー「{user?.username}」を削除してもよろしいですか?</p>
+              <p className="text-sm text-gray-500 mt-2">この操作は取り消せません。</p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="flat" onPress={onClose}>
+                キャンセル
+              </Button>
+              <Button color="danger" onPress={confirmDeleteUser}>
+                削除
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </main>
     </div>
   );

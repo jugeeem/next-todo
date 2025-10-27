@@ -1,5 +1,26 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Checkbox,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Select,
+  SelectItem,
+  Textarea,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
@@ -67,6 +88,8 @@ export function TodoListPage({
   const [error, setError] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [currentUserRole, setCurrentUserRole] = useState<number>(initialUserRole || 4);
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Todo一覧を取得
   const fetchTodos = useCallback(async () => {
@@ -191,12 +214,15 @@ export function TodoListPage({
 
   // Todo削除
   const handleDeleteTodo = async (id: string) => {
-    if (!confirm('このTodoを削除してもよろしいですか?')) {
-      return;
-    }
+    setTodoToDelete(id);
+    onOpen();
+  };
+
+  const confirmDeleteTodo = async () => {
+    if (!todoToDelete) return;
 
     try {
-      const response = await fetch(`/api/todos/${id}`, {
+      const response = await fetch(`/api/todos/${todoToDelete}`, {
         method: 'DELETE',
       });
 
@@ -206,8 +232,12 @@ export function TodoListPage({
 
       // 一覧を再取得
       await fetchTodos();
+      onClose();
+      setTodoToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
+      onClose();
+      setTodoToDelete(null);
     }
   };
 
@@ -253,162 +283,117 @@ export function TodoListPage({
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/todos"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+      <Navbar>
+        <NavbarBrand>
+          <p className="font-bold text-inherit">Todo アプリ</p>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
+            <Link href="/todos" className="text-foreground">
               Todo一覧
             </Link>
-            <Link
-              href="/profile"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+          </NavbarItem>
+          <NavbarItem>
+            <Link href="/profile" className="text-foreground">
               プロフィール
             </Link>
-            {currentUserRole <= 2 && (
-              <Link
-                href="/users"
-                className="text-gray-700 hover:text-blue-500 font-medium"
-              >
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
+              <Link href="/users" className="text-foreground">
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Todo作成フォーム */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">新しいTodoを作成</h2>
-          <form onSubmit={handleCreateTodo} className="space-y-4">
-            <div>
-              <label
-                htmlFor="title"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                タイトル <span className="text-red-500">*</span>
-              </label>
-              <input
+        <Card className="mb-8">
+          <CardHeader>
+            <h2 className="text-xl font-bold text-gray-900">新しいTodoを作成</h2>
+          </CardHeader>
+          <CardBody>
+            <form onSubmit={handleCreateTodo} className="space-y-4">
+              <Input
                 type="text"
-                id="title"
+                label="タイトル"
+                placeholder="Todoのタイトル（32文字以内）"
                 value={newTodoTitle}
                 onChange={(e) => setNewTodoTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Todoのタイトル（32文字以内）"
-                disabled={isCreating}
+                isDisabled={isCreating}
+                isRequired
               />
-            </div>
 
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                説明
-              </label>
-              <textarea
-                id="description"
+              <Textarea
+                label="説明"
+                placeholder="Todoの説明（128文字以内）"
                 value={newTodoDescription}
                 onChange={(e) => setNewTodoDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Todoの説明（128文字以内）"
-                rows={3}
-                disabled={isCreating}
+                minRows={3}
+                isDisabled={isCreating}
               />
-            </div>
 
-            <button
-              type="submit"
-              disabled={isCreating}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isCreating ? '作成中...' : '作成'}
-            </button>
-          </form>
-        </div>
+              <Button type="submit" color="primary" isLoading={isCreating}>
+                作成
+              </Button>
+            </form>
+          </CardBody>
+        </Card>
 
         {/* フィルター・ソート */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 完了状態フィルター */}
-            <div>
-              <label
-                htmlFor="completedFilter"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                表示フィルター
-              </label>
-              <select
-                id="completedFilter"
-                value={completedFilter}
+        <Card className="mb-8">
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 完了状態フィルター */}
+              <Select
+                label="表示フィルター"
+                selectedKeys={[completedFilter]}
                 onChange={(e) => {
                   setCompletedFilter(
                     e.target.value as 'all' | 'completed' | 'incomplete',
                   );
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">すべて</option>
-                <option value="completed">完了済み</option>
-                <option value="incomplete">未完了</option>
-              </select>
-            </div>
+                <SelectItem key="all">すべて</SelectItem>
+                <SelectItem key="completed">完了済み</SelectItem>
+                <SelectItem key="incomplete">未完了</SelectItem>
+              </Select>
 
-            {/* ソート項目 */}
-            <div>
-              <label
-                htmlFor="sortBy"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                並び順
-              </label>
-              <select
-                id="sortBy"
-                value={sortBy}
+              {/* ソート項目 */}
+              <Select
+                label="並び順"
+                selectedKeys={[sortBy]}
                 onChange={(e) =>
                   setSortBy(e.target.value as 'createdAt' | 'updatedAt' | 'title')
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="createdAt">作成日時</option>
-                <option value="updatedAt">更新日時</option>
-                <option value="title">タイトル</option>
-              </select>
-            </div>
+                <SelectItem key="createdAt">作成日時</SelectItem>
+                <SelectItem key="updatedAt">更新日時</SelectItem>
+                <SelectItem key="title">タイトル</SelectItem>
+              </Select>
 
-            {/* ソート順 */}
-            <div>
-              <label
-                htmlFor="sortOrder"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                順序
-              </label>
-              <select
-                id="sortOrder"
-                value={sortOrder}
+              {/* ソート順 */}
+              <Select
+                label="順序"
+                selectedKeys={[sortOrder]}
                 onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="asc">昇順</option>
-                <option value="desc">降順</option>
-              </select>
+                <SelectItem key="asc">昇順</SelectItem>
+                <SelectItem key="desc">降順</SelectItem>
+              </Select>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
         {/* エラー表示 */}
         {error && (
@@ -428,106 +413,129 @@ export function TodoListPage({
         {/* Todo一覧 */}
         {!isLoading && (
           <>
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Todo一覧
-                {paginationInfo && (
-                  <span className="text-sm font-normal text-gray-600 ml-2">
-                    （全{paginationInfo.totalItems}件）
-                  </span>
-                )}
-              </h2>
-
-              {todos.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Todoがありません</p>
-              ) : (
-                <div className="space-y-2">
-                  {todos.map((todo) => (
-                    <div
-                      key={todo.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          onChange={() => handleToggleComplete(todo)}
-                          className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="flex-1">
-                          <Link href={`/todos/${todo.id}`} className="block">
-                            <h3
-                              className={`font-medium ${
-                                todo.completed
-                                  ? 'line-through text-gray-500'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {todo.title}
-                            </h3>
-                            {todo.descriptions && (
-                              <p className="text-sm text-gray-600 mt-1">
-                                {todo.descriptions}
+            <Card className="mb-8">
+              <CardHeader>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Todo一覧
+                  {paginationInfo && (
+                    <span className="text-sm font-normal text-gray-600 ml-2">
+                      （全{paginationInfo.totalItems}件）
+                    </span>
+                  )}
+                </h2>
+              </CardHeader>
+              <CardBody>
+                {todos.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Todoがありません</p>
+                ) : (
+                  <div className="space-y-2">
+                    {todos.map((todo) => (
+                      <div
+                        key={todo.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <Checkbox
+                            isSelected={todo.completed}
+                            onValueChange={() => handleToggleComplete(todo)}
+                          />
+                          <div className="flex-1">
+                            <Link href={`/todos/${todo.id}`} className="block">
+                              <h3
+                                className={`font-medium ${
+                                  todo.completed
+                                    ? 'line-through text-gray-500'
+                                    : 'text-gray-900'
+                                }`}
+                              >
+                                {todo.title}
+                              </h3>
+                              {todo.descriptions && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {todo.descriptions}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                作成: {new Date(todo.createdAt).toLocaleString('ja-JP')}
                               </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-1">
-                              作成: {new Date(todo.createdAt).toLocaleString('ja-JP')}
-                            </p>
-                          </Link>
+                            </Link>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            as={Link}
+                            href={`/todos/${todo.id}`}
+                            color="primary"
+                            size="sm"
+                          >
+                            詳細
+                          </Button>
+                          <Button
+                            color="danger"
+                            size="sm"
+                            onPress={() => handleDeleteTodo(todo.id)}
+                          >
+                            削除
+                          </Button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/todos/${todo.id}`}
-                          className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                        >
-                          詳細
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTodo(todo.id)}
-                          className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
 
             {/* ページネーション */}
             {paginationInfo && paginationInfo.totalPages > 1 && (
-              <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    前のページ
-                  </button>
+              <Card>
+                <CardBody>
+                  <div className="flex items-center justify-between">
+                    <Button
+                      color="default"
+                      variant="flat"
+                      onPress={() => setPage(page - 1)}
+                      isDisabled={page <= 1}
+                    >
+                      前のページ
+                    </Button>
 
-                  <span className="text-gray-700">
-                    ページ {page} / {paginationInfo.totalPages}
-                  </span>
+                    <span className="text-gray-700">
+                      ページ {page} / {paginationInfo.totalPages}
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= paginationInfo.totalPages}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    次のページ
-                  </button>
-                </div>
-              </div>
+                    <Button
+                      color="default"
+                      variant="flat"
+                      onPress={() => setPage(page + 1)}
+                      isDisabled={page >= paginationInfo.totalPages}
+                    >
+                      次のページ
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
             )}
           </>
         )}
+
+        {/* 削除確認モーダル */}
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader>確認</ModalHeader>
+            <ModalBody>
+              <p>このTodoを削除してもよろしいですか?</p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                キャンセル
+              </Button>
+              <Button color="danger" onPress={confirmDeleteTodo}>
+                削除
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </main>
     </div>
   );

@@ -1,5 +1,18 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Select,
+  SelectItem,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useState } from 'react';
@@ -184,40 +197,46 @@ export function CreateUserPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
+      <Navbar>
+        <NavbarBrand>
+          <h1 className="text-2xl font-bold">Todo アプリ</h1>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
             <Link
               href="/todos"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               Todo一覧
             </Link>
+          </NavbarItem>
+          <NavbarItem>
             <Link
               href="/profile"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               プロフィール
             </Link>
-            {currentUserRole <= 2 && (
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
               <Link
                 href="/users"
                 className="text-gray-700 hover:text-blue-500 font-medium"
               >
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* 戻るリンク */}
@@ -227,168 +246,110 @@ export function CreateUserPage() {
           </Link>
         </div>
 
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">ユーザー作成</h2>
+        <Card>
+          <CardHeader>
+            <h2 className="text-2xl font-bold">ユーザー作成</h2>
+          </CardHeader>
+          <CardBody>
+            {/* エラー表示 */}
+            {error && (
+              <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3 mb-6">
+                {error}
+              </div>
+            )}
 
-          {/* エラー表示 */}
-          {error && (
-            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3 mb-6">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* ユーザー名 */}
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                ユーザー名 <span className="text-red-500">*</span>
-              </label>
-              <input
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* ユーザー名 */}
+              <Input
                 type="text"
-                id="username"
+                label="ユーザー名"
+                placeholder="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="username"
                 maxLength={32}
-                required
-                disabled={isSubmitting}
+                isRequired
+                isDisabled={isSubmitting}
+                description="最大32文字"
               />
-              <p className="text-xs text-gray-500 mt-1">最大32文字</p>
-            </div>
 
-            {/* パスワード */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                パスワード <span className="text-red-500">*</span>
-              </label>
-              <input
+              {/* パスワード */}
+              <Input
                 type="password"
-                id="password"
+                label="パスワード"
+                placeholder="8文字以上"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="8文字以上"
-                required
-                disabled={isSubmitting}
+                isRequired
+                isDisabled={isSubmitting}
+                description="最小8文字"
               />
-              <p className="text-xs text-gray-500 mt-1">最小8文字</p>
-            </div>
 
-            {/* パスワード（確認） */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                パスワード（確認） <span className="text-red-500">*</span>
-              </label>
-              <input
+              {/* パスワード（確認） */}
+              <Input
                 type="password"
-                id="confirmPassword"
+                label="パスワード（確認）"
+                placeholder="パスワードを再入力"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="パスワードを再入力"
-                required
-                disabled={isSubmitting}
+                isRequired
+                isDisabled={isSubmitting}
               />
-            </div>
 
-            {/* 姓・名 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  姓
-                </label>
-                <input
+              {/* 姓・名 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
                   type="text"
-                  id="lastName"
+                  label="姓"
+                  placeholder="姓"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="姓"
                   maxLength={32}
-                  disabled={isSubmitting}
+                  isDisabled={isSubmitting}
                 />
-              </div>
 
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  名
-                </label>
-                <input
+                <Input
                   type="text"
-                  id="firstName"
+                  label="名"
+                  placeholder="名"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="名"
                   maxLength={32}
-                  disabled={isSubmitting}
+                  isDisabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            {/* ロール */}
-            <div>
-              <label
-                htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                ロール <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="role"
-                value={role}
+              {/* ロール */}
+              <Select
+                label="ロール"
+                selectedKeys={[role.toString()]}
                 onChange={(e) => setRole(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={isSubmitting}
+                isRequired
+                isDisabled={isSubmitting}
+                description={
+                  currentUserRole === 2
+                    ? 'MANAGER は ADMIN ユーザーを作成できません'
+                    : undefined
+                }
               >
                 {availableRoles.map((roleValue) => (
-                  <option key={roleValue} value={roleValue}>
+                  <SelectItem key={roleValue.toString()}>
                     {roleLabels[roleValue]}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-              {currentUserRole === 2 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  MANAGER は ADMIN ユーザーを作成できません
-                </p>
-              )}
-            </div>
+              </Select>
 
-            {/* 送信ボタン */}
-            <div className="flex items-center gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-              >
-                {isSubmitting ? '作成中...' : 'ユーザーを作成'}
-              </button>
-              <Link
-                href="/users"
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium text-center"
-              >
-                キャンセル
-              </Link>
-            </div>
-          </form>
-        </div>
+              {/* 送信ボタン */}
+              <div className="flex items-center gap-4 pt-4">
+                <Button type="submit" color="primary" isLoading={isSubmitting}>
+                  ユーザーを作成
+                </Button>
+                <Button as={Link} href="/users" color="default" variant="flat">
+                  キャンセル
+                </Button>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
       </main>
     </div>
   );

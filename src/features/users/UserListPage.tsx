@@ -1,5 +1,24 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Select,
+  SelectItem,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -71,6 +90,11 @@ export function UserListPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isCheckingPermission, setIsCheckingPermission] = useState<boolean>(true);
+  const [userToDelete, setUserToDelete] = useState<{
+    id: string;
+    username: string;
+  } | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // 権限チェック
   useEffect(() => {
@@ -166,13 +190,17 @@ export function UserListPage() {
   }, [hasPermission, fetchUsers]);
 
   // ユーザー削除
-  const handleDeleteUser = async (userId: string, username: string) => {
-    if (!confirm(`ユーザー「${username}」を削除してもよろしいですか?`)) {
-      return;
-    }
+  const handleDeleteUser = (userId: string, username: string) => {
+    setUserToDelete({ id: userId, username });
+    onOpen();
+  };
+
+  // ユーザー削除を実行
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -183,8 +211,12 @@ export function UserListPage() {
 
       // 一覧を再取得
       await fetchUsers();
+      onClose();
+      setUserToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザーの削除に失敗しました');
+      onClose();
+      setUserToDelete(null);
     }
   };
 
@@ -221,112 +253,91 @@ export function UserListPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
+      <Navbar>
+        <NavbarBrand>
+          <h1 className="text-2xl font-bold">Todo アプリ</h1>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
             <Link
               href="/todos"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               Todo一覧
             </Link>
+          </NavbarItem>
+          <NavbarItem>
             <Link
               href="/profile"
               className="text-gray-700 hover:text-blue-500 font-medium"
             >
               プロフィール
             </Link>
-            {currentUserRole <= 2 && (
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
               <Link href="/users" className="text-blue-500 font-medium">
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* ページタイトル */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gray-900">ユーザー管理</h2>
-          <Link
-            href="/users/create"
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
+          <Button as={Link} href="/users/create" color="primary">
             新規ユーザー作成
-          </Link>
+          </Button>
         </div>
 
         {/* 検索・フィルター・ソート */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* 検索 */}
-            <div>
-              <label
-                htmlFor="search"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                検索
-              </label>
-              <input
+        <Card className="mb-8">
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* 検索 */}
+              <Input
                 type="text"
-                id="search"
+                label="検索"
+                placeholder="ユーザー名、名前で検索"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="ユーザー名、名前で検索"
               />
-            </div>
 
-            {/* ロールフィルター */}
-            <div>
-              <label
-                htmlFor="roleFilter"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                ロールフィルター
-              </label>
-              <select
-                id="roleFilter"
-                value={roleFilter}
+              {/* ロールフィルター */}
+              <Select
+                label="ロールフィルター"
+                selectedKeys={[roleFilter.toString()]}
                 onChange={(e) => {
                   setRoleFilter(
                     e.target.value === 'all' ? 'all' : Number(e.target.value),
                   );
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">すべて</option>
-                <option value={1}>ADMIN</option>
-                <option value={2}>MANAGER</option>
-                <option value={3}>USER</option>
-                <option value={4}>GUEST</option>
-              </select>
-            </div>
+                <SelectItem key="all">すべて</SelectItem>
+                <SelectItem key="1">ADMIN</SelectItem>
+                <SelectItem key="2">MANAGER</SelectItem>
+                <SelectItem key="3">USER</SelectItem>
+                <SelectItem key="4">GUEST</SelectItem>
+              </Select>
 
-            {/* ソート項目 */}
-            <div>
-              <label
-                htmlFor="sortBy"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                並び順
-              </label>
-              <select
-                id="sortBy"
-                value={sortBy}
+              {/* ソート項目 */}
+              <Select
+                label="並び順"
+                selectedKeys={[sortBy]}
                 onChange={(e) =>
                   setSortBy(
                     e.target.value as
@@ -337,36 +348,26 @@ export function UserListPage() {
                       | 'role',
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="created_at">作成日時</option>
-                <option value="username">ユーザー名</option>
-                <option value="first_name">名前</option>
-                <option value="last_name">姓</option>
-                <option value="role">ロール</option>
-              </select>
-            </div>
+                <SelectItem key="created_at">作成日時</SelectItem>
+                <SelectItem key="username">ユーザー名</SelectItem>
+                <SelectItem key="first_name">名前</SelectItem>
+                <SelectItem key="last_name">姓</SelectItem>
+                <SelectItem key="role">ロール</SelectItem>
+              </Select>
 
-            {/* ソート順 */}
-            <div>
-              <label
-                htmlFor="sortOrder"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                順序
-              </label>
-              <select
-                id="sortOrder"
-                value={sortOrder}
+              {/* ソート順 */}
+              <Select
+                label="順序"
+                selectedKeys={[sortOrder]}
                 onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="asc">昇順</option>
-                <option value="desc">降順</option>
-              </select>
+                <SelectItem key="asc">昇順</SelectItem>
+                <SelectItem key="desc">降順</SelectItem>
+              </Select>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
         {/* エラー表示 */}
         {error && (
@@ -386,104 +387,126 @@ export function UserListPage() {
         {/* ユーザー一覧 */}
         {!isLoading && (
           <>
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                ユーザー一覧
-                {paginationInfo && (
-                  <span className="text-sm font-normal text-gray-600 ml-2">
-                    （全{paginationInfo.totalItems}件）
-                  </span>
-                )}
-              </h3>
+            <Card className="mb-8">
+              <CardHeader>
+                <h3 className="text-xl font-bold">
+                  ユーザー一覧
+                  {paginationInfo && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      （全{paginationInfo.totalItems}件）
+                    </span>
+                  )}
+                </h3>
+              </CardHeader>
+              <CardBody>
+                {users.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">
+                    ユーザーが見つかりません
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {users.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Link
+                              href={`/users/${user.id}`}
+                              className="text-lg font-semibold text-gray-900 hover:text-blue-500"
+                            >
+                              {user.username}
+                            </Link>
+                            <span className={getRoleBadgeClass(user.role)}>
+                              {roleLabels[user.role]}
+                            </span>
+                          </div>
 
-              {users.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  ユーザーが見つかりません
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Link
-                            href={`/users/${user.id}`}
-                            className="text-lg font-semibold text-gray-900 hover:text-blue-500"
-                          >
-                            {user.username}
-                          </Link>
-                          <span className={getRoleBadgeClass(user.role)}>
-                            {roleLabels[user.role]}
-                          </span>
+                          {(user.firstName || user.lastName) && (
+                            <p className="text-sm text-gray-600 mb-2">
+                              {user.lastName} {user.firstName}
+                            </p>
+                          )}
+
+                          <p className="text-xs text-gray-500 mt-2">
+                            作成: {new Date(user.createdAt).toLocaleString('ja-JP')}
+                          </p>
                         </div>
 
-                        {(user.firstName || user.lastName) && (
-                          <p className="text-sm text-gray-600 mb-2">
-                            {user.lastName} {user.firstName}
-                          </p>
-                        )}
-
-                        <p className="text-xs text-gray-500 mt-2">
-                          作成: {new Date(user.createdAt).toLocaleString('ja-JP')}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/users/${user.id}`}
-                          className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                        >
-                          詳細
-                        </Link>
-                        {currentUserRole === 1 && user.id !== currentUserId && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(user.id, user.username)}
-                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/users/${user.id}`}
+                            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                           >
-                            削除
-                          </button>
-                        )}
+                            詳細
+                          </Link>
+                          {currentUserRole === 1 && user.id !== currentUserId && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user.id, user.username)}
+                              className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                            >
+                              削除
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
 
             {/* ページネーション */}
             {paginationInfo && paginationInfo.totalPages > 1 && (
-              <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    前のページ
-                  </button>
-
-                  <span className="text-gray-700">
-                    ページ {page} / {paginationInfo.totalPages}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= paginationInfo.totalPages}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    次のページ
-                  </button>
-                </div>
-              </div>
+              <Card>
+                <CardBody>
+                  <div className="flex items-center justify-between">
+                    <Button
+                      onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+                      isDisabled={page === 1}
+                      color="default"
+                    >
+                      前へ
+                    </Button>
+                    <span className="text-gray-700">
+                      {page} / {paginationInfo.totalPages} ページ
+                    </span>
+                    <Button
+                      onPress={() =>
+                        setPage((prev) => Math.min(paginationInfo.totalPages, prev + 1))
+                      }
+                      isDisabled={page === paginationInfo.totalPages}
+                      color="default"
+                    >
+                      次へ
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
             )}
           </>
         )}
+
+        {/* 削除確認モーダル */}
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader>ユーザー削除の確認</ModalHeader>
+            <ModalBody>
+              <p>ユーザー「{userToDelete?.username}」を削除してもよろしいですか?</p>
+              <p className="text-sm text-gray-500 mt-2">この操作は取り消せません。</p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="flat" onPress={onClose}>
+                キャンセル
+              </Button>
+              <Button color="danger" onPress={confirmDeleteUser}>
+                削除
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </main>
     </div>
   );

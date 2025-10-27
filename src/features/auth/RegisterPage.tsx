@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, Card, CardBody, CardHeader, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
@@ -71,111 +72,81 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
-      <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">新規登録</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              ユーザー名 <span className="text-red-500">*</span>
-            </label>
-            <input
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-center pb-0 pt-8">
+          <h1 className="text-3xl font-bold text-center text-gray-900">新規登録</h1>
+        </CardHeader>
+        <CardBody className="px-8 py-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Input
               type="text"
-              id="username"
+              label="ユーザー名"
+              placeholder="ユーザー名を入力（1〜50文字）"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="ユーザー名を入力（1〜50文字）"
-              disabled={isLoading}
+              isDisabled={isLoading}
+              isRequired
             />
-          </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              パスワード <span className="text-red-500">*</span>
-            </label>
-            <input
+            <Input
               type="password"
-              id="password"
+              label="パスワード"
+              placeholder="パスワードを入力（6文字以上）"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="パスワードを入力（6文字以上）"
-              disabled={isLoading}
+              isDisabled={isLoading}
+              isRequired
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="lastName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                姓
-              </label>
-              <input
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
                 type="text"
-                id="lastName"
+                label="姓"
+                placeholder="姓（任意）"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="姓（任意）"
-                disabled={isLoading}
+                isDisabled={isLoading}
               />
-            </div>
 
-            <div>
-              <label
-                htmlFor="firstName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                名
-              </label>
-              <input
+              <Input
                 type="text"
-                id="firstName"
+                label="名"
+                placeholder="名（任意）"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="名（任意）"
-                disabled={isLoading}
+                isDisabled={isLoading}
               />
             </div>
-          </div>
 
-          {error && (
-            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+                {error}
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? '登録中...' : '登録'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            既にアカウントをお持ちの方は{' '}
-            <Link
-              href="/login"
-              className="text-blue-500 hover:text-blue-600 font-medium"
+            <Button
+              type="submit"
+              color="primary"
+              isLoading={isLoading}
+              className="w-full"
             >
-              ログイン
-            </Link>
-          </p>
-        </div>
-      </div>
+              登録
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              既にアカウントをお持ちの方は{' '}
+              <Link
+                href="/login"
+                className="text-blue-500 hover:text-blue-600 font-medium"
+              >
+                ログイン
+              </Link>
+            </p>
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }

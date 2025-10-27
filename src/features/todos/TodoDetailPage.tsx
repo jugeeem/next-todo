@@ -1,5 +1,23 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Textarea,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
@@ -33,6 +51,7 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [currentUserRole, setCurrentUserRole] = useState<number>(4); // デフォルトはUSER
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // 現在のユーザー情報を取得
   const fetchCurrentUser = useCallback(async () => {
@@ -142,10 +161,10 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
 
   // Todo削除
   const handleDeleteTodo = async () => {
-    if (!confirm('このTodoを削除してもよろしいですか?')) {
-      return;
-    }
+    onOpen();
+  };
 
+  const confirmDeleteTodo = async () => {
     try {
       const response = await fetch(`/api/todos/${todoId}`, {
         method: 'DELETE',
@@ -159,6 +178,7 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
       router.push('/todos');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
+      onClose();
     }
   };
 
@@ -199,40 +219,37 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/todos"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+      <Navbar>
+        <NavbarBrand>
+          <p className="font-bold text-inherit">Todo アプリ</p>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
+            <Link href="/todos" className="text-foreground">
               Todo一覧
             </Link>
-            <Link
-              href="/profile"
-              className="text-gray-700 hover:text-blue-500 font-medium"
-            >
+          </NavbarItem>
+          <NavbarItem>
+            <Link href="/profile" className="text-foreground">
               プロフィール
             </Link>
-            {currentUserRole <= 2 && (
-              <Link
-                href="/users"
-                className="text-gray-700 hover:text-blue-500 font-medium"
-              >
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
+              <Link href="/users" className="text-foreground">
                 ユーザー管理
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button color="default" variant="flat" onPress={handleLogout}>
               ログアウト
-            </button>
-          </nav>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* エラー表示 */}
@@ -243,155 +260,147 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
         )}
 
         {!todo && !isLoading && (
-          <div className="bg-white shadow-md rounded-lg p-8 text-center">
-            <p className="text-gray-600 mb-4">Todoが見つかりません</p>
-            <Link
-              href="/todos"
-              className="inline-block px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-            >
-              一覧に戻る
-            </Link>
-          </div>
+          <Card className="text-center">
+            <CardBody className="py-8">
+              <p className="text-gray-600 mb-4">Todoが見つかりません</p>
+              <Button as={Link} href="/todos" color="primary">
+                一覧に戻る
+              </Button>
+            </CardBody>
+          </Card>
         )}
 
         {todo && (
-          <div className="bg-white shadow-md rounded-lg p-8">
-            <div className="flex items-center justify-between mb-6">
+          <Card>
+            <CardHeader className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Todo詳細</h2>
               <div className="flex items-center gap-2">
                 {!isEditing && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                    >
+                    <Button color="primary" onPress={() => setIsEditing(true)}>
                       編集
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeleteTodo}
-                      className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                    >
+                    </Button>
+                    <Button color="danger" onPress={handleDeleteTodo}>
                       削除
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
-            </div>
-
-            {isEditing ? (
-              <form onSubmit={handleUpdateTodo} className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="title"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    タイトル <span className="text-red-500">*</span>
-                  </label>
-                  <input
+            </CardHeader>
+            <CardBody>
+              {isEditing ? (
+                <form onSubmit={handleUpdateTodo} className="space-y-6">
+                  <Input
                     type="text"
-                    id="title"
+                    label="タイトル"
+                    placeholder="Todoのタイトル（32文字以内）"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Todoのタイトル（32文字以内）"
-                    disabled={isSaving}
+                    isDisabled={isSaving}
+                    isRequired
                   />
-                </div>
 
-                <div>
-                  <label
-                    htmlFor="descriptions"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    説明
-                  </label>
-                  <textarea
-                    id="descriptions"
+                  <Textarea
+                    label="説明"
+                    placeholder="Todoの説明（128文字以内）"
                     value={descriptions}
                     onChange={(e) => setDescriptions(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Todoの説明（128文字以内）"
-                    rows={5}
-                    disabled={isSaving}
+                    minRows={5}
+                    isDisabled={isSaving}
                   />
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isSaving ? '保存中...' : '保存'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelEdit}
-                    disabled={isSaving}
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">タイトル</h3>
-                  <p className="text-lg text-gray-900">{todo.title}</p>
-                </div>
-
-                {todo.descriptions && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">説明</h3>
-                    <p className="text-gray-900 whitespace-pre-wrap">
-                      {todo.descriptions}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <Button type="submit" color="primary" isLoading={isSaving}>
+                      保存
+                    </Button>
+                    <Button
+                      color="default"
+                      variant="flat"
+                      onPress={handleCancelEdit}
+                      isDisabled={isSaving}
+                    >
+                      キャンセル
+                    </Button>
                   </div>
-                )}
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">ステータス</h3>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      todo.completed
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}
-                  >
-                    {todo.completed ? '完了' : '未完了'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                </form>
+              ) : (
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">作成日時</h3>
-                    <p className="text-gray-900">
-                      {new Date(todo.createdAt).toLocaleString('ja-JP')}
-                    </p>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">タイトル</h3>
+                    <p className="text-lg text-gray-900">{todo.title}</p>
                   </div>
+
+                  {todo.descriptions && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">説明</h3>
+                      <p className="text-gray-900 whitespace-pre-wrap">
+                        {todo.descriptions}
+                      </p>
+                    </div>
+                  )}
+
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">更新日時</h3>
-                    <p className="text-gray-900">
-                      {new Date(todo.updatedAt).toLocaleString('ja-JP')}
-                    </p>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      ステータス
+                    </h3>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                        todo.completed
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {todo.completed ? '完了' : '未完了'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        作成日時
+                      </h3>
+                      <p className="text-gray-900">
+                        {new Date(todo.createdAt).toLocaleString('ja-JP')}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">
+                        更新日時
+                      </h3>
+                      <p className="text-gray-900">
+                        {new Date(todo.updatedAt).toLocaleString('ja-JP')}
+                      </p>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <Button as={Link} href="/todos" color="default" variant="flat">
+                  ← 一覧に戻る
+                </Button>
               </div>
-            )}
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <Link
-                href="/todos"
-                className="inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                ← 一覧に戻る
-              </Link>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         )}
+
+        {/* 削除確認モーダル */}
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader>確認</ModalHeader>
+            <ModalBody>
+              <p>このTodoを削除してもよろしいですか?</p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                キャンセル
+              </Button>
+              <Button color="danger" onPress={confirmDeleteTodo}>
+                削除
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </main>
     </div>
   );
