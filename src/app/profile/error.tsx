@@ -1,5 +1,8 @@
 'use client';
 
+import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react';
+import { useEffect } from 'react';
+
 export default function ProfileError({
   error,
   reset,
@@ -7,32 +10,46 @@ export default function ProfileError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // エラーログをコンソールに出力（本番環境では外部ログサービスに送信）
+    console.error('Profile page error:', error);
+  }, [error]);
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">エラーが発生しました</h2>
-        <p className="text-red-700 mb-4">
-          {error.message || 'プロフィール情報の読み込み中にエラーが発生しました。'}
-        </p>
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={reset}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            再試行
-          </button>
-          <button
-            type="button"
-            onClick={() => {
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-start gap-1">
+          <h2 className="text-2xl font-bold text-danger">エラーが発生しました</h2>
+          {error.digest && (
+            <p className="text-small text-default-500">エラーID: {error.digest}</p>
+          )}
+        </CardHeader>
+        <CardBody>
+          <p className="text-default-700 mb-2">
+            プロフィール情報の読み込み中にエラーが発生しました。
+          </p>
+          <div className="bg-danger-50 border-l-4 border-danger p-3 rounded">
+            <p className="text-small text-danger-800">
+              {error.message || 'プロフィール情報の読み込み中にエラーが発生しました。'}
+            </p>
+          </div>
+        </CardBody>
+        <CardFooter className="gap-2">
+          <Button
+            color="default"
+            variant="flat"
+            onPress={() => {
               window.location.href = '/todos';
             }}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+            className="flex-1"
           >
             Todo一覧に戻る
-          </button>
-        </div>
-      </div>
+          </Button>
+          <Button color="primary" onPress={reset} className="flex-1">
+            再試行
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react';
+import Link from 'next/link';
+
 export default function TodoDetailError({
   error,
   reset,
@@ -8,31 +11,39 @@ export default function TodoDetailError({
   reset: () => void;
 }) {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">エラーが発生しました</h2>
-        <p className="text-red-700 mb-4">
-          {error.message || 'Todo詳細の読み込み中にエラーが発生しました。'}
-        </p>
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={reset}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="flex flex-col items-start gap-1">
+          <h2 className="text-2xl font-bold text-danger">Todo詳細の読み込みエラー</h2>
+          {error.digest && (
+            <p className="text-small text-default-500">エラーID: {error.digest}</p>
+          )}
+        </CardHeader>
+        <CardBody>
+          <p className="text-default-700 mb-4">
+            指定されたTodoの詳細を取得できませんでした。
+          </p>
+          <div className="bg-danger-50 border-l-4 border-danger p-3 rounded">
+            <p className="text-small text-danger-800">
+              {error.message || 'Todo詳細の読み込み中にエラーが発生しました。'}
+            </p>
+          </div>
+        </CardBody>
+        <CardFooter className="flex flex-col gap-2">
+          <Button color="primary" onPress={reset} className="w-full">
             再試行
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = '/todos';
-            }}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+          </Button>
+          <Button
+            as={Link}
+            href="/todos"
+            color="default"
+            variant="flat"
+            className="w-full"
           >
             Todo一覧に戻る
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
