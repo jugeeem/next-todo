@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardBody, CardHeader, Skeleton } from '@heroui/react';
 
 export default function Loading() {
