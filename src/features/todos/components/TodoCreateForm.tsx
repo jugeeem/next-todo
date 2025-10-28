@@ -2,15 +2,16 @@
 
 import { Button, Card, CardBody, CardHeader, Input, Textarea } from '@heroui/react';
 import { type FormEvent, useState } from 'react';
+import { createTodo } from '@/lib/api';
 
 interface TodoCreateFormProps {
-  onCreateTodo: (title: string, descriptions?: string) => Promise<void>;
+  onSuccess?: () => void;
 }
 
 /**
  * Todo作成フォームコンポーネント
  */
-export function TodoCreateForm({ onCreateTodo }: TodoCreateFormProps) {
+export function TodoCreateForm({ onSuccess }: TodoCreateFormProps) {
   const [newTodoTitle, setNewTodoTitle] = useState<string>('');
   const [newTodoDescription, setNewTodoDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -38,11 +39,24 @@ export function TodoCreateForm({ onCreateTodo }: TodoCreateFormProps) {
     setIsCreating(true);
 
     try {
-      await onCreateTodo(newTodoTitle, newTodoDescription || undefined);
+      // Server Action を使用
+      const result = await createTodo({
+        title: newTodoTitle,
+        descriptions: newTodoDescription || undefined,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの作成に失敗しました');
+      }
 
       // フォームをリセット
       setNewTodoTitle('');
       setNewTodoDescription('');
+
+      // 成功コールバック
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました');
     } finally {

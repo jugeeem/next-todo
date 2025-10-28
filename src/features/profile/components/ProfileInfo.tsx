@@ -2,11 +2,12 @@
 
 import { Button, Card, CardBody, CardHeader, Input } from '@heroui/react';
 import { type FormEvent, useState } from 'react';
+import { updateProfile } from '@/lib/api';
 import type { User } from './types';
 
 interface ProfileInfoProps {
   user: User;
-  onUpdate: (firstName?: string, lastName?: string) => Promise<void>;
+  onUpdate?: () => void;
 }
 
 /**
@@ -25,8 +26,22 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
     setIsSaving(true);
 
     try {
-      await onUpdate(firstName || undefined, lastName || undefined);
+      // Server Action を使用
+      const result = await updateProfile({
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'プロフィールの更新に失敗しました');
+      }
+
       setIsEditing(false);
+
+      // 成功コールバック
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'プロフィールの更新に失敗しました');
     } finally {

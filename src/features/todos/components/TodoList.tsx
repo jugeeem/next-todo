@@ -7,8 +7,7 @@ import type { PaginationInfo, Todo } from './types';
 interface TodoListProps {
   todos: Todo[];
   paginationInfo: PaginationInfo | null;
-  onDelete: (id: string) => void;
-  onToggleComplete: (todo: Todo) => void;
+  onUpdate?: () => void;
   isLoading: boolean;
 }
 
@@ -18,8 +17,7 @@ interface TodoListProps {
 export function TodoList({
   todos,
   paginationInfo,
-  onDelete,
-  onToggleComplete,
+  onUpdate,
   isLoading,
 }: TodoListProps) {
   if (isLoading) {
@@ -49,12 +47,7 @@ export function TodoList({
         ) : (
           <div className="space-y-2">
             {todos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onDelete={onDelete}
-                onToggleComplete={onToggleComplete}
-              />
+              <TodoItem key={todo.id} todo={todo} onUpdate={onUpdate} />
             ))}
           </div>
         )}

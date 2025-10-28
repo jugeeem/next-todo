@@ -2,19 +2,16 @@
 
 import { Button, Card, CardBody, CardHeader, Input } from '@heroui/react';
 import { type FormEvent, useState } from 'react';
+import { changePassword } from '@/lib/api';
 
 interface PasswordChangeFormProps {
-  onChangePassword: (
-    currentPassword: string,
-    newPassword: string,
-    confirmPassword: string,
-  ) => Promise<void>;
+  onSuccess?: () => void;
 }
 
 /**
  * パスワード変更フォームコンポーネント
  */
-export function PasswordChangeForm({ onChangePassword }: PasswordChangeFormProps) {
+export function PasswordChangeForm({ onSuccess }: PasswordChangeFormProps) {
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -54,13 +51,27 @@ export function PasswordChangeForm({ onChangePassword }: PasswordChangeFormProps
     setIsSaving(true);
 
     try {
-      await onChangePassword(currentPassword, newPassword, confirmPassword);
+      // Server Action を使用
+      const result = await changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'パスワードの変更に失敗しました');
+      }
 
       // 成功したらフォームをリセット
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setIsChanging(false);
+
+      // 成功コールバック
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'パスワードの変更に失敗しました');
     } finally {

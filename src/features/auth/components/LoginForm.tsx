@@ -4,6 +4,7 @@ import { Button, Card, CardBody, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
+import { login } from '@/lib/api';
 
 /**
  * ログインフォームコンポーネント
@@ -33,21 +34,16 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      // Server Action を使用
+      const result = await login({ username, password });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'ログインに失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'ログインに失敗しました');
       }
 
       // ログイン成功後、Todoページにリダイレクト
       router.push('/todos');
+      router.refresh(); // サーバーコンポーネントを再レンダリング
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
     } finally {

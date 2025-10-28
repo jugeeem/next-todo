@@ -2,18 +2,19 @@
 
 import { Button, Card, CardBody, CardHeader, Input, Textarea } from '@heroui/react';
 import { type FormEvent, useState } from 'react';
+import { updateTodo } from '@/lib/api';
 import type { Todo } from './types';
 
 interface TodoEditFormProps {
   todo: Todo;
-  onSave: (updatedTodo: Partial<Todo>) => Promise<void>;
+  onSuccess?: () => void;
   onCancel: () => void;
 }
 
 /**
  * Todo編集フォームコンポーネント
  */
-export function TodoEditForm({ todo, onSave, onCancel }: TodoEditFormProps) {
+export function TodoEditForm({ todo, onSuccess, onCancel }: TodoEditFormProps) {
   const [title, setTitle] = useState<string>(todo.title);
   const [descriptions, setDescriptions] = useState<string>(todo.descriptions || '');
   const [error, setError] = useState<string>('');
@@ -41,10 +42,21 @@ export function TodoEditForm({ todo, onSave, onCancel }: TodoEditFormProps) {
     setIsSaving(true);
 
     try {
-      await onSave({
+      // Server Action を使用
+      const result = await updateTodo(todo.id, {
         title,
         descriptions: descriptions || undefined,
+        completed: todo.completed,
       });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの更新に失敗しました');
+      }
+
+      // 成功コールバック
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの更新に失敗しました');
     } finally {

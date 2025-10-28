@@ -1862,11 +1862,440 @@ Step 4 完了後、以下を確認してください。
 
 ---
 
-**Document Version**: 1.2.0  
-**Last Updated**: 2025-10-27  
+## 9. 実装状況の分析と基本設計
+
+### 9.1 現在の達成状況
+
+#### ✅ 実装済み（95%）
+
+| カテゴリ | 達成度 | 詳細 |
+|---------|--------|------|
+| 認証 | 100% | LoginForm, RegisterForm |
+| Todo 管理 | 100% | 全コンポーネント実装済み |
+| プロフィール | 100% | ProfileInfo（一体型）含む |
+| ユーザー管理 | 100% | 全コンポーネント実装済み |
+| 型定義 | 100% | types.ts 完備 |
+| 共通コンポーネント | 0% | Header 未実装 |
+
+#### 実装済みコンポーネント一覧
+
+**認証機能（auth/）**:
+- ✅ `LoginForm.tsx` - ログインフォーム
+- ✅ `RegisterForm.tsx` - 登録フォーム
+- ✅ `LoginPage.tsx` - ログインページ（親コンポーネント）
+- ✅ `RegisterPage.tsx` - 登録ページ（親コンポーネント）
+
+**Todo 管理機能（todos/）**:
+- ✅ `types.ts` - Todo 関連の型定義
+- ✅ `TodoCreateForm.tsx` - Todo 作成フォーム
+- ✅ `TodoDisplay.tsx` - Todo 詳細表示
+- ✅ `TodoEditForm.tsx` - Todo 編集フォーム
+- ✅ `TodoFilter.tsx` - フィルタリング UI
+- ✅ `TodoItem.tsx` - 個別の Todo アイテム
+- ✅ `TodoList.tsx` - Todo リスト全体
+- ✅ `TodoPagination.tsx` - ページネーション
+- ✅ `TodoSort.tsx` - ソート UI
+
+**プロフィール機能（profile/）**:
+- ✅ `types.ts` - プロフィール関連の型定義
+- ✅ `ProfileInfo.tsx` - プロフィール情報表示・編集（一体型）
+- ✅ `PasswordChangeForm.tsx` - パスワード変更フォーム
+- ✅ `TodoStatsDisplay.tsx` - Todo 統計表示
+- ✅ `UserTodoList.tsx` - ユーザーの Todo 一覧
+
+**ユーザー管理機能（users/）**:
+- ✅ `types.ts` - ユーザー管理関連の型定義とユーティリティ
+- ✅ `UserCreateForm.tsx` - ユーザー作成フォーム
+- ✅ `UserInfoDisplay.tsx` - ユーザー情報表示
+- ✅ `UserInfoEditForm.tsx` - ユーザー情報編集フォーム
+- ✅ `UserTodoList.tsx` - ユーザーの Todo 一覧
+- ✅ `UserSearchFilter.tsx` - 検索・フィルター
+- ✅ `UserSortSelect.tsx` - ソート選択
+- ✅ `UserListItem.tsx` - ユーザーリスト項目
+- ✅ `UserList.tsx` - ユーザーリスト全体
+- ✅ `UserPagination.tsx` - ページネーション
+
+### 9.2 実装の特徴
+
+#### Server Actions の統一使用
+
+すべてのフォームコンポーネントで Server Actions を直接使用しています：
+
+```typescript
+// 例: TodoCreateForm.tsx
+import { createTodo } from '@/lib/api';
+
+export function TodoCreateForm({ onSuccess }: TodoCreateFormProps) {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    // Server Action を直接呼び出し
+    const result = await createTodo({
+      title: newTodoTitle,
+      descriptions: newTodoDescription || undefined,
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Todoの作成に失敗しました');
+    }
+
+    // 成功コールバック
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+}
+```
+
+**メリット**:
+- Props の数が減り、シンプルになった
+- エラーハンドリングがコンポーネント内で完結
+- 親コンポーネントは成功時のコールバックのみ提供
+
+#### モーダルによる削除確認
+
+HeroUI の Modal コンポーネントを使用して、削除確認を実装：
+
+```typescript
+// 例: TodoItem.tsx
+import { useDisclosure } from '@heroui/react';
+
+export function TodoItem({ todo, onUpdate }: TodoItemProps) {
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure();
+
+  return (
+    <>
+      <Button onPress={onDeleteOpen}>削除</Button>
+      
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+        <ModalContent>
+          <ModalHeader>確認</ModalHeader>
+          <ModalBody>
+            <p>このTodoを削除してもよろしいですか?</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button onPress={onDeleteClose}>キャンセル</Button>
+            <Button color="danger" onPress={handleDelete}>削除</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+}
+```
+
+#### 一体型コンポーネントの採用
+
+ProfileInfo コンポーネントは、表示・編集を内部で切り替える一体型として実装：
+
+```typescript
+// ProfileInfo.tsx
+export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [firstName, setFirstName] = useState<string>(user.firstName || '');
+  const [lastName, setLastName] = useState<string>(user.lastName || '');
+
+  return (
+    <Card>
+      {isEditing ? (
+        <form onSubmit={handleSubmit}>
+          {/* 編集フォーム */}
+        </form>
+      ) : (
+        <div>
+          {/* 表示モード */}
+        </div>
+      )}
+    </Card>
+  );
+}
+```
+
+**適用理由**:
+- 編集項目が少ない（姓・名の2項目）
+- キャンセル時に元の状態に戻す処理がシンプル
+- 親コンポーネントの状態管理が最小限
+
+### 9.3 未実装項目と実装計画
+
+#### ❌ Header コンポーネント（優先度: 🔴 高）
+
+**現状の問題点**:
+- 全ページで Navbar のコードが重複
+- ヘッダーの変更時に複数ファイルの修正が必要
+- メンテナンス性の低下
+
+**影響を受けているファイル**:
+- `TodoListPage.tsx`
+- `TodoDetailPage.tsx`
+- `ProfilePage.tsx`
+- `CreateUserPage.tsx`
+- `UserDetailPage.tsx`
+- `UserListPage.tsx`
+
+**実装方針**:
+
+1. **Header コンポーネントの作成**
+
+```typescript
+// src/components/Header.tsx
+'use client';
+
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button } from '@heroui/react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<number>(4);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // 認証状態をチェック
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/users/me');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsAuthenticated(true);
+          setUserRole(data.data.role);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        setIsAuthenticated(false);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    // 認証不要なページではチェックをスキップ
+    if (pathname === '/login' || pathname === '/register') {
+      setIsAuthenticated(false);
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    checkAuth();
+  }, [pathname]);
+
+  // ログアウト処理
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      setIsAuthenticated(false);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  // 認証チェック中は何も表示しない
+  if (isCheckingAuth) {
+    return null;
+  }
+
+  // 未認証時（ログイン・登録ページ）はヘッダーを表示しない
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <Navbar>
+      <NavbarBrand>
+        <Link href="/todos" className="text-2xl font-bold">
+          Todo アプリ
+        </Link>
+      </NavbarBrand>
+
+      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+        <NavbarItem>
+          <Link
+            href="/todos"
+            className={
+              pathname.startsWith('/todos')
+                ? 'text-blue-500 font-medium'
+                : 'text-gray-700 hover:text-blue-500 font-medium'
+            }
+          >
+            Todo一覧
+          </Link>
+        </NavbarItem>
+
+        <NavbarItem>
+          <Link
+            href="/profile"
+            className={
+              pathname === '/profile'
+                ? 'text-blue-500 font-medium'
+                : 'text-gray-700 hover:text-blue-500 font-medium'
+            }
+          >
+            プロフィール
+          </Link>
+        </NavbarItem>
+
+        {/* ADMIN・MANAGER のみアクセス可能 */}
+        {userRole <= 2 && (
+          <NavbarItem>
+            <Link
+              href="/users"
+              className={
+                pathname.startsWith('/users')
+                  ? 'text-blue-500 font-medium'
+                  : 'text-gray-700 hover:text-blue-500 font-medium'
+              }
+            >
+              ユーザー管理
+            </Link>
+          </NavbarItem>
+        )}
+      </NavbarContent>
+
+      <NavbarContent justify="end">
+        <NavbarItem>
+          <Button color="default" variant="flat" onPress={handleLogout}>
+            ログアウト
+          </Button>
+        </NavbarItem>
+      </NavbarContent>
+    </Navbar>
+  );
+}
+```
+
+2. **layout.tsx への統合**
+
+```typescript
+// src/app/layout.tsx
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import { Providers } from './providers';
+import { Header } from '@/components/Header'; // ✅ 追加
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ja">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Providers>
+          <Header /> {/* ✅ 追加 */}
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+3. **各ページコンポーネントのリファクタリング**
+
+以下のコードを各ページから削除：
+
+```typescript
+// ❌ 削除対象
+<header className="bg-white shadow-sm">
+  <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <h1 className="text-2xl font-bold text-gray-900">Todo アプリ</h1>
+    <nav className="flex items-center gap-4">
+      {/* ... */}
+    </nav>
+  </div>
+</header>
+```
+
+### 9.4 実装チェックリスト
+
+#### Phase 1: Header コンポーネントの作成
+
+- [ ] `src/components/Header.tsx` を作成
+- [ ] 認証状態の管理機能を実装
+- [ ] ロールベースのメニュー表示を実装
+- [ ] パスに応じたアクティブ状態を実装
+- [ ] ログアウト処理を実装
+
+#### Phase 2: layout.tsx への統合
+
+- [ ] `src/app/layout.tsx` に `<Header />` を追加
+- [ ] 動作確認
+
+#### Phase 3: 各ページコンポーネントのリファクタリング
+
+- [ ] `TodoListPage.tsx` からヘッダーを削除
+- [ ] `TodoDetailPage.tsx` からヘッダーを削除
+- [ ] `ProfilePage.tsx` からヘッダーを削除
+- [ ] `CreateUserPage.tsx` からヘッダーを削除
+- [ ] `UserDetailPage.tsx` からヘッダーを削除
+- [ ] `UserListPage.tsx` からヘッダーを削除
+
+#### Phase 4: 動作確認
+
+- [ ] 全ページでヘッダーが正しく表示される
+- [ ] 認証状態に応じてヘッダーが表示/非表示される
+- [ ] ロールに応じたメニューが表示される
+- [ ] アクティブ状態が正しく反映される
+- [ ] ログアウトが正常に動作する
+
+### 9.5 品質保証計画
+
+#### コンポーネント設計
+- [ ] すべてのコンポーネントが単一責任を持つ
+- [ ] Props の型定義が明確
+- [ ] イベントハンドラーの命名規則が統一されている
+- [ ] 再利用可能なコンポーネントが適切に設計されている
+
+#### コード品質
+- [ ] Biome のリント・フォーマットに準拠
+- [ ] TypeScript の型チェックに合格
+- [ ] エラーハンドリングが適切
+- [ ] ローディング状態の管理が適切
+
+#### 機能確認
+- [ ] すべての機能が正常に動作する
+- [ ] 親子間のデータフローが適切
+- [ ] Server Actions が正しく使用されている
+
+#### Header コンポーネント
+- [ ] 認証済みユーザーにヘッダーが表示される
+- [ ] 未認証ユーザーにヘッダーが表示されない
+- [ ] ログイン・登録ページでヘッダーが表示されない
+- [ ] ロールに応じたメニューが表示される
+- [ ] アクティブページのリンクが正しくハイライトされる
+- [ ] ログアウトボタンが正常に動作する
+
+#### ページコンポーネント
+- [ ] ヘッダー削除後も機能が正常に動作する
+- [ ] レイアウトが崩れていない
+- [ ] すべてのナビゲーションが機能する
+
+#### パフォーマンス
+- [ ] 初回ロード時間が許容範囲内
+- [ ] ページ遷移がスムーズ
+- [ ] 不要な再レンダリングが発生していない
+
+---
+
+**Document Version**: 1.3.0  
+**Last Updated**: 2025-10-28  
 **Changes**: 
 - 型定義ファイル（types.ts）に関するセクションを追加
 - ProfileInfo コンポーネントの一体型実装パターンを追加
 - TodoStatsDisplay の命名を正確に反映
 - 表示・編集の一体型コンポーネントに関する設計原則を追加
 - 実装チェックリストを更新
+- **実装状況の分析と基本設計セクションを追加**（9.1〜9.5）
+- 達成状況の評価と未実装項目の特定
+- Header コンポーネント実装計画の詳細化
+- 品質保証計画の追加
