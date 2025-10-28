@@ -1,13 +1,17 @@
+'use server';
+
 /**
- * サーバーコンポーネント用のデータフェッチ関数
+ * サーバーコンポーネント・Server Actions用のデータフェッチ関数
  *
- * このファイルには、サーバーコンポーネントで使用するデータフェッチ関数を定義します。
+ * このファイルには、サーバーコンポーネントおよびServer Actionsで使用する
+ * データフェッチ関数を定義します。
  * サーバーコンポーネントからAPIルートにHTTPリクエストを送信し、
  * クライアントサイドと同じfetch()パターンで実装します。
  * これにより、初学者がAPIとの疎通方法を学ぶことができます。
  */
 
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -192,7 +196,7 @@ export async function fetchUsers(params?: {
 }
 
 /**
- * ユーザー詳細取得（ADMIN・MANAGER専用）
+ * ユーザー詳細取得(ADMIN・MANAGER専用)
  */
 export async function fetchUserById(id: string) {
   const response = await fetchWithAuth(`${API_URL}/api/users/${id}`);
@@ -212,4 +216,705 @@ export async function fetchUserById(id: string) {
 
   const result = await response.json();
   return result.data;
+}
+
+// ========================================
+// Server Actions (クライアントコンポーネントから呼び出し可能)
+// ========================================
+
+/**
+ * ユーザー情報取得 (Server Action)
+ */
+export async function getUserInfo() {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/me`);
+
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'ユーザー情報の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo統計取得 (Server Action)
+ */
+export async function getTodoStats() {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/me/todos/stats`);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todo統計の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    console.error('Todo統計の取得エラー:', err);
+    return {
+      success: false,
+      error: 'Todo統計の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザーのTodo一覧取得 (Server Action)
+ */
+export async function getUserTodos() {
+  try {
+    const response = await fetchWithAuth(
+      `${API_URL}/api/users/me/todos?page=1&perPage=10`,
+    );
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todo一覧の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data || [],
+    };
+  } catch (err) {
+    console.error('Todo一覧の取得エラー:', err);
+    return {
+      success: false,
+      error: 'Todo一覧の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * プロフィール更新 (Server Action)
+ */
+export async function updateProfile(formData: {
+  firstName?: string;
+  lastName?: string;
+}) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'プロフィールの更新に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'プロフィールの更新に失敗しました',
+    };
+  }
+}
+
+/**
+ * パスワード変更 (Server Action)
+ */
+export async function changePassword(formData: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/me/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'パスワードの変更に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'パスワードの変更に失敗しました',
+    };
+  }
+}
+
+/**
+ * ログアウト (Server Action)
+ */
+export async function logout() {
+  try {
+    await fetchWithAuth(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+    });
+
+    redirect('/login');
+  } catch (err) {
+    console.error('Logout error:', err);
+    redirect('/login');
+  }
+}
+
+/**
+ * ログイン (Server Action)
+ */
+export async function login(formData: { username: string; password: string }) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+      }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'ログインに失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ログインに失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー登録 (Server Action)
+ */
+export async function register(formData: {
+  username: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: number;
+}) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+        role: formData.role || 4, // デフォルトはユーザーロール
+      }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザー登録に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー登録に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo一覧取得 (Server Action)
+ */
+export async function getTodoList(params?: {
+  page?: number;
+  perPage?: number;
+  completedFilter?: 'all' | 'completed' | 'incomplete';
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}) {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
+    if (params?.completedFilter)
+      searchParams.set('completedFilter', params.completedFilter);
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+    if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+    const response = await fetchWithAuth(
+      `${API_URL}/api/todos?${searchParams.toString()}`,
+    );
+
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todoの取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo詳細取得 (Server Action)
+ */
+export async function getTodoDetail(id: string) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`);
+
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    if (response.status === 404) {
+      return {
+        success: false,
+        error: 'Todoが見つかりません',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todoの取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo作成 (Server Action)
+ */
+export async function createTodo(formData: { title: string; descriptions?: string }) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: formData.title,
+        descriptions: formData.descriptions || undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'Todoの作成に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの作成に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo更新 (Server Action)
+ */
+export async function updateTodo(
+  id: string,
+  formData: {
+    title: string;
+    descriptions?: string;
+    completed: boolean;
+  },
+) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: formData.title,
+        descriptions: formData.descriptions || undefined,
+        completed: formData.completed,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'Todoの更新に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの更新に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo削除 (Server Action)
+ */
+export async function deleteTodo(id: string) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todoの削除に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの削除に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー一覧取得 (Server Action)
+ */
+export async function getUserList(params?: {
+  page?: number;
+  perPage?: number;
+  role?: number;
+  sortBy?: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role';
+  sortOrder?: 'asc' | 'desc';
+  username?: string;
+}) {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
+    if (params?.role) searchParams.set('role', params.role.toString());
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+    if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+    if (params?.username) searchParams.set('username', params.username);
+
+    const response = await fetchWithAuth(
+      `${API_URL}/api/users?${searchParams.toString()}`,
+    );
+
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'ユーザー一覧の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー一覧の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー詳細取得 (Server Action)
+ */
+export async function getUserDetail(id: string) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/${id}`);
+
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    if (response.status === 404) {
+      return {
+        success: false,
+        error: 'ユーザーが見つかりません',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'ユーザー情報の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザーのTodo一覧取得 (Server Action)
+ */
+export async function getUserTodoList(
+  userId: string,
+  params?: { page?: number; perPage?: number },
+) {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
+
+    const response = await fetchWithAuth(
+      `${API_URL}/api/users/${userId}/todos?${searchParams.toString()}`,
+    );
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todo一覧の取得に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todo一覧の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー作成 (Server Action)
+ */
+export async function createUser(formData: {
+  username: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role: number;
+}) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+        role: formData.role,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザーの作成に失敗しました',
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザーの作成に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー更新 (Server Action)
+ */
+export async function updateUser(
+  id: string,
+  formData: {
+    firstName?: string;
+    lastName?: string;
+    role?: number;
+  },
+) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
+        role: formData.role,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザー情報の更新に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー情報の更新に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー削除 (Server Action)
+ */
+export async function deleteUser(id: string) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザーの削除に失敗しました',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザーの削除に失敗しました',
+    };
+  }
 }
