@@ -3,10 +3,10 @@
 import { Select, SelectItem } from '@heroui/react';
 
 interface Props {
-  sortBy: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role';
+  sortBy: 'createdAt' | 'username' | 'firstName' | 'lastName' | 'role';
   sortOrder: 'asc' | 'desc';
   onSortByChange: (
-    sortBy: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role',
+    sortBy: 'createdAt' | 'username' | 'firstName' | 'lastName' | 'role',
   ) => void;
   onSortOrderChange: (sortOrder: 'asc' | 'desc') => void;
 }
@@ -29,18 +29,18 @@ export function UserSortSelect({
         onChange={(e) =>
           onSortByChange(
             e.target.value as
-              | 'created_at'
+              | 'createdAt'
               | 'username'
-              | 'first_name'
-              | 'last_name'
+              | 'firstName'
+              | 'lastName'
               | 'role',
           )
         }
       >
-        <SelectItem key="created_at">作成日時</SelectItem>
+        <SelectItem key="createdAt">作成日時</SelectItem>
         <SelectItem key="username">ユーザー名</SelectItem>
-        <SelectItem key="first_name">名前</SelectItem>
-        <SelectItem key="last_name">姓</SelectItem>
+        <SelectItem key="firstName">名前</SelectItem>
+        <SelectItem key="lastName">姓</SelectItem>
         <SelectItem key="role">ロール</SelectItem>
       </Select>
 

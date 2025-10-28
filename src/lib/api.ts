@@ -687,7 +687,7 @@ export async function getUserList(params?: {
   page?: number;
   perPage?: number;
   role?: number;
-  sortBy?: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role';
+  sortBy?: 'createdAt' | 'username' | 'firstName' | 'lastName' | 'role';
   sortOrder?: 'asc' | 'desc';
   username?: string;
 }) {

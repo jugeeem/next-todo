@@ -728,14 +728,14 @@ export const getUsersQuerySchema = z.object({
     .enum([
       'id',
       'username',
-      'first_name',
-      'first_name_ruby',
-      'last_name',
-      'last_name_ruby',
+      'firstName',
+      'firstNameRuby',
+      'lastName',
+      'lastNameRuby',
       'role',
-      'created_at',
+      'createdAt',
     ])
-    .default('created_at'),
+    .default('createdAt'),
 
   /** ソート順序 */
   sortOrder: z.enum(['asc', 'desc']).default('asc'),

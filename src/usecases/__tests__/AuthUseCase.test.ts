@@ -40,6 +40,8 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   findAll: jest.fn(),
+  findWithFilters: jest.fn(),
+  changePassword: jest.fn(),
 };
 
 // JWTServiceのモック
@@ -133,7 +135,7 @@ describe('AuthUseCase', () => {
       // Arrange
       mockUserRepository.findByUsername.mockResolvedValue(null);
       mockUserRepository.create.mockResolvedValue(sampleUser);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.register(sampleCreateInput);
@@ -202,7 +204,7 @@ describe('AuthUseCase', () => {
       // Arrange
       mockUserRepository.findByUsername.mockResolvedValue(null);
       mockUserRepository.create.mockResolvedValue(sampleUser);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.register(sampleCreateInput);
@@ -236,7 +238,7 @@ describe('AuthUseCase', () => {
 
       mockUserRepository.findByUsername.mockResolvedValue(null);
       mockUserRepository.create.mockResolvedValue(minimalUser);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.register(minimalInput);
@@ -256,7 +258,7 @@ describe('AuthUseCase', () => {
       // Arrange
       mockUserRepository.findByUsername.mockResolvedValue(sampleUser);
       (mockBcrypt.compare as jest.Mock).mockResolvedValue(true);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.login(sampleLoginInput);
@@ -350,7 +352,7 @@ describe('AuthUseCase', () => {
       // Arrange
       mockUserRepository.findByUsername.mockResolvedValue(sampleUser);
       (mockBcrypt.compare as jest.Mock).mockResolvedValue(true);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.login(sampleLoginInput);
@@ -376,7 +378,7 @@ describe('AuthUseCase', () => {
 
       mockUserRepository.findByUsername.mockResolvedValue(specialUser);
       (mockBcrypt.compare as jest.Mock).mockResolvedValue(true);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const result = await authUseCase.login(specialLoginInput);
@@ -593,7 +595,7 @@ describe('AuthUseCase', () => {
         .mockResolvedValueOnce(sampleUser);
 
       mockUserRepository.create.mockResolvedValue(sampleUser);
-      mockJWTService.generateToken.mockReturnValue(sampleToken);
+      mockJWTService.generateToken.mockResolvedValue(sampleToken);
 
       // Act
       const promise1 = authUseCase.register(concurrentInput1);

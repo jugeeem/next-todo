@@ -60,8 +60,8 @@ export function UserListPage() {
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
   const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
   const [sortBy, setSortBy] = useState<
-    'created_at' | 'username' | 'first_name' | 'last_name' | 'role'
-  >('created_at');
+    'createdAt' | 'username' | 'firstName' | 'lastName' | 'role'
+  >('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -114,7 +114,7 @@ export function UserListPage() {
       const params: {
         page: number;
         perPage: number;
-        sortBy: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role';
+        sortBy: 'createdAt' | 'username' | 'firstName' | 'lastName' | 'role';
         sortOrder: 'asc' | 'desc';
         role?: number;
         username?: string;
@@ -325,19 +325,19 @@ export function UserListPage() {
                 onChange={(e) =>
                   setSortBy(
                     e.target.value as
-                      | 'created_at'
+                      | 'createdAt'
                       | 'username'
-                      | 'first_name'
-                      | 'last_name'
+                      | 'firstName'
+                      | 'lastName'
                       | 'role',
                   )
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="created_at">作成日時</option>
+                <option value="createdAt">作成日時</option>
                 <option value="username">ユーザー名</option>
-                <option value="first_name">名前</option>
-                <option value="last_name">姓</option>
+                <option value="firstName">名前</option>
+                <option value="lastName">姓</option>
                 <option value="role">ロール</option>
               </select>
             </div>

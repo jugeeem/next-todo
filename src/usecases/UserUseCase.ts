@@ -175,13 +175,13 @@ export class UserUseCase {
    * // アクティブな管理者ユーザーを取得
    * const admins = await userUseCase.getUsersWithFilters(
    *   { deleted: false, role: 1 },
-   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   *   { sortBy: 'firstName', sortOrder: 'asc' }
    * );
    *
    * // ユーザー名で検索
    * const users = await userUseCase.getUsersWithFilters(
    *   { username: 'john' },
-   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   *   { sortBy: 'createdAt', sortOrder: 'desc' }
    * );
    * ```
    */

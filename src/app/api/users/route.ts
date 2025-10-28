@@ -50,7 +50,7 @@ import { createUserSchema, getUsersQuerySchema } from '@/types/validation';
  * - `lastName`        : string（部分一致）
  * - `lastNameRuby`    : string（部分一致）
  * - `role`            : number
- * - `sortBy`          : 'id' | 'username' | 'first_name' | 'first_name_ruby' | 'last_name' | 'last_name_ruby' | 'role' | 'created_at'（省略時 'created_at'）
+ * - `sortBy`          : 'id' | 'username' | 'firstName' | 'firstNameRuby' | 'lastName' | 'lastNameRuby' | 'role' | 'createdAt'（省略時 'createdAt'）
  * - `sortOrder`       : 'asc' | 'desc'（省略時 'asc'）
  *
  * 成功時: 200 OK / application/json
@@ -79,7 +79,7 @@ import { createUserSchema, getUsersQuerySchema } from '@/types/validation';
  *   -H "x-user-role: 1"
  *
  * @example <caption>TypeScript (fetch)</caption>
- * const res = await fetch('/api/users?sortBy=first_name&sortOrder=asc', {
+ * const res = await fetch('/api/users?sortBy=firstName&sortOrder=asc', {
  *   headers: { 'x-user-id': 'admin-123', 'x-user-role': '1' },
  * });
  * const json = await res.json();

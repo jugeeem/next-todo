@@ -24,6 +24,7 @@ import { TodoUseCase } from '../TodoUseCase';
 const mockTodoRepository: jest.Mocked<TodoRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
+  findByUserIdWithOptions: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

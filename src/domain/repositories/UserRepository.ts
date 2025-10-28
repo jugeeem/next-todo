@@ -40,12 +40,12 @@ export interface UserSortOptions {
   sortBy:
     | 'id'
     | 'username'
-    | 'first_name'
-    | 'first_name_ruby'
-    | 'last_name'
-    | 'last_name_ruby'
+    | 'firstName'
+    | 'firstNameRuby'
+    | 'lastName'
+    | 'lastNameRuby'
     | 'role'
-    | 'created_at';
+    | 'createdAt';
   /** ソート順序 */
   sortOrder: 'asc' | 'desc';
 }

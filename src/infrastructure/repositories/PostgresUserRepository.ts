@@ -400,13 +400,13 @@ export class PostgresUserRepository implements UserRepository {
    * // 管理者ユーザーを名前順で取得
    * const admins = await repository.findWithFilters(
    *   { role: 1 },
-   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   *   { sortBy: 'firstName', sortOrder: 'asc' }
    * );
    *
    * // ユーザー名で部分検索
    * const users = await repository.findWithFilters(
    *   { username: 'john' },
-   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   *   { sortBy: 'createdAt', sortOrder: 'desc' }
    * );
    * ```
    */
@@ -464,8 +464,22 @@ export class PostgresUserRepository implements UserRepository {
     const whereClause =
       whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
+    // camelCaseをsnake_caseに変換
+    const sortByMap: Record<string, string> = {
+      id: 'id',
+      username: 'username',
+      firstName: 'first_name',
+      firstNameRuby: 'first_name_ruby',
+      lastName: 'last_name',
+      lastNameRuby: 'last_name_ruby',
+      role: 'role',
+      createdAt: 'created_at',
+    };
+
+    const dbSortBy = sortByMap[sortOptions.sortBy] || sortOptions.sortBy;
+
     // ORDER BY句の構築
-    const orderByClause = `ORDER BY ${sortOptions.sortBy} ${sortOptions.sortOrder.toUpperCase()}`;
+    const orderByClause = `ORDER BY ${dbSortBy} ${sortOptions.sortOrder.toUpperCase()}`;
 
     // クエリの実行
     const query = `
