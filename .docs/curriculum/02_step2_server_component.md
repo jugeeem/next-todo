@@ -219,10 +219,10 @@ export function TodoListPage({ initialData, currentUserRole: initialUserRole }: 
 
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('/api/users/me')
-        if (response.ok) {
-          const data = await response.json()
-          setCurrentUserRole(data.data.role)
+        // Server Actionの呼び出し
+        const result = await getUserInfo()
+        if (result.success && result.data) {
+          setCurrentUserRole(result.data.role)
         }
       } catch (err) {
         console.error('Failed to fetch current user:', err)
@@ -232,7 +232,65 @@ export function TodoListPage({ initialData, currentUserRole: initialUserRole }: 
     fetchUserInfo()
   }, [initialUserRole])
   
-  // フィルタリング、ソートなどのインタラクション
+  // Todo作成
+  const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
+
+    // ... バリデーション
+
+    setIsCreating(true)
+
+    try {
+      // Server Actionの呼び出し
+      const result = await createTodo({
+        title: newTodoTitle,
+        descriptions: newTodoDescription || undefined,
+      })
+
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの作成に失敗しました')
+      }
+
+      // フォームをリセット
+      setNewTodoTitle('')
+      setNewTodoDescription('')
+
+      // 一覧を再取得
+      await fetchTodos()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+  
+  // Todo削除
+  const handleDeleteTodo = async (id: string) => {
+    if (!confirm('このTodoを削除してもよろしいですか?')) {
+      return
+    }
+
+    try {
+      // Server Actionの呼び出し
+      const result = await deleteTodo(id)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの削除に失敗しました')
+      }
+
+      // 一覧を再取得
+      await fetchTodos()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました')
+    }
+  }
+  
+  // ログアウト
+  const handleLogout = async () => {
+    // Server Actionの呼び出し（リダイレクトも自動的に行われる）
+    await logout()
+  }
   
   // ヘッダーナビゲーション（権限に応じて表示）
   return (
@@ -251,7 +309,12 @@ export function TodoListPage({ initialData, currentUserRole: initialUserRole }: 
 }
 ```
 
-**注意点**:
+**Server Actionsを使用した実装の変更点**:
+
+1. **fetch()の削除**: `src/lib/api.ts`のServer Actionsを直接呼び出し
+2. **エラーハンドリングの簡素化**: Server Actionsが統一された形式で結果を返す
+3. **リダイレクトの自動化**: `logout()`内で`redirect('/login')`が実行されるため、クライアント側での処理不要
+4. **useRouterの削除**: `window.location.href`またはServer Actions内の`redirect()`を使用
 - Next.js 15 では `searchParams` が Promise 型なので `await searchParams` で取得
 - サーバーコンポーネントで取得したデータはシリアライズ可能な形式である必要がある
 - `Date` オブジェクトは文字列に変換する（API側で対応済み）
@@ -580,16 +643,337 @@ export function CreateUserPage({ currentUserRole }: Props) {
 
 ### 4.1 フェッチ関数の配置場所
 
-**推奨**: `src/lib/api.ts` または `src/features/[feature]/api.ts`
+**推奨**: `src/lib/api.ts`
 
-### 4.2 フェッチ関数の実装例
+### 4.2 Server Actions と従来のフェッチ関数の使い分け
+
+Step 2では、以下の2つのアプローチを組み合わせて実装します:
+
+1. **サーバーコンポーネント専用のフェッチ関数** (`fetchXxx`形式)
+   - サーバーコンポーネント内でのみ使用
+   - 初期データ取得に利用
+   
+2. **Server Actions** (`getXxx/createXxx/updateXxx/deleteXxx`形式)
+   - クライアントコンポーネントから呼び出し可能
+   - ユーザーインタラクション時のデータ操作に利用
+   - `'use server'` ディレクティブで定義
+
+### 4.3 フェッチ関数の実装例
 
 ```typescript
 // src/lib/api.ts
+'use server'; // Server Actionsを有効化
 
 /**
- * サーバーコンポーネント用のフェッチ関数
+ * サーバーコンポーネント・Server Actions用のデータフェッチ関数
+ *
+ * このファイルには以下の2種類の関数を定義します:
+ * 1. サーバーコンポーネント専用のフェッチ関数 (fetchXxx形式)
+ * 2. クライアントコンポーネントから呼び出し可能なServer Actions (getXxx/createXxx/updateXxx/deleteXxx形式)
  */
+
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+/**
+ * サーバー側でCookieとヘッダーを含めてフェッチを実行するヘルパー関数
+ */
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('auth_token');
+  
+  const requestHeaders = new Headers(options.headers);
+  if (authToken) {
+    requestHeaders.set('Cookie', `auth_token=${authToken.value}`);
+  }
+  
+  return await fetch(url, {
+    ...options,
+    headers: requestHeaders,
+    cache: 'no-store',
+  });
+}
+
+// ========================================
+// サーバーコンポーネント専用のフェッチ関数
+// ========================================
+
+// Todo 一覧取得
+export async function fetchTodos(params?: {
+  page?: number
+  perPage?: number
+  completedFilter?: 'all' | 'completed' | 'incomplete'
+  sortBy?: 'createdAt' | 'updatedAt' | 'title'
+  sortOrder?: 'asc' | 'desc'
+}) {
+  const searchParams = new URLSearchParams()
+  if (params?.page) searchParams.set('page', params.page.toString())
+  if (params?.perPage) searchParams.set('perPage', params.perPage.toString())
+  if (params?.completedFilter) searchParams.set('completedFilter', params.completedFilter)
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy)
+  if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+  
+  const response = await fetchWithAuth(
+    `${API_URL}/api/todos?${searchParams.toString()}`
+  )
+  
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Unauthorized')
+    throw new Error('Failed to fetch todos')
+  }
+  
+  return response.json()
+}
+
+// ... その他のfetchXxx関数
+
+// ========================================
+// Server Actions (クライアントコンポーネントから呼び出し可能)
+// ========================================
+
+/**
+ * ログイン (Server Action)
+ * 
+ * クライアントコンポーネント (LoginPage.tsx) から呼び出される
+ */
+export async function login(formData: { username: string; password: string }) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+      }),
+      cache: 'no-store',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'ログインに失敗しました',
+      };
+    }
+    
+    return {
+      success: true,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ログインに失敗しました',
+    };
+  }
+}
+
+/**
+ * ログアウト (Server Action)
+ * 
+ * クライアントコンポーネントから呼び出され、ログイン画面にリダイレクトする
+ */
+export async function logout() {
+  try {
+    await fetchWithAuth(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+    });
+    
+    redirect('/login');
+  } catch (err) {
+    console.error('Logout error:', err);
+    redirect('/login');
+  }
+}
+
+/**
+ * ユーザー情報取得 (Server Action)
+ * 
+ * クライアントコンポーネントから呼び出される
+ */
+export async function getUserInfo() {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/users/me`);
+    
+    if (response.status === 401) {
+      redirect('/login');
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'ユーザー情報の取得に失敗しました',
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo一覧取得 (Server Action)
+ */
+export async function getTodoList(params?: {
+  page?: number;
+  perPage?: number;
+  completedFilter?: 'all' | 'completed' | 'incomplete';
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}) {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
+    if (params?.completedFilter) searchParams.set('completedFilter', params.completedFilter);
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+    if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+    
+    const response = await fetchWithAuth(
+      `${API_URL}/api/todos?${searchParams.toString()}`
+    );
+    
+    if (response.status === 401) {
+      redirect('/login');
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todoの取得に失敗しました',
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * Todo作成 (Server Action)
+ */
+export async function createTodo(formData: { title: string; descriptions?: string }) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: formData.title,
+        descriptions: formData.descriptions || undefined,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.message || 'Todoの作成に失敗しました',
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの作成に失敗しました',
+    };
+  }
+}
+
+// ... その他のServer Actions (updateTodo, deleteTodo, createUser, updateUser, deleteUser など)
+```
+
+**重要な実装ポイント**:
+
+#### 1. `'use server'` ディレクティブ
+- ファイル冒頭に追加してServer Actionsを有効化
+- このディレクティブにより、すべての関数がサーバー側で実行される
+
+#### 2. Server Actionsの戻り値形式
+```typescript
+{
+  success: boolean;
+  data?: any;      // 成功時のデータ
+  error?: string;  // エラー時のメッセージ
+}
+```
+
+#### 3. クライアントコンポーネントでの使用例
+```typescript
+// src/features/auth/LoginPage.tsx
+'use client';
+
+import { login } from '@/lib/api';
+
+export function LoginPage() {
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    // Server Actionの呼び出し
+    const result = await login({ username, password });
+    
+    if (!result.success) {
+      setError(result.error || 'ログインに失敗しました');
+      return;
+    }
+    
+    // 成功時の処理
+    router.push('/todos');
+  };
+  
+  // ...
+}
+```
+
+#### 4. `useRouter`から`window.location.href`への置き換え
+
+Server Actions内で`redirect()`を使用するため、クライアントコンポーネントでは`useRouter`を削除し、必要に応じて`window.location.href`を使用します:
+
+```typescript
+// ❌ 従来の実装
+import { useRouter } from 'next/navigation';
+
+const router = useRouter();
+router.push('/todos');
+
+// ✅ 新しい実装
+window.location.href = '/todos';
+
+// または Server Action 内で redirect() を使用
+export async function logout() {
+  try {
+    await fetchWithAuth(`${API_URL}/api/auth/logout`, { method: 'POST' });
+    redirect('/login'); // サーバー側でリダイレクト
+  } catch (err) {
+    redirect('/login');
+  }
+}
+```
 
 // Todo 一覧取得
 export async function fetchTodos(params?: {
@@ -1275,9 +1659,17 @@ Step 2 完了後、以下を確認してください。
 
 ---
 
-**Document Version**: 1.1.0  
-**Last Updated**: 2025-10-27  
+**Document Version**: 1.2.0  
+**Last Updated**: 2025-10-28  
 **Changes**:
+- v1.2.0 (2025-10-28): Server Actionsの実装を追加
+  - `'use server'` ディレクティブによるServer Actionsの有効化
+  - `src/lib/api.ts`に Server Actions を追加（`getXxx/createXxx/updateXxx/deleteXxx`形式）
+  - Server Actionsの統一された戻り値形式（`{ success, data?, error? }`）を採用
+  - クライアントコンポーネントでのfetch()削除、Server Actions直接呼び出しに変更
+  - `useRouter`の削除と`window.location.href`または`redirect()`への置き換え
+  - 認証ページ（LoginPage、RegisterPage）でのServer Actions使用例を追加
+  - TodoListPage、TodoDetailPage、ProfilePage、UserListPage、UserDetailPage、CreateUserPageでのServer Actions使用例を追加
 - v1.1.0 (2025-10-27): 実装詳細を追加
   - サーバーコンポーネントでの `searchParams` の Promise 型対応を追記
   - `fetchWithAuth` ヘルパー関数の実装詳細を追加

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { deleteTodo, getTodoDetail, getUserInfo, logout, updateTodo } from '@/lib/api';
 
 interface Todo {
   id: string;
@@ -19,7 +20,6 @@ interface TodoDetailPageProps {
 }
 
 export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
-  const router = useRouter();
   const params = useParams();
   const todoId = params?.id as string;
 
@@ -37,10 +37,9 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
   // 現在のユーザー情報を取得
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const response = await fetch('/api/users/me');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentUserRole(data.data.role);
+      const result = await getUserInfo();
+      if (result.success && result.data) {
+        setCurrentUserRole(result.data.role);
       }
     } catch (err) {
       console.error('Failed to fetch current user:', err);
@@ -53,24 +52,14 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
     setError('');
 
     try {
-      const response = await fetch(`/api/todos/${todoId}`);
+      const result = await getTodoDetail(todoId);
 
-      if (response.status === 401) {
-        router.push('/login');
+      if (!result.success) {
+        setError(result.error || 'Todoの取得に失敗しました');
         return;
       }
 
-      if (response.status === 404) {
-        setError('Todoが見つかりません');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Todoの取得に失敗しました');
-      }
-
-      const data = await response.json();
-      const todoData = data.data;
+      const todoData = result.data;
       setTodo(todoData);
       setTitle(todoData.title);
       setDescriptions(todoData.descriptions || '');
@@ -79,7 +68,7 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [router, todoId]);
+  }, [todoId]);
 
   // 初回読み込み時にTodo詳細を取得（初期データがない場合のみ）
   useEffect(() => {
@@ -113,21 +102,15 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/todos/${todoId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          descriptions: descriptions || undefined,
-          completed: todo?.completed || false,
-        }),
+      const result = await updateTodo(todoId, {
+        title,
+        descriptions: descriptions || undefined,
+        completed: todo?.completed || false,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Todoの更新に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'Todoの更新に失敗しました');
+        return;
       }
 
       // 更新成功後、編集モードを解除して最新データを取得
@@ -147,16 +130,15 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
     }
 
     try {
-      const response = await fetch(`/api/todos/${todoId}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteTodo(todoId);
 
-      if (!response.ok) {
-        throw new Error('Todoの削除に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'Todoの削除に失敗しました');
+        return;
       }
 
       // 削除成功後、一覧ページに戻る
-      router.push('/todos');
+      window.location.href = '/todos';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
     }
@@ -175,13 +157,10 @@ export function TodoDetailPage({ initialTodo }: TodoDetailPageProps) {
   // ログアウト
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
+      await logout();
     } catch (err) {
       console.error('Logout error:', err);
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 

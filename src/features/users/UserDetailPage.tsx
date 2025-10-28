@@ -1,8 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  deleteUser,
+  getUserDetail,
+  getUserInfo,
+  getUserTodoList,
+  logout,
+  updateUser,
+} from '@/lib/api';
 
 interface User {
   id: string;
@@ -46,7 +53,6 @@ const getRoleBadgeClass = (role: number): string => {
 };
 
 export function UserDetailPage({ userId }: { userId: string }) {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
@@ -66,20 +72,19 @@ export function UserDetailPage({ userId }: { userId: string }) {
   useEffect(() => {
     const checkPermission = async () => {
       try {
-        const response = await fetch('/api/users/me');
+        const result = await getUserInfo();
 
-        if (response.status === 401) {
-          router.push('/login');
+        if (!result.success) {
+          window.location.href = '/login';
           return;
         }
 
-        const data = await response.json();
-        const userRole = data.data.role;
-        const currentId = data.data.id;
+        const userRole = result.data.role;
+        const currentId = result.data.id;
 
         // ADMIN・MANAGER のみアクセス可能
         if (userRole >= 3) {
-          router.push('/todos');
+          window.location.href = '/todos';
           return;
         }
 
@@ -88,36 +93,26 @@ export function UserDetailPage({ userId }: { userId: string }) {
         setHasPermission(true);
       } catch (err) {
         console.error('Permission check error:', err);
-        router.push('/login');
+        window.location.href = '/login';
       } finally {
         setIsCheckingPermission(false);
       }
     };
 
     checkPermission();
-  }, [router]);
+  }, []);
 
   // ユーザー情報を取得
   const fetchUserInfo = useCallback(async () => {
     try {
-      const response = await fetch(`/api/users/${userId}`);
+      const result = await getUserDetail(userId);
 
-      if (response.status === 401) {
-        router.push('/login');
+      if (!result.success) {
+        setError(result.error || 'ユーザー情報の取得に失敗しました');
         return;
       }
 
-      if (response.status === 404) {
-        setError('ユーザーが見つかりません');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('ユーザー情報の取得に失敗しました');
-      }
-
-      const data = await response.json();
-      const userData = data.data;
+      const userData = result.data;
       setUser(userData);
       setFirstName(userData.firstName || '');
       setLastName(userData.lastName || '');
@@ -125,19 +120,19 @@ export function UserDetailPage({ userId }: { userId: string }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました');
     }
-  }, [userId, router]);
+  }, [userId]);
 
   // Todo一覧を取得
   const fetchTodos = useCallback(async () => {
     try {
-      const response = await fetch(`/api/users/${userId}/todos?page=1&perPage=10`);
+      const result = await getUserTodoList(userId, { page: 1, perPage: 10 });
 
-      if (!response.ok) {
-        throw new Error('Todo一覧の取得に失敗しました');
+      if (!result.success) {
+        console.error('Todo一覧の取得エラー:', result.error);
+        return;
       }
 
-      const data = await response.json();
-      setTodos(data.data?.data || []);
+      setTodos(result.data?.data || []);
     } catch (err) {
       console.error('Todo一覧の取得エラー:', err);
     }
@@ -165,21 +160,15 @@ export function UserDetailPage({ userId }: { userId: string }) {
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          role,
-        }),
+      const result = await updateUser(userId, {
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        role,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザー情報の更新に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'ユーザー情報の更新に失敗しました');
+        return;
       }
 
       await fetchUserInfo();
@@ -200,16 +189,14 @@ export function UserDetailPage({ userId }: { userId: string }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteUser(userId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザーの削除に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'ユーザーの削除に失敗しました');
+        return;
       }
 
-      router.push('/users');
+      window.location.href = '/users';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザーの削除に失敗しました');
     }
@@ -218,13 +205,10 @@ export function UserDetailPage({ userId }: { userId: string }) {
   // ログアウト
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
+      await logout();
     } catch (err) {
       console.error('Logout error:', err);
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 

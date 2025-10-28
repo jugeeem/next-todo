@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
+import { register } from '@/lib/api';
 
 export function RegisterPage() {
   const router = useRouter();
@@ -41,23 +42,16 @@ export function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          password,
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          role: 4, // ユーザーロール
-        }),
+      const result = await register({
+        username,
+        password,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        role: 4, // ユーザーロール
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザー登録に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'ユーザー登録に失敗しました');
       }
 
       // 登録成功後、ログインページにリダイレクト

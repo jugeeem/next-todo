@@ -1,8 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  changePassword,
+  getTodoStats,
+  getUserInfo,
+  getUserTodos,
+  logout,
+  updateProfile,
+} from '@/lib/api';
 
 interface User {
   id: string;
@@ -39,7 +46,6 @@ export function ProfilePage({
   initialStats,
   initialTodos,
 }: ProfilePageProps) {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(initialUser || null);
   const [firstName, setFirstName] = useState<string>(initialUser?.firstName || '');
   const [lastName, setLastName] = useState<string>(initialUser?.lastName || '');
@@ -60,38 +66,33 @@ export function ProfilePage({
   // ユーザー情報を取得
   const fetchUserInfo = useCallback(async () => {
     try {
-      const response = await fetch('/api/users/me');
+      const result = await getUserInfo();
 
-      if (response.status === 401) {
-        router.push('/login');
+      if (!result.success) {
+        setError(result.error || 'ユーザー情報の取得に失敗しました');
         return;
       }
 
-      if (!response.ok) {
-        throw new Error('ユーザー情報の取得に失敗しました');
-      }
-
-      const data = await response.json();
-      const userData = data.data;
+      const userData = result.data;
       setUser(userData);
       setFirstName(userData.firstName || '');
       setLastName(userData.lastName || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザー情報の取得に失敗しました');
     }
-  }, [router]);
+  }, []);
 
   // Todo統計を取得
   const fetchTodoStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/users/me/todos/stats');
+      const result = await getTodoStats();
 
-      if (!response.ok) {
-        throw new Error('Todo統計の取得に失敗しました');
+      if (!result.success) {
+        console.error('Todo統計の取得エラー:', result.error);
+        return;
       }
 
-      const data = await response.json();
-      setStats(data.data);
+      setStats(result.data);
     } catch (err) {
       console.error('Todo統計の取得エラー:', err);
     }
@@ -100,14 +101,14 @@ export function ProfilePage({
   // Todo一覧を取得
   const fetchTodos = useCallback(async () => {
     try {
-      const response = await fetch('/api/users/me/todos?page=1&perPage=10');
+      const result = await getUserTodos();
 
-      if (!response.ok) {
-        throw new Error('Todo一覧の取得に失敗しました');
+      if (!result.success) {
+        console.error('Todo一覧の取得エラー:', result.error);
+        return;
       }
 
-      const data = await response.json();
-      setTodos(data.data || []);
+      setTodos(result.data || []);
     } catch (err) {
       console.error('Todo一覧の取得エラー:', err);
     }
@@ -145,20 +146,13 @@ export function ProfilePage({
     setIsSavingProfile(true);
 
     try {
-      const response = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-        }),
+      const result = await updateProfile({
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'プロフィールの更新に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'プロフィールの更新に失敗しました');
       }
 
       await fetchUserInfo();
@@ -206,21 +200,14 @@ export function ProfilePage({
     setIsSavingPassword(true);
 
     try {
-      const response = await fetch('/api/users/me/password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
+      const result = await changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'パスワードの変更に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'パスワードの変更に失敗しました');
       }
 
       setCurrentPassword('');
@@ -240,15 +227,7 @@ export function ProfilePage({
 
   // ログアウト
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-      router.push('/login');
-    }
+    await logout();
   };
 
   if (isLoading) {

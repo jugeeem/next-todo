@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { deleteUser, getUserInfo, getUserList, logout } from '@/lib/api';
 
 interface User {
   id: string;
@@ -55,7 +55,6 @@ const getRoleBadgeClass = (role: number): string => {
 };
 
 export function UserListPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<UserWithStats[]>([]);
   const [page, setPage] = useState<number>(1);
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
@@ -76,20 +75,19 @@ export function UserListPage() {
   useEffect(() => {
     const checkPermission = async () => {
       try {
-        const response = await fetch('/api/users/me');
+        const result = await getUserInfo();
 
-        if (response.status === 401) {
-          router.push('/login');
+        if (!result.success) {
+          window.location.href = '/login';
           return;
         }
 
-        const data = await response.json();
-        const userRole = data.data.role;
-        const userId = data.data.id;
+        const userRole = result.data.role;
+        const userId = result.data.id;
 
         // ADMIN・MANAGER のみアクセス可能
         if (userRole >= 3) {
-          router.push('/todos');
+          window.location.href = '/todos';
           return;
         }
 
@@ -98,14 +96,14 @@ export function UserListPage() {
         setHasPermission(true);
       } catch (err) {
         console.error('Permission check error:', err);
-        router.push('/login');
+        window.location.href = '/login';
       } finally {
         setIsCheckingPermission(false);
       }
     };
 
     checkPermission();
-  }, [router]);
+  }, []);
 
   // ユーザー一覧を取得
   const fetchUsers = useCallback(async () => {
@@ -113,36 +111,38 @@ export function UserListPage() {
     setError('');
 
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        perPage: '20',
+      const params: {
+        page: number;
+        perPage: number;
+        sortBy: 'created_at' | 'username' | 'first_name' | 'last_name' | 'role';
+        sortOrder: 'asc' | 'desc';
+        role?: number;
+        username?: string;
+      } = {
+        page,
+        perPage: 20,
         sortBy,
         sortOrder,
-      });
+      };
 
       // roleFilter が 'all' でない場合のみ role パラメータを追加
       if (roleFilter !== 'all') {
-        params.append('role', roleFilter.toString());
+        params.role = roleFilter;
       }
 
-      // searchQuery が空でない場合、username と firstName で検索
+      // searchQuery が空でない場合、username で検索
       if (searchQuery.trim()) {
-        params.append('username', searchQuery.trim());
+        params.username = searchQuery.trim();
       }
 
-      const response = await fetch(`/api/users?${params}`);
+      const result = await getUserList(params);
 
-      if (response.status === 401) {
-        router.push('/login');
+      if (!result.success) {
+        setError(result.error || 'ユーザー一覧の取得に失敗しました');
         return;
       }
 
-      if (!response.ok) {
-        throw new Error('ユーザー一覧の取得に失敗しました');
-      }
-
-      const data = await response.json();
-      const responseData = data.data;
+      const responseData = result.data;
 
       setUsers(responseData.data || []);
       setPaginationInfo({
@@ -156,7 +156,7 @@ export function UserListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, roleFilter, sortBy, sortOrder, searchQuery, router]);
+  }, [page, roleFilter, sortBy, sortOrder, searchQuery]);
 
   // ページ読み込み時・フィルター変更時にユーザーを取得
   useEffect(() => {
@@ -172,13 +172,11 @@ export function UserListPage() {
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteUser(userId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザーの削除に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'ユーザーの削除に失敗しました');
+        return;
       }
 
       // 一覧を再取得
@@ -191,13 +189,10 @@ export function UserListPage() {
   // ログアウト
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
+      await logout();
     } catch (err) {
       console.error('Logout error:', err);
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 

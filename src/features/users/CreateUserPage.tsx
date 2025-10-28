@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useState } from 'react';
+import { createUser, getUserInfo, logout } from '@/lib/api';
 
 const roleLabels: Record<number, string> = {
   1: 'ADMIN',
@@ -12,7 +12,6 @@ const roleLabels: Record<number, string> = {
 };
 
 export function CreateUserPage() {
-  const router = useRouter();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -30,19 +29,18 @@ export function CreateUserPage() {
   useEffect(() => {
     const checkPermission = async () => {
       try {
-        const response = await fetch('/api/users/me');
+        const result = await getUserInfo();
 
-        if (response.status === 401) {
-          router.push('/login');
+        if (!result.success) {
+          window.location.href = '/login';
           return;
         }
 
-        const data = await response.json();
-        const userRole = data.data.role;
+        const userRole = result.data.role;
 
         // ADMIN・MANAGER のみアクセス可能
         if (userRole >= 3) {
-          router.push('/todos');
+          window.location.href = '/todos';
           return;
         }
 
@@ -61,25 +59,22 @@ export function CreateUserPage() {
         setHasPermission(true);
       } catch (err) {
         console.error('Permission check error:', err);
-        router.push('/login');
+        window.location.href = '/login';
       } finally {
         setIsCheckingPermission(false);
       }
     };
 
     checkPermission();
-  }, [router]);
+  }, []);
 
   // ログアウト
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
+      await logout();
     } catch (err) {
       console.error('Logout error:', err);
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 
@@ -133,30 +128,23 @@ export function CreateUserPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          password,
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          role,
-        }),
+      const result = await createUser({
+        username,
+        password,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        role,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザーの作成に失敗しました');
+      if (!result.success) {
+        setError(result.error || 'ユーザーの作成に失敗しました');
+        return;
       }
 
-      const data = await response.json();
-      const createdUserId = data.data.id;
+      const createdUserId = result.data.id;
 
       // 作成したユーザーの詳細ページに遷移
-      router.push(`/users/${createdUserId}`);
+      window.location.href = `/users/${createdUserId}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザーの作成に失敗しました');
     } finally {

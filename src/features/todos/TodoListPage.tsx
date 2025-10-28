@@ -1,8 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  createTodo,
+  deleteTodo,
+  getTodoList,
+  getUserInfo,
+  logout,
+  updateTodo,
+} from '@/lib/api';
 
 interface Todo {
   id: string;
@@ -41,7 +48,6 @@ export function TodoListPage({
   initialData,
   currentUserRole: initialUserRole,
 }: TodoListPageProps) {
-  const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>(initialData?.data?.data || []);
   const [page, setPage] = useState<number>(initialData?.data?.page || 1);
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(
@@ -74,28 +80,19 @@ export function TodoListPage({
     setError('');
 
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        perPage: '20',
+      const result = await getTodoList({
+        page,
+        perPage: 20,
         completedFilter,
         sortBy,
         sortOrder,
       });
 
-      const response = await fetch(`/api/todos?${params}`);
-
-      if (response.status === 401) {
-        router.push('/login');
-        return;
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの取得に失敗しました');
       }
 
-      if (!response.ok) {
-        throw new Error('Todoの取得に失敗しました');
-      }
-
-      const data = await response.json();
-      // APIレスポンス構造: { success: true, data: { data: [...], total, page, perPage, totalPages } }
-      const responseData = data.data;
+      const responseData = result.data;
       setTodos(responseData.data || []);
       setPaginationInfo({
         currentPage: responseData.page,
@@ -108,7 +105,7 @@ export function TodoListPage({
     } finally {
       setIsLoading(false);
     }
-  }, [page, completedFilter, sortBy, sortOrder, router]);
+  }, [page, completedFilter, sortBy, sortOrder]);
 
   // ユーザー情報を取得してロールを設定（初期値がない場合のみ）
   useEffect(() => {
@@ -119,10 +116,9 @@ export function TodoListPage({
 
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('/api/users/me');
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUserRole(data.data.role);
+        const result = await getUserInfo();
+        if (result.success && result.data) {
+          setCurrentUserRole(result.data.role);
         }
       } catch (err) {
         console.error('Failed to fetch user info:', err);
@@ -160,20 +156,13 @@ export function TodoListPage({
     setIsCreating(true);
 
     try {
-      const response = await fetch('/api/todos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTodoTitle,
-          descriptions: newTodoDescription || undefined,
-        }),
+      const result = await createTodo({
+        title: newTodoTitle,
+        descriptions: newTodoDescription || undefined,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Todoの作成に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの作成に失敗しました');
       }
 
       // フォームをリセット
@@ -196,12 +185,10 @@ export function TodoListPage({
     }
 
     try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteTodo(id);
 
-      if (!response.ok) {
-        throw new Error('Todoの削除に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの削除に失敗しました');
       }
 
       // 一覧を再取得
@@ -214,20 +201,14 @@ export function TodoListPage({
   // Todo完了状態の切り替え
   const handleToggleComplete = async (todo: Todo) => {
     try {
-      const response = await fetch(`/api/todos/${todo.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: todo.title,
-          descriptions: todo.descriptions,
-          completed: !todo.completed,
-        }),
+      const result = await updateTodo(todo.id, {
+        title: todo.title,
+        descriptions: todo.descriptions,
+        completed: !todo.completed,
       });
 
-      if (!response.ok) {
-        throw new Error('Todoの更新に失敗しました');
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの更新に失敗しました');
       }
 
       // 一覧を再取得
@@ -239,15 +220,7 @@ export function TodoListPage({
 
   // ログアウト
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-      router.push('/login');
-    }
+    await logout();
   };
 
   return (
