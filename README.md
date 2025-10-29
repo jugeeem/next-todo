@@ -57,6 +57,71 @@ docker compose up --build
 docker compose up -d --build
 ```
 
+## 本番環境でのデプロイ（PM2）
+
+このプロジェクトは **PM2** を使用した本番環境でのデプロイに対応しています。
+
+### PM2とは
+
+PM2は Node.js アプリケーション向けのプロセスマネージャーです。以下の機能を提供します：
+
+- プロセス管理（起動・停止・再起動）
+- クラスタモード（マルチコアCPUの活用）
+- 自動再起動（クラッシュ時の自動復旧）
+- ログ管理
+- モニタリング
+
+### PM2でのデプロイ手順
+
+#### 1. アプリケーションのビルド
+
+```bash
+npm run build
+```
+
+#### 2. 環境変数の設定
+
+本番環境用の `.env` ファイルを作成します。
+
+```bash
+cp .env.example .env
+# 必要な環境変数を設定（DATABASE_URL、JWT_SECRET など）
+```
+
+#### 3. PM2でアプリケーションを起動
+
+```bash
+# 本番環境で起動
+pm2 start ecosystem.config.js --env production
+
+# または、package.json のスクリプトを使用
+npm run pm2:start
+```
+
+### PM2の主要コマンド
+
+```bash
+# ステータス確認
+npm run pm2:status
+
+# ログ確認
+npm run pm2:logs
+
+# アプリケーションの停止
+npm run pm2:stop
+
+# アプリケーションの再起動
+npm run pm2:restart
+
+# モニタリング
+npm run pm2:monit
+```
+
+### PM2の詳細ドキュメント
+
+PM2の詳細な使い方については、[PM2運用ガイド](.docs/PM2.md) を参照してください。
+
+
 ## テスト
 
 このプロジェクトは包括的なテストスイートを備えています：
