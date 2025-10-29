@@ -66,15 +66,15 @@ describe('/api/users API エンドポイント', () => {
         // クエリパラメータから値を取得し、適切な型に変換
         const page = data.page ? Number.parseInt(data.page, 10) : 1;
         const perPage = data.perPage ? Number.parseInt(data.perPage, 10) : 20;
-        const sortBy = (data.sortBy || 'created_at') as
+        const sortBy = (data.sortBy || 'createdAt') as
           | 'id'
           | 'username'
           | 'role'
-          | 'first_name'
-          | 'first_name_ruby'
-          | 'last_name'
-          | 'last_name_ruby'
-          | 'created_at';
+          | 'firstName'
+          | 'firstNameRuby'
+          | 'lastName'
+          | 'lastNameRuby'
+          | 'createdAt';
         const sortOrder = (data.sortOrder || 'asc') as 'asc' | 'desc';
 
         return {
