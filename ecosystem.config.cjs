@@ -3,11 +3,11 @@
  * Next.js アプリケーションを本番環境で稼働するための設定
  * 
  * 使用方法:
- *   開発環境: pm2 start ecosystem.config.js --env development
- *   本番環境: pm2 start ecosystem.config.js --env production
+ *   開発環境: pm2 start ecosystem.config.cjs --env development
+ *   本番環境: pm2 start ecosystem.config.cjs --env production
  * 
  * PM2 コマンド:
- *   起動: pm2 start ecosystem.config.js
+ *   起動: pm2 start ecosystem.config.cjs
  *   停止: pm2 stop next-todo
  *   再起動: pm2 restart next-todo
  *   削除: pm2 delete next-todo
@@ -15,7 +15,7 @@
  *   ステータス確認: pm2 status
  *   モニタリング: pm2 monit
  */
-const config = {
+module.exports = {
   apps: [
     {
       // アプリケーション名
@@ -28,11 +28,11 @@ const config = {
       // 実行ディレクトリ
       cwd: './',
       
-      // インスタンス数（CPUコア数に応じて自動調整）
-      instances: 'max',
+      // インスタンス数（1つのインスタンスで実行）
+      instances: 1,
       
-      // クラスターモードで実行（負荷分散）
-      exec_mode: 'cluster',
+      // フォークモードで実行
+      exec_mode: 'fork',
       
       // ウォッチモード（本番環境では無効）
       watch: false,
@@ -104,10 +104,8 @@ const config = {
       repo: 'GIT_REPOSITORY',
       path: 'DESTINATION_PATH',
       'pre-deploy-local': '',
-      'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
+      'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.cjs --env production',
       'pre-setup': '',
     },
   },
 };
-
-export default config;

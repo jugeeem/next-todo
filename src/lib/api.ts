@@ -430,6 +430,28 @@ export async function login(formData: { username: string; password: string }) {
       };
     }
 
+    // Cookieを取得してサーバー側でも設定
+    const setCookieHeader = response.headers.get('set-cookie');
+    if (setCookieHeader) {
+      // Cookieをパースして設定
+      const cookieStore = await cookies();
+      const cookieEntries = setCookieHeader.split(', ');
+
+      for (const cookieEntry of cookieEntries) {
+        const [cookiePart] = cookieEntry.split(';');
+        const [name, value] = cookiePart.split('=');
+
+        if (name && value) {
+          cookieStore.set(name, value, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60, // 24時間
+          });
+        }
+      }
+    }
+
     return {
       success: true,
     };

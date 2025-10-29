@@ -2,7 +2,6 @@
 
 import { Button, Card, CardBody, Input } from '@heroui/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 import { login } from '@/lib/api';
 
@@ -10,7 +9,6 @@ import { login } from '@/lib/api';
  * ログインフォームコンポーネント
  */
 export function LoginForm() {
-  const router = useRouter();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -41,9 +39,8 @@ export function LoginForm() {
         throw new Error(result.error || 'ログインに失敗しました');
       }
 
-      // ログイン成功後、Todoページにリダイレクト
-      router.push('/todos');
-      router.refresh(); // サーバーコンポーネントを再レンダリング
+      // ログイン成功後、ページを完全にリロードしてから遷移
+      window.location.href = '/todos';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
     } finally {

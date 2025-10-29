@@ -147,23 +147,29 @@ export class AuthMiddleware {
     try {
       // まずAuthorizationヘッダーからトークンを試行
       const authHeader = request.headers.get('authorization');
+      console.log(`[AuthMiddleware] Authorization header: ${authHeader ? 'present' : 'none'}`);
       let token = this.jwtService.extractTokenFromHeader(authHeader || '');
 
       // Authorizationヘッダーにトークンがない場合はCookieから取得
       if (!token) {
         token = getAuthTokenFromServer(request);
+        console.log(`[AuthMiddleware] Cookie token: ${token ? 'present' : 'none'}`);
       }
 
       if (!token) {
+        console.log(`[AuthMiddleware] No token found in header or cookie`);
         return { success: false, error: 'No token provided' };
       }
 
+      console.log(`[AuthMiddleware] Verifying token: ${token.substring(0, 20)}...`);
       const user = await this.jwtService.verifyToken(token);
 
       if (!user) {
+        console.log(`[AuthMiddleware] Token verification failed`);
         return { success: false, error: 'Invalid token' };
       }
 
+      console.log(`[AuthMiddleware] Token verification success for user: ${user.userId}`);
       return { success: true, user };
     } catch (error) {
       console.error('Authentication error:', error);

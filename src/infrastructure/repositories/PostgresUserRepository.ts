@@ -185,7 +185,7 @@ export class PostgresUserRepository implements UserRepository {
    */
   async create(input: CreateUserInput): Promise<User> {
     const id = uuidv4();
-    const hashedPassword = await bcrypt.hash(input.password, 10);
+    const hashedPassword = await bcrypt.hash(input.password, 12);
     const now = dbNowJST();
 
     const query = `
@@ -560,7 +560,7 @@ export class PostgresUserRepository implements UserRepository {
     }
 
     // 新しいパスワードをハッシュ化
-    const saltRounds = 10;
+    const saltRounds = 12;
     const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // パスワードを更新
