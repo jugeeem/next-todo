@@ -28,8 +28,23 @@ function isProtectedPath(path: string): boolean {
  * @returns パスが公開されている場合は true、そうでない場合は false
  */
 function isPublicPath(path: string): boolean {
-  const publicPaths = ['/api/auth', '/api/health', '/auth/login'];
-  return publicPaths.some((prefix) => path.startsWith(prefix));
+  const publicPaths = [
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/logout',
+    '/api/health',
+    '/login',
+    '/register',
+    '/',
+  ];
+
+  // 完全一致または特定パスで始まるかをチェック
+  return publicPaths.some((publicPath) => {
+    if (publicPath === '/') {
+      return path === '/';
+    }
+    return path === publicPath || path.startsWith(`${publicPath}/`);
+  });
 }
 
 /**
@@ -44,29 +59,41 @@ function isPublicPath(path: string): boolean {
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  console.log(`[Middleware] Processing path: ${path}`);
 
   // 公開パスは認証なしで通す
   if (isPublicPath(path)) {
+    console.log(`[Middleware] Public path, skipping auth: ${path}`);
     return NextResponse.next();
   }
 
   // 保護されたパスの場合は認証をチェック
   if (isProtectedPath(path)) {
+    console.log(`[Middleware] Protected path, checking auth: ${path}`);
     const authMiddleware = new AuthMiddleware();
     const authResult = await authMiddleware.authenticate(request);
 
     if (!authResult.success) {
-      return new NextResponse(
-        JSON.stringify({
-          success: false,
-          message: authResult.error,
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      console.log(`[Middleware] Auth failed: ${authResult.error}`);
+      // APIルートの場合はJSONエラーを返す
+      if (path.startsWith('/api/')) {
+        return new NextResponse(
+          JSON.stringify({
+            success: false,
+            message: authResult.error,
+          }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      // Webページの場合はログインページにリダイレクト
+      return NextResponse.redirect(new URL('/login', request.url));
     }
+
+    console.log(`[Middleware] Auth success for user: ${authResult.user.userId}`);
 
     // 認証成功時はリクエストヘッダーにユーザー情報を追加
     const requestHeaders = new Headers(request.headers);
@@ -78,9 +105,21 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  console.log(`[Middleware] Unprotected path, allowing: ${path}`);
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/api/todos/:path*', '/api/todos', '/api/users/:path*', '/api/users'],
+  matcher: [
+    '/api/todos/:path*',
+    '/api/todos',
+    '/api/users/:path*',
+    '/api/users',
+    '/todos/:path*',
+    '/todos',
+    '/users/:path*',
+    '/users',
+    '/profile/:path*',
+    '/profile',
+  ],
 };

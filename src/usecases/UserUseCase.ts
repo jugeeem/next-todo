@@ -175,13 +175,13 @@ export class UserUseCase {
    * // アクティブな管理者ユーザーを取得
    * const admins = await userUseCase.getUsersWithFilters(
    *   { deleted: false, role: 1 },
-   *   { sortBy: 'first_name', sortOrder: 'asc' }
+   *   { sortBy: 'firstName', sortOrder: 'asc' }
    * );
    *
    * // ユーザー名で検索
    * const users = await userUseCase.getUsersWithFilters(
    *   { username: 'john' },
-   *   { sortBy: 'created_at', sortOrder: 'desc' }
+   *   { sortBy: 'createdAt', sortOrder: 'desc' }
    * );
    * ```
    */
@@ -414,19 +414,18 @@ export class UserUseCase {
    * 新規ユーザー作成処理
    *
    * 新しいユーザーアカウントを作成します。
-   * ユーザー名の重複チェックとパスワードのハッシュ化を自動的に行い、
+   * ユーザー名の重複チェックを行い、パスワードハッシュ化はリポジトリ層で実行されます。
    * パスワードハッシュを除外した安全なユーザー情報を返します。
    *
    * 処理フロー:
    * 1. ユーザー名の重複チェック
-   * 2. パスワードのハッシュ化
-   * 3. 新規ユーザーの作成
-   * 4. パスワードハッシュを除外したレスポンス
+   * 2. 新規ユーザーの作成（パスワードハッシュ化はリポジトリ層で実行）
+   * 3. パスワードハッシュを除外したレスポンス
    *
    * セキュリティ考慮事項:
-   * - bcrypt による安全なパスワードハッシュ化
    * - ユーザー名の一意性保証
    * - パスワードハッシュの外部非公開
+   * - パスワードハッシュ化はリポジトリ層で統一的に実行
    *
    * @param {CreateUserInput} input - 新規ユーザー情報
    * @returns {Promise<SafeUser>} パスワードハッシュを除外した作成されたユーザー情報
@@ -457,15 +456,8 @@ export class UserUseCase {
       throw new Error('このユーザー名は既に使用されています');
     }
 
-    // パスワードのハッシュ化
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(input.password, saltRounds);
-
-    // 新規ユーザー作成
-    const newUser = await this.userRepository.create({
-      ...input,
-      password: passwordHash,
-    });
+    // 新規ユーザー作成（パスワードハッシュ化はリポジトリ層で実行）
+    const newUser = await this.userRepository.create(input);
 
     // パスワードハッシュを除外してレスポンス
     const { passwordHash: _unused, ...safeUser } = newUser;
