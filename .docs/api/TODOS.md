@@ -48,7 +48,6 @@ GET /api/todos
 |---|---|---|---|---|---|
 | `page` | number | - | 1 | ページ番号 | 1以上 |
 | `perPage` | number | - | 20 | 1ページあたりの件数 | 1〜100 |
-| `filter` | string | - | all | 削除状態フィルタ | `all`: 全件、`only`: 削除済みのみ、`exclude`: 削除済みを除外 |
 | `completedFilter` | string | - | all | 完了状態フィルタ | `all`: 全件、`completed`: 完了済みのみ、`incomplete`: 未完了のみ |
 | `sortBy` | string | - | createdAt | ソート基準 | `createdAt`, `updatedAt`, `title` |
 | `sortOrder` | string | - | asc | ソート順序 | `asc`: 昇順、`desc`: 降順 |
@@ -132,20 +131,6 @@ curl -X GET "http://localhost:3000/api/todos?page=2&perPage=10" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-**削除済みを除外**
-
-```bash
-curl -X GET "http://localhost:3000/api/todos?filter=exclude" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-**削除済みのみ取得**
-
-```bash
-curl -X GET "http://localhost:3000/api/todos?filter=only" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
 **作成日時の降順でソート**
 
 ```bash
@@ -160,10 +145,10 @@ curl -X GET "http://localhost:3000/api/todos?sortBy=title&sortOrder=asc" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-**複合条件（2ページ目、20件、削除済み除外、作成日時降順）**
+**複合クエリ（2ページ目、20件、作成日時降順）**
 
 ```bash
-curl -X GET "http://localhost:3000/api/todos?page=2&perPage=20&filter=exclude&sortBy=createdAt&sortOrder=desc" \
+curl -X GET "http://localhost:3000/api/todos?page=2&perPage=20&sortBy=createdAt&sortOrder=desc" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
@@ -183,15 +168,10 @@ curl -X GET "http://localhost:3000/api/todos?completedFilter=completed" \
 
 **未完了タスクのみ削除済みを除外して取得**
 
-```bash
-curl -X GET "http://localhost:3000/api/todos?filter=exclude&completedFilter=incomplete" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
 ### 注意事項
 
 - デフォルトでは全件（削除済み含む、完了/未完了両方）を取得します
-- 削除状態フィルタ（`filter`）と完了状態フィルタ（`completedFilter`）は併用可能です
+- 完了状態フィルタ（`completedFilter`）でステータス絞り込みが可能です
 - ページネーションはデフォルトで20件/ページです
 - ソートはデフォルトで作成日時の昇順です
 - `perPage`の最大値は100です
@@ -623,7 +603,7 @@ curl -X DELETE http://localhost:3000/api/todos/550e8400-e29b-41d4-a716-446655440
 ### 注意事項
 
 - 削除は論理削除（`deleted`フラグをtrueに設定）で行われます
-- 論理削除されたTODOは、`filter=only`パラメータで取得できます
+- 論理削除されたTODOは削除後も存在し、`deleted: true`の状態で保持されます
 - 認証されたユーザーが所有するTODOのみ削除可能です
 - 削除後、`data`フィールドは`null`を返します
 
