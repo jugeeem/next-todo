@@ -1072,9 +1072,8 @@ export class TodoUseCase {
     const todos = await this.getTodosByUserId(userId);
 
     const totalTodos = todos.length;
-    // 現在のTodoエンティティには完了状態がないため、全て進行中として扱う
-    const completedTodos = 0; // TODO: 将来的に完了状態フィールドが追加された場合に実装
-    const pendingTodos = totalTodos;
+    const completedTodos = todos.filter((todo) => todo.completed).length;
+    const pendingTodos = todos.filter((todo) => !todo.completed).length;
     const completionRate =
       totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
 
