@@ -16,7 +16,7 @@ export default function Home() {
       router.replace('/todos');
     } else {
       // 未認証の場合は /auth/login にリダイレクト
-      router.replace('/auth/login');
+      router.replace('/login');
     }
   }, [router]);
 
