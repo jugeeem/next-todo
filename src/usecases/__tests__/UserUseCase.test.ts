@@ -33,6 +33,8 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   findAll: jest.fn(),
+  findWithFilters: jest.fn(),
+  changePassword: jest.fn(),
 };
 
 describe('UserUseCase', () => {
