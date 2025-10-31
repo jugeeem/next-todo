@@ -1,0 +1,166 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
+/**
+ * ログインページコンポーネント
+ * @returns {JSX.Element} ログインページのJSX要素
+ */
+export default function LoginPage() {
+  // stateの定義
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // ページ遷移用のフック
+  const router = useRouter();
+
+  /**
+   * 入力バリデーション
+   * @returns {boolean} true: バリデーション成功, false: バリデーション失敗
+   */
+  const validateInput = (): boolean => {
+    if (!username.trim()) {
+      setError("ユーザー名は必須です");
+      return false;
+    }
+    if (!password) {
+      setError("パスワードは必須です");
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * フォーム送信用のハンドラ
+   * @param {React.FormEvent} e フォームイベント
+   * @return {Promise<void>} 非同期処理
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // バリデーション設定
+    if (!validateInput()) {
+      return;
+    }
+
+    // ローディング開始
+    setIsLoading(true);
+    setError("");
+
+    // fetch APIを使用してログインリクエストを送信する
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        // JSON形式でデータを送信
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Cookieを送信するために追加
+        // 送信データの設定
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "ログインに失敗しました");
+      }
+
+      // ログイン成功後、TODOリストページへリダイレクト。ログイン後はログインページに戻らないようにreplaceを使用
+      router.replace("/todos");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      // ローディング終了
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      {/* コンテナ */}
+      <div className="w-full max-w-4xl mx-auto px-4 py-8">
+        {/* カードを中央に配置するためのコンテナ */}
+        <div className="max-w-md mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 text-center mb-6">
+            ログイン
+          </h1>
+          {/* カード */}
+          <div className="bg-white shadow-md rounded-2xl p-6">
+            {/* ログインフォーム */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/*ユーザー名の入力 */}
+              <div className="relative">
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
+                  placeholder="ユーザー名を入力"
+                />
+                <label
+                  htmlFor="username"
+                  className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
+                >
+                  ユーザー名
+                  <span className="text-red-600 text-xs ml-0.5">*</span>
+                </label>
+              </div>
+              {/*パスワードの入力 */}
+              <div className="relative">
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
+                  placeholder="パスワードを入力"
+                />
+                <label
+                  htmlFor="password"
+                  className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
+                >
+                  パスワード
+                  <span className="text-red-600 text-xs ml-0.5">*</span>
+                </label>
+              </div>
+              {/*エラーメッセージの表示 */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+              {/* ログインボタン */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              >
+                {isLoading ? "ログイン中..." : "ログイン"}
+              </button>
+            </form>
+            {/* 新規登録リンク */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                アカウントをお持ちでない場合は
+                <Link
+                  href="/register"
+                  className="text-blue-600 hover:underline"
+                >
+                  新規登録
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
