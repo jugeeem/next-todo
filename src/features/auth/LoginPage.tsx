@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+
 /**
  * ログインページコンポーネント
  * @returns {JSX.Element} ログインページのJSX要素
@@ -35,7 +36,7 @@ export default function LoginPage() {
   /**
    * フォーム送信用のハンドラ
    * @param {React.FormEvent} e フォームイベント
-   * @return {Promise<void>} 非同期処理
+   * @return {Promise<void>} 非同期処理完了を表すPromise
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,14 +58,13 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Cookieを送信するために追加
         // 送信データの設定
         body: JSON.stringify({
           username: username.trim(),
           password: password,
         }),
       });
-
+      // レスポンスのエラーチェック
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "ログインに失敗しました");
@@ -152,7 +152,7 @@ export default function LoginPage() {
                 アカウントをお持ちでない場合は
                 <Link
                   href="/register"
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:underline ml-1"
                 >
                   新規登録
                 </Link>
