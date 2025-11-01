@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Link from "next/link";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { z } from 'zod';
 
 /**
  * ログインページコンポーネント
@@ -10,28 +11,12 @@ import Link from "next/link";
  */
 export default function LoginPage() {
   // stateの定義
-  const [username, setUsername] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // ページ遷移用のフック
   const router = useRouter();
-
-  /**
-   * 入力バリデーション
-   * @returns {boolean} true: バリデーション成功, false: バリデーション失敗
-   */
-  const validateInput = (): boolean => {
-    if (!username.trim()) {
-      setError("ユーザー名は必須です");
-      return false;
-    }
-    if (!password) {
-      setError("パスワードは必須です");
-      return false;
-    }
-    return true;
-  };
 
   /**
    * フォーム送信用のハンドラ
@@ -40,23 +25,45 @@ export default function LoginPage() {
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-    // バリデーション設定
-    if (!validateInput()) {
+    // バリデーションスキーマの設定
+    /**
+     * Zodスキーマ定義
+     * @type {z.ZodObject} schema バリデーションスキーマ
+     */
+
+    const schema = z.object({
+      username: z
+        .string()
+        .min(1, 'ユーザー名は1文字以上で入力してください。')
+        .max(50, 'ユーザー名は50文字以下で入力してください。'),
+      password: z.string().min(6, 'パスワードは6文字以上で入力してください。'),
+    });
+    /**
+     * 入力バリデーションの実行
+     * @param {object} input 入力データ
+     * @returns {boolean} バリデーション結果
+     */
+    const validationInput = schema.safeParse({
+      username,
+      password,
+    });
+    // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
+    if (!validationInput.success) {
+      setError(validationInput.error.errors[0].message);
+      setIsLoading(false);
       return;
     }
 
-    // ローディング開始
-    setIsLoading(true);
-    setError("");
-
     // fetch APIを使用してログインリクエストを送信する
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         // JSON形式でデータを送信
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         // 送信データの設定
         body: JSON.stringify({
@@ -67,13 +74,13 @@ export default function LoginPage() {
       // レスポンスのエラーチェック
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "ログインに失敗しました");
+        throw new Error(errorData.error || 'ログインに失敗しました');
       }
 
       // ログイン成功後、TODOリストページへリダイレクト。ログイン後はログインページに戻らないようにreplaceを使用
-      router.replace("/todos");
+      router.replace('/todos');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       // ローディング終了
       setIsLoading(false);
@@ -143,17 +150,14 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors"
               >
-                {isLoading ? "ログイン中..." : "ログイン"}
+                {isLoading ? 'ログイン中...' : 'ログイン'}
               </button>
             </form>
             {/* 新規登録リンク */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 アカウントをお持ちでない場合は
-                <Link
-                  href="/register"
-                  className="text-blue-600 hover:underline ml-1"
-                >
+                <Link href="/register" className="text-blue-600 hover:underline ml-1">
                   新規登録
                 </Link>
               </p>
