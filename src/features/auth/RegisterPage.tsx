@@ -85,7 +85,7 @@ export default function RegisterPage() {
       // 登録成功後、ログインページへリダイレクト
       router.push('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       // ローディング終了
       setIsLoading(false);

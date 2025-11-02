@@ -80,7 +80,7 @@ export default function LoginPage() {
       // ログイン成功後、TODOリストページへリダイレクト。ログイン後はログインページに戻らないようにreplaceを使用
       router.replace('/todos');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'エラーが発生しました。');
     } finally {
       // ローディング終了
       setIsLoading(false);
