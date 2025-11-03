@@ -140,7 +140,8 @@ export default function TodoListPage() {
    * フィルター、ソート、ページネーションに基づいてTodo一覧データを取得します。
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  // fetchTodosは他の関数からも呼び出したいため、useCallbackでメモ化しています。
+  // fetchTodosは他の関数からも呼び出したいため、useCallbackでメモ化。
+  // page、completedFilter、sortBy、sortOrderが変更された場合にのみインスタンスを再生成します。これにより、後のuseEffectでの無限ループを防いでいます。
   const fetchTodos = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -187,7 +188,7 @@ export default function TodoListPage() {
   // コンポーネント初回レンダリング時にTodo一覧データを取得する。
   useEffect(() => {
     fetchTodos();
-  }, [fetchTodos]);
+  }, [fetchTodos]); // lintの警告回避のためにfetchTodosを依存配列に追加。
 
   /**
    * todo作成用の非同期関数。
