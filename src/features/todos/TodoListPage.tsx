@@ -376,7 +376,7 @@ export default function TodoListPage() {
             <button
               type="button"
               onClick={logout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 fontmedium transition-colors"
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
             </button>
