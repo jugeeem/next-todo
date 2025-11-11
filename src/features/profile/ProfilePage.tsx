@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
+import { logout } from '@/lib/api';
 
 // インターフェースの定義
 
@@ -66,6 +66,23 @@ interface Todo {
   updatedAt: string;
 }
 
+// STEP2: server_component(2025-11) ADD START
+/**
+ * Propsのインターフェース。
+ * プロフィールページコンポーネントに渡されるプロパティを定義します。
+ *
+ * @interface ProfilePageProps
+ * @property {User} userInfo - ユーザー情報
+ * @property {TodoStats} todoStats - Todo統計情報
+ * @property {Todo[]} userTodos - ユーザーのTodo一覧
+ */
+interface Props {
+  userInfo: User;
+  todoStats: TodoStats;
+  userTodos: Todo[];
+}
+// STEP2: server_component(2025-11) ADD END
+
 // バリデーションスキーマの定義
 
 /**
@@ -94,20 +111,19 @@ const passwordChangeSchema = z.object({
  * プロフィールページのコンポーネント。
  * ユーザー情報の表示・編集、Todoリストの統計、パスワードの変更機能を提供します。
  *
+ * @param {Props} props - プロフィールページのプロパティ。
  * @return {JSX.Element} プロフィールページのJSX要素。
  */
-export default function ProfilePage() {
+// STEP2: server_component(2025-11) MOD START
+// サーバーコンポーネントとして動作するようにPropsを受け取るように変更。
+export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   // ステートの定義
   // ユーザー情報
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User>(userInfo);
   // ユーザーの名前
-  const [firstName, setFirstName] = useState<string>('');
+  const [firstName, setFirstName] = useState<string>(userInfo.firstName || '');
   // ユーザーの苗字
-  const [lastName, setLastName] = useState<string>('');
-  // Todo統計情報
-  const [stats, setStats] = useState<TodoStats | null>(null);
-  // ユーザーのTodoリスト
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [lastName, setLastName] = useState<string>(userInfo.lastName || '');
   // 現在のパスワード
   const [currentPassword, setCurrentPassword] = useState<string>('');
   // 新しいパスワード
@@ -118,8 +134,6 @@ export default function ProfilePage() {
   const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
   // パスワード変更フラグ
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
-  // ローディングフラグ
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   // プロフィール保存中フラグ
   const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
   // パスワード保存中フラグ
@@ -132,68 +146,6 @@ export default function ProfilePage() {
   // const [successMessage, setSuccessMessage] = useState<string>('');
   const [profileSuccessMessage, setProfileSuccessMessage] = useState<string>('');
   const [passwordSuccessMessage, setPasswordSuccessMessage] = useState<string>('');
-
-  // ページ遷移用のフック
-  const router = useRouter();
-
-  useEffect(() => {
-    /**
-     * 初期データ取得用の非同期関数。
-     * ユーザー情報、Todo統計情報、Todo一覧を平行して取得します。
-     *
-     */
-    const fetchInitialData = async () => {
-      setIsLoading(true);
-      setError('');
-
-      try {
-        // ユーザー情報、Todo統計情報、Todo一覧の取得を平行して実行
-        const [userResponse, statsResponse, todosResponse] = await Promise.all([
-          fetch('/api/users/me'),
-          fetch('/api/users/me/todos/stats'),
-          fetch('/api/users/me/todos'),
-        ]);
-
-        // 401レスポンスの場合はログインページにリダイレクト
-        if (userResponse.status === 401) {
-          router.push('/login');
-          return;
-        }
-
-        // ユーザー情報の取得に失敗した場合のエラーハンドリング
-        if (!userResponse.ok) {
-          throw new Error('ユーザー情報の取得に失敗しました');
-        }
-        // 認証成功後、ユーザー情報の設定処理を行う
-        const userData = await userResponse.json();
-        setUser(userData.data);
-        setFirstName(userData.data.firstName || '');
-        setLastName(userData.data.lastName || '');
-
-        // Todo統計情報の取得に失敗した場合のエラーハンドリング
-        if (!statsResponse.ok) {
-          throw new Error('Todo統計の取得に失敗しました');
-        }
-        // 認証成功後、Todo統計情報の設定処理を行う
-        const statsData = await statsResponse.json();
-        setStats(statsData.data);
-
-        // Todo一覧の取得に失敗した場合のエラーハンドリング
-        if (!todosResponse.ok) {
-          throw new Error('Todo一覧の取得に失敗しました');
-        }
-        // 認証成功後、Todo一覧の設定処理を行う
-        const todosData = await todosResponse.json();
-        setTodos(todosData.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    // 実行
-    fetchInitialData();
-  }, [router]);
 
   /**
    * プロフィール更新用の非同期関数。
@@ -339,15 +291,8 @@ export default function ProfilePage() {
    *
    * @return {Promise<void>} - 非同期処理の完了を示すPromise
    */
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
-    } catch (err) {
-      console.error('ログアウトに失敗しました', err);
-    }
+  const handleLogout = async () => {
+    await logout();
   };
 
   /**
@@ -356,10 +301,8 @@ export default function ProfilePage() {
    */
   const cancelEditProfile = () => {
     // 元のユーザー情報に戻す。ユーザー名がnullの場合は空文字をセットする。
-    if (user) {
-      setFirstName(user.firstName || '');
-      setLastName(user.lastName || '');
-    }
+    setFirstName(user.firstName || '');
+    setLastName(user.lastName || '');
     // 編集モードの終了とエラーメッセージのクリア
     setIsEditingProfile(false);
     setError('');
@@ -379,24 +322,7 @@ export default function ProfilePage() {
     setIsChangingPassword(false);
   };
 
-  // ロード中表示画面
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500 text-lg">読み込み中...</div>
-      </div>
-    );
-  }
-
-  // ユーザー情報が取得できなかった場合の表示画面
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-red-500 text-lg">ユーザー情報の取得に失敗しました。</div>
-      </div>
-    );
-  }
-
+  // STEP2: server_component(2025-11) MOD END
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}
@@ -436,7 +362,7 @@ export default function ProfilePage() {
             {/* ログアウトボタン */}
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
@@ -560,34 +486,36 @@ export default function ProfilePage() {
           )}
         </div>
         {/* Todo統計情報 */}
-        {stats && (
+        {todoStats && (
           <div className="bg-white shadow-md rounded-lg p-8 mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-6">Todo統計</h2>
             {/* 総Todo数 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 text-center">
                 <p className="text-sm font-medium text-blue-600 mb-1">総Todo数</p>
-                <p className="text-3xl font-bold text-blue-900">{stats.totalTodos}</p>
+                <p className="text-3xl font-bold text-blue-900">
+                  {todoStats.totalTodos}
+                </p>
               </div>
               {/* 完了済みTodo数 */}
               <div className="bg-green-50 rounded-lg p-4 text-center">
                 <p className="text-sm font-medium text-green-600 mb-1">完了済み</p>
                 <p className="text-3xl font-bold text-green-900">
-                  {stats.completedTodos}
+                  {todoStats.completedTodos}
                 </p>
               </div>
               {/* 未完了Todo数 */}
               <div className="bg-yellow-50 rounded-lg p-4 text-center">
                 <p className="text-sm font-medium text-yellow-600 mb-1">未完了</p>
                 <p className="text-3xl font-bold text-yellow-900">
-                  {stats.pendingTodos}
+                  {todoStats.pendingTodos}
                 </p>
               </div>
               {/* 完了率 */}
               <div className="bg-purple-50 rounded-lg p-4 text-center">
                 <p className="text-sm font-medium text-purple-600 mb-1">完了率</p>
                 <p className="text-3xl font-bold text-purple-900">
-                  {stats.completionRate.toFixed(1)}%
+                  {todoStats.completionRate.toFixed(1)}%
                 </p>
               </div>
             </div>
@@ -596,11 +524,11 @@ export default function ProfilePage() {
         {/* 自分のTodo一覧表示 */}
         <div className="bg-white shadow-md rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h2>
-          {todos.length === 0 ? (
+          {userTodos.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Todoがありません</p>
           ) : (
             <div className="space-y-3">
-              {todos.slice(0, 20).map((todo) => (
+              {userTodos.slice(0, 20).map((todo) => (
                 <Link
                   key={todo.id}
                   href={`/todos/${todo.id}`}
@@ -634,7 +562,7 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
-          {todos.length > 5 && (
+          {userTodos.length > 5 && (
             <div>
               <Link
                 href="/todos"

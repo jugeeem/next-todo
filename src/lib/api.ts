@@ -126,6 +126,47 @@ export async function fetchCurrentUser() {
   return result.data;
 }
 
+/**
+ * Todo統計情報を取得。
+ * プロフィールページでの統計表示に使用されます。
+ */
+export async function fetchTodoStats() {
+  // APIリクエストの実行
+  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos/stats`);
+
+  // エラー発生時の処理
+  if (!response.ok) {
+    // 認証エラー発生時の処理
+    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    // その他のエラーの発生時の処理
+    throw new Error('Todo統計情報の取得に失敗しました');
+  }
+
+  // レスポンス内の必要なデータを抽出して返す
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * ユーザーのTodo一覧を取得。（プロフィールページ用）
+ * プロフィールページでユーザーのTodo一覧を表示するために使用されます。
+ */
+export async function fetchUserTodos() {
+  // APIリクエストの実行
+  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos`);
+
+  // エラー発生時の処理
+  if (!response.ok) {
+    // 認証エラー発生時の処理
+    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    // その他のエラー発生時の処理
+    throw new Error('Todo一覧の取得に失敗しました');
+  }
+  // レスポンス内の必要なデータを抽出して返す
+  const result = await response.json();
+  return result.data || [];
+}
+
 // ===============================================
 // サーバーアクション（クライアントコンポーネントから呼び出し可能）
 // ===============================================
@@ -334,6 +375,9 @@ export async function deleteTodo(id: string) {
 /**
  * Todo詳細取得処理（サーバーアクション）。
  * クライアント側でTodo詳細取得時に呼び出されます。
+ *
+ * @param id TodoのID
+ * @returns Todo詳細情報の取得結果
  */
 export async function getTodoDetail(id: string) {
   try {
