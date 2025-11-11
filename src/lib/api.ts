@@ -79,6 +79,31 @@ export async function fetchTodos(params?: {
 }
 
 /**
+ * Todo詳細を取得。
+ * Todo詳細取得APIを呼び出して結果を返します。
+ *
+ * @param id TodoのID
+ * @returns Todo詳細情報データ
+ * @throws エラーが発生した場合は例外をスロー
+ */
+export async function fetchTodoById(id: string) {
+  // APIリクエストの実行。
+  const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`);
+
+  // エラー発生時の処理。
+  if (!response.ok) {
+    // 認証エラー発生時の処理
+    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    // その他のエラー発生時の処理
+    throw new Error('Todoの取得に失敗しました');
+  }
+
+  // レスポンス内の必要なデータを抽出して返す。
+  const result = await response.json();
+  return result.data;
+}
+
+/**
  * 現在のユーザー情報を取得。
  * ユーザー情報取得APIを呼び出して結果を返します。
  *
@@ -305,4 +330,40 @@ export async function deleteTodo(id: string) {
     };
   }
 }
+
+/**
+ * Todo詳細取得処理（サーバーアクション）。
+ * クライアント側でTodo詳細取得時に呼び出されます。
+ */
+export async function getTodoDetail(id: string) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`);
+
+    // 認証エラー発生時はログインページへリダイレクト
+    if (response.status === 401) {
+      redirect('/login');
+    }
+    // エラー発生時の処理
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Todoの取得に失敗しました',
+      };
+    }
+
+    // レスポンスのJSONをオブジェクトに変換して返す。
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    // 例外発生時のレスポンス
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
+    };
+  }
+}
+
 // STEP2: server_component(2025-11) ADD END
