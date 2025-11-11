@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import { createTodo, deleteTodo, getTodoList, logout, updateTodo } from '@/lib/api';
 
 // インターフェースの定義
 
@@ -27,7 +27,7 @@ interface PaginationInfo {
  * @interface Todo
  * @property {number} id - TODO ID
  * @property {string} title - TODOタイトル
- * @property {string} [descriptions] - TODO説明（任意）
+ * @property {string | null} [descriptions] - TODO説明（任意）
  * @property {boolean} completed - 完了状態
  * @property {number} userId - ユーザーID
  * @property {string} createdAt - 作成日時（ISO8601形式）
@@ -43,6 +43,45 @@ interface Todo {
   createdAt: string;
   updatedAt: string;
 }
+
+// STEP2: server_component(2025-11) ADD START
+
+/**
+ * Todo一覧取得レスポンス
+ * Todo一覧取得APIのレスポンス型インターフェースです。
+ * @interface TodoListResponse
+ * @property {boolean} success - 処理成功フラグ
+ * @property {object} data - レスポンスデータ
+ * @property {Todo[]} data.data - Todo一覧データ
+ * @property {number} data.total - 総Todo数
+ * @property {number} data.page - 現在のページ番号
+ * @property {number} data.perPage - 1ページあたりのTodo数
+ * @property {number} data.totalPages - 総ページ数
+ */
+interface TodoListResponse {
+  success: boolean;
+  data: {
+    data: Todo[];
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  };
+}
+
+/**
+ * Propsの定義。
+ * TodoListPageコンポーネントに渡されるpropsの型インターフェースです。
+ * @interface Props
+ * @property {TodoListResponse} [initialData] - 初期表示用のTodo一覧データ
+ * @property {number} [currentUserRole] - 現在のユーザーの権限レベル
+ */
+interface Props {
+  initialData?: TodoListResponse;
+  currentUserRole?: number;
+}
+
+// STEP2: server_component(2025-11) ADD END
 
 // バリデーションスキーマの定義
 /**
@@ -65,15 +104,37 @@ const createTodoSchema = z.object({
  *
  * @returns {JSX.Element} - Todo一覧表示画面のJSX要素
  */
-export default function TodoListPage() {
+// STEP2: server_component(2025-11) MOD START
+// Propsを受け取るように変更する。
+export default function TodoListPage({
+  initialData,
+  currentUserRole: initialUserRole,
+}: Props) {
+  // STEP2: server_component(2025-11) MOD END
+
   // ステートの管理
+  // STEP2: server_component(2025-11) MOD START
+  // 初期データをpropsから受け取るように変更する。
 
   // Todo一覧データ
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [todos, setTodos] = useState<Todo[]>(initialData?.data?.data || []);
   // 現在のページ番号
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage] = useState<number>(initialData?.data?.page || 1);
   // ページネーション情報
-  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(
+    initialData
+      ? {
+          currentPage: initialData.data.page,
+          totalPages: initialData.data.totalPages,
+          totalItems: initialData.data.total,
+          itemsPerPage: initialData.data.perPage,
+        }
+      : null,
+  );
+  const [currentUserRole, _setCurrentUserRole] = useState<number>(initialUserRole || 4);
+
+  // STEP2: server_component(2025-11) MOD END
+
   // フィルターとソートの状態管理
   const [completedFilter, setCompletedFilter] = useState<
     'all' | 'completed' | 'incomplete'
@@ -95,83 +156,44 @@ export default function TodoListPage() {
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
-  const [currentUserRole, setCurrentUserRole] = useState<number>(4);
 
-  // ページ遷移用のフック
-  const router = useRouter();
+  // STEP2: server_component(2025-11) DEL START
+  // const router = useRouter();
+  // STEP2: server_component(2025-11) DEL END
 
   // スクロール位置保持用のref
   const scrollPositionRef = useRef<number>(0);
 
-  // 現在のユーザー情報を取得して、権限レベルを設定する。
-  useEffect(() => {
-    /**
-     * ロール設定用の非同期関数。
-     * 現在のユーザー情報を取得して、権限レベルを設定します。
-     * @returns {Promise<void>} 非同期処理完了を表すPromise
-     */
-    const fetchUserInfo = async () => {
-      try {
-        const response = await fetch('/api/users/me');
-
-        // 認証エラーの場合はログインページへリダイレクト
-        if (response.status === 401) {
-          router.push('/login');
-          return;
-        }
-
-        // 認証OKの場合の処理
-        if (response.ok) {
-          const data = await response.json();
-          // 現在ログイン中のユーザー情報を参照して権限レベルをステートに設定する。
-          setCurrentUserRole(data.data.role);
-        }
-      } catch (err) {
-        console.error('ユーザー情報の取得に失敗しました:', err);
-      }
-    };
-
-    fetchUserInfo();
-  }, [router]);
-
-  // Todo一覧データを取得する。
+  // STEP2: server_component(2025-11) MOD START
   /**
-   * Todo一覧データ取得用の非同期関数。
+   * Todo一覧データ取得用の非同期関数。(サーバーアクションを使用)
    * フィルター、ソート、ページネーションに基づいてTodo一覧データを取得します。
+   *
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  // fetchTodosは他の関数からも呼び出したいため、useCallbackでメモ化。
-  // page、completedFilter、sortBy、sortOrderが変更された場合にのみインスタンスを再生成します。これにより、後のuseEffectでの無限ループを防いでいます。
   const fetchTodos = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      // クエリパラメータを構築
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        perPage: '20',
+      // サーバーアクションの呼び出し
+      const result = await getTodoList({
+        page,
+        perPage: 20,
         completedFilter,
         sortBy,
         sortOrder,
       });
 
-      // APIエンドポイントにリクエストを送信
-      const response = await fetch(`/api/todos?${queryParams}`);
-
-      // エラーが発生した場合の処理
-      if (!response.ok) {
-        throw new Error('Todo一覧の取得に失敗しました');
+      // 取得失敗時の処理
+      if (!result.success) {
+        throw new Error(result.error || 'Todo一覧の取得に失敗しました');
       }
-      // JSONデータをオブジェクトに変換する。
-      const data = await response.json();
 
       // Todo一覧データとページネーション情報をステートに設定する。
-      const responseData = data.data;
+      const responseData = result.data;
       // Todo一覧データをステートに設定する。
       setTodos(responseData.data || []);
-
-      // ページネーション情報を設定する。
       setPaginationInfo({
         currentPage: responseData.page,
         totalPages: responseData.totalPages,
@@ -185,19 +207,15 @@ export default function TodoListPage() {
     }
   }, [page, completedFilter, sortBy, sortOrder]);
 
-  // コンポーネント初回レンダリング時にTodo一覧データを取得する。
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]); // lintの警告回避のためにfetchTodosを依存配列に追加。
-
   /**
-   * todo作成用の非同期関数。
-   * フォーム送信時に呼び出され、新規Todoを登録します。
+   * todo作成用の非同期関数。(サーバーアクションを使用)
+   * フォーム送信時に呼び出され、新規Todoを作成します。
    * @param {React.FormEvent} e フォームイベント
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const createTodo = async (e: React.FormEvent) => {
+  const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError('');
 
     /**
      * 入力バリデーションの実行
@@ -214,33 +232,24 @@ export default function TodoListPage() {
 
     // Todo作成処理開始
     setIsCreating(true);
-    setError('');
 
     try {
-      const response = await fetch('/api/todos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTodoTitle.trim(),
-          descriptions: newTodoDescription.trim() || undefined,
-        }),
+      // サーバーアクションの呼び出し
+      const result = await createTodo({
+        title: newTodoTitle.trim(),
+        descriptions: newTodoDescription.trim() || undefined,
       });
-
-      // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Todoの作成に失敗しました');
+      // 作成失敗時の処理
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの作成に失敗しました');
       }
 
-      // 成功したらフォームをリセットして、Todo一覧を再取得する。
+      // 作成成功時は入力欄をクリアして一覧を再取得する。
       setNewTodoTitle('');
       setNewTodoDescription('');
-      // Todo一覧を再取得する。
       await fetchTodos();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました');
     } finally {
       setIsCreating(false);
     }
@@ -256,27 +265,20 @@ export default function TodoListPage() {
     scrollPositionRef.current = window.scrollY;
 
     try {
-      const response = await fetch(`/api/todos/${todo.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: todo.title,
-          descriptions: todo.descriptions ?? undefined, // 値がない場合はundefinedを設定する。
-          completed: !todo.completed,
-        }),
+      // 完了状態切替のサーバーアクションを呼び出す
+      const result = await updateTodo(todo.id, {
+        title: todo.title,
+        descriptions: todo.descriptions || undefined,
+        completed: !todo.completed,
       });
 
-      // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Todoの更新に失敗しました');
+      // 更新失敗時の処理
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの更新に失敗しました');
       }
 
-      // 一覧を再取得する。
+      // 更新成功時は一覧を再取得し、スクロール位置を復元する。
       await fetchTodos();
-      // スクロール位置を復元する。
       setTimeout(() => {
         window.scrollTo(0, scrollPositionRef.current);
       }, 0);
@@ -284,48 +286,51 @@ export default function TodoListPage() {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     }
   };
+
   /**
-   * Todo削除用の非同期関数。
+   * Todo削除用の非同期関数。（サーバーアクションを使用）
    * 指定したTodoの削除処理を行い、Todo一覧を再取得します。
    * @param {number} todoId - 削除対象のTodo ID
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const deleteTodo = async (todoId: number) => {
+  const handleDeleteTodo = async (todoId: number) => {
     // 削除確認
     if (!confirm('このTodoを削除してもよろしいですか？')) return;
     try {
-      const response = await fetch(`/api/todos/${todoId}`, {
-        method: 'DELETE',
-      });
+      // サーバーアクションの呼び出し
+      const result = await deleteTodo(todoId.toString());
 
-      // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Todoの削除に失敗しました');
+      // 削除失敗時の処理
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの削除に失敗しました');
       }
 
-      // 一覧を再取得する。
+      // 削除成功時は一覧を再取得する。
       await fetchTodos();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
     }
   };
   /**
-   * ログアウト用の非同期関数。
-   * アカウントのログアウト処理を行い、ログインページへリダイレクトします。
+   * ログアウト用の非同期関数。（サーバーアクションを使用）
+   * サーバーアクション内でリダイレクト処理が実行されます。
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      // ログインページへリダイレクト
-      router.push('/login');
-    } catch (err) {
-      console.error('ログアウトに失敗しました:', err);
-    }
+  const handleLogout = async () => {
+    await logout();
   };
+  // STEP2: server_component(2025-11) MOD END
+
+  // STEP2: server_component(2025-11) ADD START
+  // フィルター変更時の処理
+  useEffect(() => {
+    // 初期データが存在する場合は、フィルター変更時に再取得する
+    if (initialData) {
+      fetchTodos();
+    }
+  }, [initialData, fetchTodos]);
+
+  // STEP2: server_component(2025-11) ADD END
 
   /**
    * テキストエリアの自動リサイズ関数
@@ -375,7 +380,7 @@ export default function TodoListPage() {
 
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
@@ -399,7 +404,7 @@ export default function TodoListPage() {
             新しいTodoを作成
           </h2>
 
-          <form onSubmit={createTodo} className="space-y-6">
+          <form onSubmit={handleCreateTodo} className="space-y-6">
             {/* タイトル入力欄 */}
             <div className="relative">
               <input
@@ -614,7 +619,7 @@ export default function TodoListPage() {
                     {/* 削除ボタン */}
                     <button
                       type="submit"
-                      onClick={() => deleteTodo(todo.id)}
+                      onClick={() => handleDeleteTodo(todo.id)}
                       className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium cursor-pointer"
                     >
                       削除
