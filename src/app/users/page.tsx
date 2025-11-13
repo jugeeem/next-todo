@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import UserListPage from '@/features/users/UserListPage';
 import { fetchCurrentUser } from '@/lib/api';
 
+export const dynamic = 'force-dynamic';
+
 // STEP2: server_component(2025-11) ADD START
 /**
  * ユーザー管理ページ(サーバーコンポーネント)

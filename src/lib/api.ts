@@ -167,6 +167,56 @@ export async function fetchUserTodos() {
   return result.data || [];
 }
 
+/**
+ * 特定ユーザーの詳細情報を取得。
+ * ユーザーIDに基づいてユーザー詳細情報を取得します。
+ *
+ * @param userId ユーザーID
+ * @return ユーザー詳細情報のJSONデータ
+ * @throws エラーが発生した場合は例外をスロー
+ */
+export async function fetchUserById(userId: string) {
+  // APIリクエストの実行
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}`);
+
+  // エラー発生時の処理
+  if (!response.ok) {
+    // 認証エラー発生時の処理
+    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    // その他のエラー発生時の処理
+    throw new Error('ユーザー情報の取得に失敗しました');
+  }
+
+  // レスポンス内の必要なデータを抽出して返す
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * 特定ユーザーのTodo一覧を取得。
+ * ユーザーIDに基づいてそのユーザーのTodo一覧を取得します。
+ *
+ * @param userId ユーザーID
+ * @return ユーザーのTodo一覧のJSONデータ
+ * @throws エラーが発生した場合は例外をスロー
+ */
+export async function fetchUserTodosById(userId: string) {
+  // APIリクエストの実行
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/todos`);
+
+  // エラー発生時の処理
+  if (!response.ok) {
+    // 認証エラー発生時の処理
+    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    // その他のエラー発生時の処理
+    throw new Error('Todo一覧の取得に失敗しました');
+  }
+
+  // レスポンス内の必要なデータを抽出して返す
+  const result = await response.json();
+  return result.data || [];
+}
+
 // ===============================================
 // サーバーアクション（クライアントコンポーネントから呼び出し可能）
 // ===============================================
@@ -406,6 +456,92 @@ export async function getTodoDetail(id: string) {
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー情報更新処理（サーバーアクション）
+ * クライアント側でユーザー情報更新時に呼び出されます。
+ *
+ * @param userId ユーザーID
+ * @param formData 更新するユーザーデータ
+ * @return ユーザー情報更新の実行結果
+ */
+
+export async function updateUser(
+  userId: string,
+  formData: {
+    firstName?: string;
+    lastName?: string;
+    role?: number;
+  },
+) {
+  try {
+    // APIリクエストの実行
+    const response = await fetchWithAuth(`${API_URL}/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    // エラー発生時の処理
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザー情報の更新に失敗しました',
+      };
+    }
+
+    // 正常終了時、実行結果を返す。
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    return {
+      // 例外発生時のレスポンス
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザー情報の更新に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー削除処理（サーバーアクション）
+ * クライアント側でユーザー削除時に呼び出されます。
+ *
+ * @param userId ユーザーID
+ * @return ユーザー削除の実行結果
+ */
+export async function deleteUser(userId: string) {
+  try {
+    // APIリクエストの実行
+    const response = await fetchWithAuth(`${API_URL}/api/users/${userId}`, {
+      method: 'DELETE',
+    });
+
+    // エラー発生時の処理
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザーの削除に失敗しました',
+      };
+    }
+    // 正常終了時、実行結果を返す。
+    return {
+      success: true,
+    };
+  } catch (err) {
+    // 例外発生時のレスポンス
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザーの削除に失敗しました',
     };
   }
 }
