@@ -3,7 +3,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-// STEP2: server_component(2025-11) ADD START
 /** APIのベースURL */
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -359,7 +358,7 @@ export async function updateTodo(
     const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`, {
       method: 'PUT',
       headers: {
-        'Conternt-Type': 'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         title: formData.title,
@@ -545,5 +544,3 @@ export async function deleteUser(userId: string) {
     };
   }
 }
-
-// STEP2: server_component(2025-11) ADD END

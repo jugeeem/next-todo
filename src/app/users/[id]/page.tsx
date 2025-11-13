@@ -12,11 +12,12 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// STEP2: STEP2: server_component(2025-11) ADD START
 /**
  * ユーザー詳細ページのサーバーコンポーネント。
  * ユーザーIDに基づいて特定のユーザーの詳細情報とそのTodo一覧を取得し、UserDetailPageコンポーネントに渡します。
- * @param param0
+ *
+ * @param {PageProps} props - Pageコンポーネントに渡されるprops
+ * @returns {JSX.Element} ユーザー詳細ページコンポーネント
  */
 export default async function Page({ params }: PageProps) {
   try {
@@ -66,5 +67,3 @@ export default async function Page({ params }: PageProps) {
     throw err;
   }
 }
-
-// STEP2: STEP2: server_component(2025-11) ADD END

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import TodoDetailPage from '@/features/todos/TodoDetailPage';
 import { fetchCurrentUser, fetchTodoById } from '@/lib/api';
 
-// STEP2: server_component(2025-11) ADD START
 /**
  * Todo詳細ページ（サーバーコンポーネント）。
  * Todo詳細表示のために必要なデータをサーバー側で取得し、TodoDetailPageコンポーネントに渡します。

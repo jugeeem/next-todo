@@ -60,14 +60,13 @@ interface Todo {
  * @interface UserDetailPageProps
  * @property {Promise<{ id: string }>} params - URLパラメータとして渡されるユーザーIDを含むオブジェクトのPromise
  */
-// STEP2: server_component(2025-11) MOD START
 interface UserDetailPageProps {
   initialUser: User;
   initialTodos: Todo[];
   currentUserRole: number;
   currentUserId: string;
 }
-// STEP2: server_component(2025-11) MOD END
+
 /**
  * 権限情報とラベルの対応表
  *
@@ -97,8 +96,6 @@ const roleStyles: Record<number, string> = {
  *
  * @param props - params.id
  */
-// STEP2: server_component(2025-11) MOD START
-// ステートに初期値を設定。
 export default function UserDetailPage({
   initialUser,
   initialTodos,
@@ -223,7 +220,6 @@ export default function UserDetailPage({
     }
     return 'name is not set';
   };
-  // STEP2: server_component(2025-11) MOD END
 
   // 表示するTodoリストを取得
   const displayTodos = todos.slice(0, displayTodoCount);

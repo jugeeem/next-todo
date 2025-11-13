@@ -44,8 +44,6 @@ interface Todo {
   updatedAt: string;
 }
 
-// STEP2: server_component(2025-11) ADD START
-
 /**
  * Todo一覧取得レスポンス
  * Todo一覧取得APIのレスポンス型インターフェースです。
@@ -81,8 +79,6 @@ interface Props {
   currentUserRole?: number;
 }
 
-// STEP2: server_component(2025-11) ADD END
-
 // バリデーションスキーマの定義
 /**
  * Todo作成用のバリデーションスキーマ
@@ -104,18 +100,11 @@ const createTodoSchema = z.object({
  *
  * @returns {JSX.Element} - Todo一覧表示画面のJSX要素
  */
-// STEP2: server_component(2025-11) MOD START
-// Propsを受け取るように変更する。
 export default function TodoListPage({
   initialData,
   currentUserRole: initialUserRole,
 }: Props) {
-  // STEP2: server_component(2025-11) MOD END
-
   // ステートの管理
-  // STEP2: server_component(2025-11) MOD START
-  // 初期データをpropsから受け取るように変更する。
-
   // Todo一覧データ
   const [todos, setTodos] = useState<Todo[]>(initialData?.data?.data || []);
   // 現在のページ番号
@@ -132,8 +121,6 @@ export default function TodoListPage({
       : null,
   );
   const [currentUserRole, _setCurrentUserRole] = useState<number>(initialUserRole || 4);
-
-  // STEP2: server_component(2025-11) MOD END
 
   // フィルターとソートの状態管理
   const [completedFilter, setCompletedFilter] = useState<
@@ -157,14 +144,9 @@ export default function TodoListPage({
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
 
-  // STEP2: server_component(2025-11) DEL START
-  // const router = useRouter();
-  // STEP2: server_component(2025-11) DEL END
-
   // スクロール位置保持用のref
   const scrollPositionRef = useRef<number>(0);
 
-  // STEP2: server_component(2025-11) MOD START
   /**
    * Todo一覧データ取得用の非同期関数。(サーバーアクションを使用)
    * フィルター、ソート、ページネーションに基づいてTodo一覧データを取得します。
@@ -319,9 +301,7 @@ export default function TodoListPage({
   const handleLogout = async () => {
     await logout();
   };
-  // STEP2: server_component(2025-11) MOD END
 
-  // STEP2: server_component(2025-11) ADD START
   // フィルター変更時の処理
   useEffect(() => {
     // 初期データが存在する場合は、フィルター変更時に再取得する
@@ -329,8 +309,6 @@ export default function TodoListPage({
       fetchTodos();
     }
   }, [initialData, fetchTodos]);
-
-  // STEP2: server_component(2025-11) ADD END
 
   /**
    * テキストエリアの自動リサイズ関数

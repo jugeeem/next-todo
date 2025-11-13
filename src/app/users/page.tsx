@@ -4,7 +4,6 @@ import { fetchCurrentUser } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
-// STEP2: server_component(2025-11) ADD START
 /**
  * ユーザー管理ページ(サーバーコンポーネント)
  * 現在のユーザー情報をサーバー側で取得し、UserListPageコンポーネントに渡します。
@@ -31,4 +30,3 @@ export default async function UserListServerPage() {
     redirect('/login');
   }
 }
-// STEP2: server_component(2025-11) ADD END

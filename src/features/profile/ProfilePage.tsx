@@ -66,7 +66,6 @@ interface Todo {
   updatedAt: string;
 }
 
-// STEP2: server_component(2025-11) ADD START
 /**
  * Propsのインターフェース。
  * プロフィールページコンポーネントに渡されるプロパティを定義します。
@@ -81,7 +80,6 @@ interface Props {
   todoStats: TodoStats;
   userTodos: Todo[];
 }
-// STEP2: server_component(2025-11) ADD END
 
 // バリデーションスキーマの定義
 
@@ -114,8 +112,6 @@ const passwordChangeSchema = z.object({
  * @param {Props} props - プロフィールページのプロパティ。
  * @return {JSX.Element} プロフィールページのJSX要素。
  */
-// STEP2: server_component(2025-11) MOD START
-// サーバーコンポーネントとして動作するようにPropsを受け取るように変更。
 export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   // ステートの定義
   // ユーザー情報
@@ -322,7 +318,6 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
     setIsChangingPassword(false);
   };
 
-  // STEP2: server_component(2025-11) MOD END
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}

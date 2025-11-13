@@ -47,7 +47,6 @@ interface PaginationInfo {
   itemsPerPage: number;
 }
 
-// STEP2: server_component(2025-11) ADD START
 /**
  * Propsのインターフェース。
  * UserListPageコンポーネントに渡されるpropsの型を定義します。
@@ -56,8 +55,6 @@ interface Props {
   currentUserId: string;
   currentUserRole: number;
 }
-
-// STEP2: server_component(2025-11) ADD END
 
 /**
  * ロール番号とラベルの対応表。
@@ -87,7 +84,6 @@ const roleStyles: Record<number, string> = {
  * ADMINおよびMANAGER専用のユーザー管理画面を表示するコンポーネントです。
  * @returns
  */
-// STEP2: server_component(2025-11) MOD START
 export default function UserListPage({ currentUserId, currentUserRole }: Props) {
   // ステートの管理
 

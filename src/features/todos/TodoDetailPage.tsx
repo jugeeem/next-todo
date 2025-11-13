@@ -28,7 +28,7 @@ interface Todo {
   createdAt: string;
   updatedAt: string;
 }
-// STEP2: client_component(2025-11) ADD START
+
 /**
  * Propインターフェース。
  * Propとして渡されるデータの型を定義します。
@@ -37,7 +37,6 @@ interface Props {
   selectedTodo?: Todo;
   currentUserRole?: number;
 }
-// STEP2: client_component(2025-11) ADD END
 
 /**
  * Todo更新用のバリデーションスキーマ。
@@ -51,8 +50,6 @@ const updateTodoSchema = z.object({
   descriptions: z.string().max(128, '説明は128文字以内で入力してください').optional(),
 });
 
-// STEP2: client_component(2025-11) MOD START
-// 各ステートに初期値を設定する。 Propsから受け取ったselectedTodoとcurrentUserRoleを使用。
 /**
  * Todo詳細/編集ページのコンポーネント。
  *
@@ -80,13 +77,10 @@ export default function TodoDetailPage({
   const [error, setError] = useState<string>('');
   // 現在のユーザーの権限情報
   const [currentUserRole] = useState<number>(initialUserRole || 4);
-  // STEP2: client_component(2025-11) MOD END
 
   const params = useParams();
   const todoId = params.id as string;
 
-  // STEP2: client_component(2025-11) MOD START
-  // サーバーアクションを使用したデータ操作に変更
   /**
    * 初回レンダリング時の処理。
    * ユーザー情報とTODO詳細の取得を行います。
@@ -218,7 +212,6 @@ export default function TodoDetailPage({
   const handleLogout = async () => {
     await logout(); // サーバーアクションを使用してログアウトを実行
   };
-  // STEP2: client_component(2025-11) MOD END
 
   /**
    * 編集キャンセル時の処理。

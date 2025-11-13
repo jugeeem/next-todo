@@ -1,6 +1,5 @@
 'use server';
 
-// STEP2: server_component(2025-11) ADD START
 import { redirect } from 'next/navigation';
 import ProfilePage from '@/features/profile/ProfilePage';
 import { fetchCurrentUser, fetchTodoStats, fetchUserTodos } from '@/lib/api';
@@ -33,4 +32,3 @@ export default async function Page() {
     throw err;
   }
 }
-// STEP2: server_component(2025-11) ADD END

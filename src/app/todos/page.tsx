@@ -1,12 +1,7 @@
-// STEP2: server_component(2025-11) DEL START
-// 'use client';
-// STEP2: server_component(2025-11) DEL END
-
 import { redirect } from 'next/navigation';
 import TodoListPage from '@/features/todos/TodoListPage';
 import { fetchCurrentUser, fetchTodos } from '@/lib/api';
 
-// STEP2: server_component(2025-11) ADD START
 /**
  * Todo一覧ページ（サーバーコンポーネント）。
  * Todo一覧表示のために必要なデータをサーバー側で取得し、TodoListPageコンポーネントに渡します。
@@ -57,4 +52,3 @@ export default async function TodosServerPage({
     throw err;
   }
 }
-// STEP2: server_component(2025-11) ADD END
