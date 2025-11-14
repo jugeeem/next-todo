@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useRef, useState } from 'react';
 import { z } from 'zod';
 import { createTodo, deleteTodo, getTodoList, logout, updateTodo } from '@/lib/api';
 
@@ -301,14 +301,6 @@ export default function TodoListPage({
   const handleLogout = async () => {
     await logout();
   };
-
-  // フィルター変更時の処理
-  useEffect(() => {
-    // 初期データが存在する場合は、フィルター変更時に再取得する
-    if (initialData) {
-      fetchTodos();
-    }
-  }, [initialData, fetchTodos]);
 
   /**
    * テキストエリアの自動リサイズ関数
