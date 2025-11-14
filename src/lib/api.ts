@@ -298,7 +298,7 @@ export async function getTodoList(params?: {
  * クライアント側でTodo作成時に呼び出されます。
  *
  * @param title Todoのタイトル
- * @param descriptions Todoの説明
+ * @param descriptions Todoの説明（省略可）
  * @return Todo作成の実行結果
  */
 export async function createTodo(formData: { title: string; descriptions?: string }) {
