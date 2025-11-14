@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useState } from 'react';
 import { z } from 'zod';
 import { deleteTodo, getTodoDetail, logout, updateTodo } from '@/lib/api';
@@ -79,6 +79,7 @@ export default function TodoDetailPage({
   const [currentUserRole] = useState<number>(initialUserRole || 4);
 
   const params = useParams();
+  const router = useRouter();
   const todoId = params.id as string;
 
   /**
@@ -198,7 +199,7 @@ export default function TodoDetailPage({
         throw new Error(result.error || 'Todoの削除に失敗しました');
       }
       // 削除成功時はTodo一覧ページにリダイレクト
-      window.location.href = '/todos';
+      router.push('/todos');
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     }
