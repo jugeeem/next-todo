@@ -155,6 +155,10 @@ export default function UserDetailPage({
 
       // 更新成功後、表示中のユーザー情報を更新
       setUser(result.data);
+      // サーバー側でデータが変更された可能性があるため、フォームフィールドも同期
+      setFirstName(result.data.firstName ?? '');
+      setLastName(result.data.lastName ?? '');
+      setRole(result.data.role);
       setSuccessMessage('ユーザー情報を更新しました');
       setIsEditing(false);
 
