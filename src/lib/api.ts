@@ -375,9 +375,11 @@ export async function updateTodo(
         error: errorData.message || 'Todoの更新に失敗しました',
       };
     }
-    // 正常終了時、実行結果を返す。
+    // 正常終了時、更新されたTodoデータを返す。
+    const data = await response.json();
     return {
       success: true,
+      todo: data.data,
     };
   } catch (err) {
     return {

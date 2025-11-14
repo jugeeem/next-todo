@@ -164,14 +164,20 @@ export default function TodoDetailPage({
         throw new Error(response.error || 'Todoの更新に失敗しました');
       }
 
-      // 更新成功時はステートを更新して編集モードを終了
-      const updatedTodo = {
-        ...todo,
-        title: title.trim(),
-        descriptions: descriptions.trim(),
-      };
-      setTodo(updatedTodo);
-      setIsEditing(false);
+      // 更新成功時はサーバーから返された最新のTodoでステートを更新して編集モードを終了
+      if (response.todo) {
+        setTodo(response.todo);
+        setIsEditing(false);
+      } else {
+        // サーバーが更新後のTodoを返さない場合は再取得
+        const refreshedData = await getTodoDetail(todo.id.toString());
+        if (refreshedData.success && refreshedData.data) {
+          setTodo(refreshedData.data);
+          setIsEditing(false);
+        } else {
+          throw new Error(refreshedData.error || 'Todoの再取得に失敗しました');
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
