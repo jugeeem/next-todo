@@ -1,5 +1,3 @@
-'use server';
-
 import { redirect } from 'next/navigation';
 import ProfilePage from '@/features/profile/ProfilePage';
 import { fetchCurrentUser, fetchTodoStats, fetchUserTodos } from '@/lib/api';
