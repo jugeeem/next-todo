@@ -38,6 +38,38 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 /**
+ * 認証エラー時の詳細なエラーメッセージを生成。
+ * 認証トークンの状態に応じて適切なエラーメッセージを返します。
+ *
+ * @param response APIレスポンス
+ * @returns 詳細なエラーメッセージ
+ */
+async function getAuthErrorMessage(response: Response): Promise<string> {
+  // Cookieから認証トークンを取得
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('auth_token');
+
+  // トークンが存在しない場合
+  if (!authToken) {
+    return '認証トークンが見つかりません。ログインが必要です。';
+  }
+
+  // レスポンスボディからエラー詳細を取得
+  try {
+    const errorData = await response.json();
+    // サーバーからの具体的なエラーメッセージがあれば使用
+    if (errorData?.message) {
+      return `認証エラー: ${errorData.message}`;
+    }
+  } catch {
+    // JSONパースに失敗した場合は無視
+  }
+
+  // デフォルトの詳細メッセージ（トークンは存在するが無効）
+  return '認証トークンが無効または期限切れです。再度ログインしてください。';
+}
+
+/**
  * Todo一覧を取得。
  * Todo一覧取得APIを呼び出して結果を返します。
  *
@@ -69,7 +101,10 @@ export async function fetchTodos(params?: {
   // レスポンスのエラー処理
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('Todoの取得に失敗しました');
   }
@@ -92,7 +127,10 @@ export async function fetchTodoById(id: string) {
   // エラー発生時の処理。
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('Todoの取得に失敗しました');
   }
@@ -115,7 +153,10 @@ export async function fetchCurrentUser() {
   // エラー発生時の処理。
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('ユーザー情報の取得に失敗しました');
   }
@@ -136,7 +177,10 @@ export async function fetchTodoStats() {
   // エラー発生時の処理
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラーの発生時の処理
     throw new Error('Todo統計情報の取得に失敗しました');
   }
@@ -157,7 +201,10 @@ export async function fetchUserTodos() {
   // エラー発生時の処理
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('Todo一覧の取得に失敗しました');
   }
@@ -181,7 +228,10 @@ export async function fetchUserById(userId: string) {
   // エラー発生時の処理
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('ユーザー情報の取得に失敗しました');
   }
@@ -206,7 +256,10 @@ export async function fetchUserTodosById(userId: string) {
   // エラー発生時の処理
   if (!response.ok) {
     // 認証エラー発生時の処理
-    if (response.status === 401) throw new Error('認証エラーが発生しました');
+    if (response.status === 401) {
+      const errorMessage = await getAuthErrorMessage(response);
+      throw new Error(errorMessage);
+    }
     // その他のエラー発生時の処理
     throw new Error('Todo一覧の取得に失敗しました');
   }
