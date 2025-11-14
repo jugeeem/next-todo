@@ -252,40 +252,17 @@ export async function getTodoList(params?: {
   sortOrder?: 'asc' | 'desc';
 }) {
   try {
-    // サーチパラメータの構築
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
-    if (params?.completedFilter)
-      searchParams.set('completedFilter', params.completedFilter);
-    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
-    if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
-
-    // APIリクエストの実行
-    const response = await fetchWithAuth(
-      `${API_URL}/api/todos?${searchParams.toString()}`,
-    );
-
-    // 認証エラー発生時はログインページへリダイレクト
-    if (response.status === 401) {
-      redirect('/login');
-    }
-
-    // レスポンスのエラー処理
-    if (!response.ok) {
-      return {
-        success: false,
-        error: 'Todoの取得に失敗しました',
-      };
-    }
-
-    // レスポンスのJSONをオブジェクトに変換して返す。
-    const data = await response.json();
+    // fetchTodosを内部的に呼び出してTodo一覧を取得
+    const data = await fetchTodos(params);
     return {
       success: true,
       data: data.data,
     };
   } catch (err) {
+    // 認証エラー発生時はログインページへリダイレクト
+    if (err instanceof Error && err.message === '認証エラーが発生しました') {
+      redirect('/login');
+    }
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Todoの取得に失敗しました',
