@@ -33,8 +33,10 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return await fetch(url, {
     ...options,
     headers: requestHeaders,
-    cache: 'no-store', // 常に最新のデータを取得
-  });
+    // キャッシュ設定はoptionsで上書き可能
+    // デフォルトは'no-store'だが、呼び出し側で適切な戦略を指定できる
+    cache: options.cache ?? 'no-store',
+  } as RequestInit);
 }
 
 /**
@@ -62,8 +64,12 @@ export async function fetchTodos(params?: {
   if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 
   // APIリクエストの実行
+  // Todo一覧は頻繁に変更されるため、30秒のキャッシュを設定
   const response = await fetchWithAuth(
     `${API_URL}/api/todos?${searchParams.toString()}`,
+    {
+      next: { revalidate: 30, tags: ['todos'] },
+    },
   );
 
   // レスポンスのエラー処理
@@ -87,7 +93,10 @@ export async function fetchTodos(params?: {
  */
 export async function fetchTodoById(id: string) {
   // APIリクエストの実行。
-  const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`);
+  // Todo詳細は頻繁に変更されるため、30秒のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`, {
+    next: { revalidate: 30, tags: ['todos', `todo-${id}`] },
+  });
 
   // エラー発生時の処理。
   if (!response.ok) {
@@ -111,7 +120,10 @@ export async function fetchTodoById(id: string) {
  */
 export async function fetchCurrentUser() {
   // APIリクエストの実行。
-  const response = await fetchWithAuth(`${API_URL}/api/users/me`);
+  // ユーザー情報はセッション中あまり変更されないため、5分のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/users/me`, {
+    next: { revalidate: 300, tags: ['current-user'] },
+  });
   // エラー発生時の処理。
   if (!response.ok) {
     // 認証エラー発生時の処理
@@ -131,7 +143,10 @@ export async function fetchCurrentUser() {
  */
 export async function fetchTodoStats() {
   // APIリクエストの実行
-  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos/stats`);
+  // 統計情報は計算コストが高いが、リアルタイム性は低いため、5分のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos/stats`, {
+    next: { revalidate: 300, tags: ['todo-stats'] },
+  });
 
   // エラー発生時の処理
   if (!response.ok) {
@@ -152,7 +167,10 @@ export async function fetchTodoStats() {
  */
 export async function fetchUserTodos() {
   // APIリクエストの実行
-  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos`);
+  // ユーザーのTodo一覧は頻繁に変更されるため、30秒のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/users/me/todos`, {
+    next: { revalidate: 30, tags: ['user-todos'] },
+  });
 
   // エラー発生時の処理
   if (!response.ok) {
@@ -176,7 +194,10 @@ export async function fetchUserTodos() {
  */
 export async function fetchUserById(userId: string) {
   // APIリクエストの実行
-  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}`);
+  // ユーザー情報はあまり変更されないため、5分のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}`, {
+    next: { revalidate: 300, tags: ['users', `user-${userId}`] },
+  });
 
   // エラー発生時の処理
   if (!response.ok) {
@@ -201,7 +222,10 @@ export async function fetchUserById(userId: string) {
  */
 export async function fetchUserTodosById(userId: string) {
   // APIリクエストの実行
-  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/todos`);
+  // 他ユーザーのTodo一覧は頻繁には変更されないため、1分のキャッシュを設定
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/todos`, {
+    next: { revalidate: 60, tags: ['user-todos', `user-${userId}-todos`] },
+  });
 
   // エラー発生時の処理
   if (!response.ok) {
@@ -262,8 +286,10 @@ export async function getTodoList(params?: {
     if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 
     // APIリクエストの実行
+    // サーバーアクション（ユーザー操作起点）では最新データを取得
     const response = await fetchWithAuth(
       `${API_URL}/api/todos?${searchParams.toString()}`,
+      { cache: 'no-store' },
     );
 
     // 認証エラー発生時はログインページへリダイレクト
@@ -430,7 +456,10 @@ export async function deleteTodo(id: string) {
  */
 export async function getTodoDetail(id: string) {
   try {
-    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`);
+    // サーバーアクション（ユーザー操作起点）では最新データを取得
+    const response = await fetchWithAuth(`${API_URL}/api/todos/${id}`, {
+      cache: 'no-store',
+    });
 
     // 認証エラー発生時はログインページへリダイレクト
     if (response.status === 401) {
