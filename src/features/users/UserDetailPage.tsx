@@ -268,7 +268,7 @@ export default function UserDetailPage({
             <button
               type="button"
               onClick={handleLogout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transiton-colors font-medium cursor-pointer"
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium cursor-pointer"
             >
               ログアウト
             </button>
