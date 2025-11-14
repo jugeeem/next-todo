@@ -25,21 +25,21 @@ interface PaginationInfo {
 /** TODOアイテム
  * TODOアイテムの型インターフェースです。
  * @interface Todo
- * @property {number} id - TODO ID
+ * @property {string} id - TODO ID（UUID形式）
  * @property {string} title - TODOタイトル
  * @property {string | null} [descriptions] - TODO説明（任意）
  * @property {boolean} completed - 完了状態
- * @property {number} userId - ユーザーID
+ * @property {string} userId - ユーザーID（UUID形式）
  * @property {string} createdAt - 作成日時（ISO8601形式）
  * @property {string} updatedAt - 更新日時（ISO8601形式）
  */
 
 interface Todo {
-  id: number;
+  id: string;
   title: string;
   descriptions: string | null;
   completed: boolean;
-  userId: number;
+  userId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -272,15 +272,15 @@ export default function TodoListPage({
   /**
    * Todo削除用の非同期関数。（サーバーアクションを使用）
    * 指定したTodoの削除処理を行い、Todo一覧を再取得します。
-   * @param {number} todoId - 削除対象のTodo ID
+   * @param {string} todoId - 削除対象のTodo ID（UUID形式）
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const handleDeleteTodo = async (todoId: number) => {
+  const handleDeleteTodo = async (todoId: string) => {
     // 削除確認
     if (!confirm('このTodoを削除してもよろしいですか？')) return;
     try {
       // サーバーアクションの呼び出し
-      const result = await deleteTodo(todoId.toString());
+      const result = await deleteTodo(todoId);
 
       // 削除失敗時の処理
       if (!result.success) {

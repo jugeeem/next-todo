@@ -341,12 +341,12 @@ export async function createTodo(formData: { title: string; descriptions?: strin
  * Todo更新処理（サーバーアクション）
  * クライアント側でTodo更新時に呼び出されます。
  *
- * @param id TodoのID
+ * @param id TodoのID（UUID形式の文字列）
  * @param formData 更新するTodoデータ
  * @return Todo更新の実行結果
  */
 export async function updateTodo(
-  id: number,
+  id: string,
   formData: {
     title: string;
     descriptions?: string;
