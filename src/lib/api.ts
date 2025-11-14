@@ -346,7 +346,7 @@ export async function createTodo(formData: { title: string; descriptions?: strin
  * @return Todo更新の実行結果
  */
 export async function updateTodo(
-  id: number,
+  id: string,
   formData: {
     title: string;
     descriptions?: string;
