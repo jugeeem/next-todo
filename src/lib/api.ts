@@ -273,10 +273,8 @@ export async function getTodoList(params?: {
 
     // レスポンスのエラー処理
     if (!response.ok) {
-      return {
-        success: false,
-        error: 'Todoの取得に失敗しました',
-      };
+      // 例外をスローし、キャッチブロックで処理
+      throw new Error('Todoの取得に失敗しました');
     }
 
     // レスポンスのJSONをオブジェクトに変換して返す。

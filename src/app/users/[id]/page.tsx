@@ -31,22 +31,18 @@ export default async function Page({ params }: PageProps) {
     if (currentUser.role >= 3) {
       redirect('/todos');
     }
+
     // 現在のユーザーが閲覧対象のユーザーかどうかを判定
     const isCurrentUser = id === currentUser.id;
 
     // 指定されたユーザーの情報をidをもとに取得する。
     const user = await fetchUserById(id);
 
-    // Todo一覧の初期値として空配列を設定
-    let todos = [];
-
     // ユーザー権限チェックを行う。
     const canViewTodos = currentUser.role === 1 || isCurrentUser;
 
     // Todo一覧の閲覧権限がある場合、指定されたユーザーのTodo一覧を取得する。
-    if (canViewTodos) {
-      todos = await fetchUserTodosById(id);
-    }
+    const todos = canViewTodos ? await fetchUserTodosById(id) : [];
 
     // UserDetailPageコンポーネントにデータを渡してレンダリング
     return (
