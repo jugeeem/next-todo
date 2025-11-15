@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { type FormEvent, useEffect, useState } from 'react';
 import { z } from 'zod';
+import { deleteTodo, getTodoDetail, logout, updateTodo } from '@/lib/api';
 
 // インターフェースの定義
 
@@ -29,6 +30,15 @@ interface Todo {
 }
 
 /**
+ * Propインターフェース。
+ * Propとして渡されるデータの型を定義します。
+ */
+interface Props {
+  selectedTodo?: Todo;
+  currentUserRole?: number;
+}
+
+/**
  * Todo更新用のバリデーションスキーマ。
  * タイトルは1文字以上32文字以内、説明は128文字以内であることを検証します。
  */
@@ -45,15 +55,20 @@ const updateTodoSchema = z.object({
  *
  * @returns {JSX.Element} - Todo詳細/編集ページのJSX要素
  */
-export default function TodoDetailPage() {
+export default function TodoDetailPage({
+  selectedTodo,
+  currentUserRole: initialUserRole,
+}: Props) {
   // ステートの定義
 
   // TODOアイテムの状態
-  const [todo, setTodo] = useState<Todo | null>(null);
+  const [todo, setTodo] = useState<Todo | null>(selectedTodo || null);
   // タイトルフォームの入力状態
-  const [title, setTitle] = useState<string>('');
+  const [title, setTitle] = useState<string>(selectedTodo?.title || '');
   // 説明フォームの入力状態
-  const [descriptions, setDescriptions] = useState<string>('');
+  const [descriptions, setDescriptions] = useState<string>(
+    selectedTodo?.descriptions || '',
+  );
   // 編集中かどうかの状態
   const [isEditing, setIsEditing] = useState<boolean>(false);
   // ローディング状態
@@ -61,67 +76,65 @@ export default function TodoDetailPage() {
   // エラーメッセージの状態
   const [error, setError] = useState<string>('');
   // 現在のユーザーの権限情報
-  const [currentUserRole, setCurrentUserRole] = useState<number>(4);
+  const [currentUserRole] = useState<number>(initialUserRole || 4);
 
-  // ルーターとパラメータの取得
-  const router = useRouter();
   const params = useParams();
-  const todoId = params.id;
+  const todoId = params.id as string;
 
   /**
    * 初回レンダリング時の処理。
    * ユーザー情報とTODO詳細の取得を行います。
    */
   useEffect(() => {
+    // 初期データが既に存在する場合は処理をスキップ
+    if (selectedTodo && initialUserRole !== undefined) return;
+    /**
+     * データ取得用の非同期関数。
+     * ユーザー情報とTODO詳細をAPIから取得してステートに設定します。
+     *
+     */
     const fetchData = async () => {
+      // ローディング開始
       setIsLoading(true);
       setError('');
       try {
-        // ユーザー情報とTODO詳細の取得を平行して実行
-        const [userResponse, todoResponse] = await Promise.all([
-          fetch('/api/users/me'),
-          fetch(`/api/todos/${todoId}`),
-        ]);
+        // サーバーアクションを使用してTodo詳細を取得
+        const result = await getTodoDetail(todoId);
 
-        if (!userResponse.ok) {
-          const errorData = await userResponse.json();
-          throw new Error(errorData.error || 'ユーザー情報の取得に失敗しました');
+        // エラーチェック
+        if (!result.success) {
+          throw new Error(result.error || 'Todoの取得に失敗しました');
         }
 
-        // 権限情報の設定
-        if (userResponse.ok) {
-          const data = await userResponse.json();
-          setCurrentUserRole(data.data.role);
-        }
-
-        if (!todoResponse.ok) {
-          const errorData = await todoResponse.json();
-          throw new Error(errorData.error || 'Todoの取得に失敗しました');
-        }
-
-        // Todo詳細の取得
-        const todoData = await todoResponse.json();
-        setTodo(todoData.data);
-        setTitle(todoData.data.title);
-        setDescriptions(todoData.data.descriptions || '');
+        // 取得したTODOをステートに設定
+        setTodo(result.data);
+        setTitle(result.data.title);
+        setDescriptions(result.data.descriptions || '');
       } catch (err) {
         setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
       } finally {
+        // ローディング終了
         setIsLoading(false);
       }
     };
     // データの取得を実行
     fetchData();
-  }, [todoId]);
+  }, [todoId, selectedTodo, initialUserRole]);
 
   /**
    * TODOの更新処理。
    * フォームの入力値をAPIに送信してTODOを更新します
-   * @param {React.FormEvent} e - フォームの送信イベント
+   * @param {FormEvent} e - フォームの送信イベント
    * @returns {Promise<void>}
    */
-  const updateTodo = async (e: React.FormEvent) => {
+  const handleUpdateTodo = async (e: FormEvent) => {
     e.preventDefault();
+
+    // TODOが存在しない場合は処理を中断
+    if (!todo) {
+      setError('Todoが見つかりませんでした');
+      return;
+    }
 
     // 入力値のバリデーション
     const validation = updateTodoSchema.safeParse({
@@ -139,31 +152,30 @@ export default function TodoDetailPage() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`/api/todos/${todoId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          descriptions: descriptions.trim() ?? undefined, // 値がない場合はundefinedを設定する
-          completed: todo?.completed || false,
-        }),
+      // サーバーアクションを使用してTodo更新を実行
+      const response = await updateTodo(todo.id, {
+        title: title.trim(),
+        descriptions: descriptions.trim(),
+        completed: todo?.completed || false,
       });
-
       // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Todoの更新に失敗しました');
+      if (!response.success) {
+        // エラー発生時はエラーメッセージを設定して終了
+        throw new Error(response.error || 'Todoの更新に失敗しました');
       }
 
-      // 更新成功時の処理
-      const updatedTodo = await response.json();
-      setTodo(updatedTodo.data);
+      // 更新成功時はステートを更新して編集モードを終了
+      const updatedTodo = {
+        ...todo,
+        title: title.trim(),
+        descriptions: descriptions.trim(),
+      };
+      setTodo(updatedTodo);
       setIsEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
+      // ローディング終了
       setIsLoading(false);
     }
   };
@@ -173,22 +185,20 @@ export default function TodoDetailPage() {
    * 確認ダイアログを表示し、OKの場合にAPIに削除リクエストを送信します。
    * @returns {Promise<void>}
    */
-  const deleteTodo = async () => {
+  const handleDeleteTodo = async () => {
     if (!confirm('このTodoを削除してもよろしいですか？')) return;
 
     // 削除処理の開始
     try {
-      const response = await fetch(`/api/todos/${todoId}`, {
-        method: 'DELETE',
-      });
-      // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Todoの削除に失敗しました');
-      }
+      // サーバーアクションを使用してTodo削除を実行
+      const result = await deleteTodo(todoId);
 
-      // 削除成功後は一覧ページにリダイレクト
-      router.push('/todos');
+      // レスポンスのエラーチェック
+      if (!result.success) {
+        throw new Error(result.error || 'Todoの削除に失敗しました');
+      }
+      // 削除成功時はTodo一覧ページにリダイレクト
+      window.location.href = '/todos';
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     }
@@ -199,16 +209,8 @@ export default function TodoDetailPage() {
    * アカウントのログアウトを行い、ログインページにリダイレクトします。
    * @returns {Promise<void>}
    */
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      // ログインページにリダイレクト
-      router.push('/login');
-    } catch (err) {
-      console.error('ログアウトに失敗しました:', err);
-    }
+  const handleLogout = async () => {
+    await logout(); // サーバーアクションを使用してログアウトを実行
   };
 
   /**
@@ -297,7 +299,7 @@ export default function TodoDetailPage() {
 
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
@@ -346,7 +348,7 @@ export default function TodoDetailPage() {
 
           {isEditing ? (
             // 編集中表示画面
-            <form onSubmit={updateTodo} className="space-y-6">
+            <form onSubmit={handleUpdateTodo} className="space-y-6">
               {/* タイトル入力欄 */}
               <div className="relative">
                 <input
@@ -449,7 +451,7 @@ export default function TodoDetailPage() {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={deleteTodo}
+                  onClick={handleDeleteTodo}
                   className="px-6 py-2.5 bg-red-500 text-white rounded-md hover:bg-red-600 font-medium transition-colors cursor-pointer"
                 >
                   削除

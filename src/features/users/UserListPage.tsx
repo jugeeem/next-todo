@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { logout } from '@/lib/api';
 
 // インターフェースの定義
 
@@ -48,6 +48,15 @@ interface PaginationInfo {
 }
 
 /**
+ * Propsのインターフェース。
+ * UserListPageコンポーネントに渡されるpropsの型を定義します。
+ */
+interface Props {
+  currentUserId: string;
+  currentUserRole: number;
+}
+
+/**
  * ロール番号とラベルの対応表。
  * ユーザーロール番号を対応するラベルに変換するためのオブジェクトです。
  *
@@ -65,6 +74,7 @@ const roleLabels: Record<number, string> = {
  * @returns {Record<number, string>} 権限ごとのスタイルクラスを返します。
  */
 const roleStyles: Record<number, string> = {
+  1: 'px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800',
   2: 'px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800',
   3: 'px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800',
   4: 'px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800',
@@ -74,7 +84,7 @@ const roleStyles: Record<number, string> = {
  * ADMINおよびMANAGER専用のユーザー管理画面を表示するコンポーネントです。
  * @returns
  */
-export default function UserListPage() {
+export default function UserListPage({ currentUserId, currentUserRole }: Props) {
   // ステートの管理
 
   // ユーザー一覧データ
@@ -97,62 +107,6 @@ export default function UserListPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // エラーメッセージ
   const [error, setError] = useState<string>('');
-  // 現在のユーザーの権限情報(デフォルトはGUEST)
-  const [currentUserRole, setCurrentUserRole] = useState<number>(4);
-  // 現在のユーザーのID（自分のアカウントを削除できないようにするために設定する）
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-
-  // ページ遷移用のルーター
-  const router = useRouter();
-
-  /**
-   * ページアクセス時の権限チェック。
-   * 初回接続時にのみ実行。
-   * ADMINおよびMANAGER以外のユーザーがアクセスした場合、Todo一覧ページにリダイレクトします。
-   */
-  useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        // 現在のユーザー情報を取得
-        const response = await fetch('/api/users/me');
-
-        // 認証エラー発生時はログインページにリダイレクト
-        if (response.status === 401) {
-          router.push('/login');
-          return;
-        }
-
-        // レスポンスのエラーチェック
-        if (!response.ok) {
-          throw new Error('ユーザー情報の取得に失敗しました。');
-        }
-
-        const data = await response.json();
-        // ユーザーの権限情報を取得
-        const userRole = data.data.role;
-        // ユーザーIDを取得
-        const userId = data.data.id;
-
-        // ADMINおよびMANAGER以外の場合、Todo一覧ページにリダイレクト(ユーザーロールが3以上の場合はアクセス権限なしと判断する)
-        if (userRole >= 3) {
-          router.push('/todos');
-          return;
-        }
-
-        // 権限情報がある場合はユーザーの情報をステートに設定する
-        setCurrentUserRole(userRole);
-        setCurrentUserId(userId);
-      } catch (err) {
-        // エラー情報をコンソールに出力する。
-        console.error('権限チェックエラー:', err);
-        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
-        router.push('/login');
-      }
-    };
-
-    // 権限チェックを実行
-    checkUserRole();
-  }, [router]);
 
   /**
    * ユーザー一覧データを取得する非同期関数。
@@ -188,12 +142,6 @@ export default function UserListPage() {
       // 構築したクエリパラメータを使用してAPIエンドポイントを呼び出す
       const response = await fetch(`/api/users?${queryParams.toString()}`);
 
-      // 認証エラー発生時の処理
-      if (response.status === 401) {
-        router.push('/login');
-        return;
-      }
-
       // レスポンスのエラーチェック
       if (!response.ok) {
         throw new Error('ユーザー一覧の取得に失敗しました');
@@ -220,12 +168,12 @@ export default function UserListPage() {
       // ローディングの終了
       setIsLoading(false);
     }
-  }, [page, roleFilter, sortBy, sortOrder, searchQuery, router]);
+  }, [page, roleFilter, sortBy, sortOrder, searchQuery]);
+
   // useEffectを使用して検索条件が変更されたときのデータの再取得処理を行います。
   useEffect(() => {
-    // 権限チェックが完了していない場合はデータ取得をスキップ
-    currentUserId && fetchUsers();
-  }, [fetchUsers, currentUserId]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   /**
    * ユーザー削除用の非同期関数。
@@ -267,16 +215,9 @@ export default function UserListPage() {
    * @return {Promise<void>}
    * @throws {Error} ログアウトに失敗した場合にエラーをスローします。
    */
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      router.push('/login');
-    } catch (err) {
-      // ログアウトに失敗した場合はコンソールにエラーを出力
-      console.error('ログアウトに失敗しました: ', err);
-    }
+  const handleLogout = async () => {
+    // ログアウトAPIを呼び出し
+    await logout();
   };
 
   /**
@@ -331,7 +272,7 @@ export default function UserListPage() {
             {/* ログアウトボタン */}
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
