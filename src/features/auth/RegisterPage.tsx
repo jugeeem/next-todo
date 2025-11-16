@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, Card, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -10,15 +11,22 @@ import { z } from 'zod';
  * @returns {JSX.Element} ユーザー新規登録ページのJSX要素
  */
 export default function RegisterPage() {
+  // ページ遷移用のフック
+  const router = useRouter();
+
   // ステートの管理
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
   const [error, setError] = useState<string>('');
+
+  // フィールドごとのエラー状態を管理 STEP3 ADD START
+  const [usernameError, setUsernameError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  // STEP3 ADD END
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  // ページ遷移用のフック
-  const router = useRouter();
 
   /**
    * フォーム送信用ハンドラー
@@ -29,6 +37,10 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    // フィールドごとのエラーを送信時にクリア STEP3 MOD START
+    setUsernameError('');
+    setPasswordError('');
+    // STEP3 MOD END
 
     // バリデーションスキーマの設定
     /**
@@ -55,12 +67,22 @@ export default function RegisterPage() {
       firstName,
       lastName,
     });
-    // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
+
+    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
     if (!validationInput.success) {
-      setError(validationInput.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validationInput.error.errors;
+
+      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+      errors.forEach((err) => {
+        err.path[0] === 'username' && setUsernameError(err.message);
+        err.path[0] === 'password' && setPasswordError(err.message);
+      });
       setIsLoading(false);
       return;
     }
+    // STEP3 MOD END
+
     // fetch APIを使用して登録リクエストを送信する
     try {
       const response = await fetch('/api/auth/register', {
@@ -98,94 +120,77 @@ export default function RegisterPage() {
       <div className="w-full max-w-4xl mx-auto px-4 py-8">
         {/* カードを中央に配置するためのコンテナ */}
         <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 text-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
             新規登録
           </h1>
 
           {/* カード */}
-          <div className="bg-white shadow-md rounded-2xl p-6">
+          {/* div → Card STEP3 MOD START */}
+          <Card className="p-8">
             {/* 登録フォーム */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* ユーザー名入力 */}
-              <div className="relative">
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
-                  placeholder="ユーザー名を入力"
-                />
-                <label
-                  htmlFor="username"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
-                >
-                  ユーザー名
-                  <span className="text-red-600 text-xs ml-0.5">*</span>
-                </label>
-              </div>
+              {/* input→Input STEP3 MOD START */}
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setUsernameError(''); // エラーメッセージをクリア
+                }}
+                disabled={isLoading}
+                placeholder="ユーザー名を入力"
+                label="ユーザー名"
+                isRequired
+                validationBehavior="aria"
+                isInvalid={!!usernameError}
+                errorMessage={usernameError}
+              />
 
               {/* パスワード入力 */}
-              <div className="relative">
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
-                  placeholder="パスワードを入力"
-                />
-                <label
-                  htmlFor="password"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
-                >
-                  パスワード
-                  <span className="text-red-600 text-xs ml-0.5">*</span>
-                </label>
-              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError(''); // エラーメッセージをクリア
+                }}
+                disabled={isLoading}
+                placeholder="パスワードを入力"
+                label="パスワード"
+                isRequired
+                validationBehavior="aria"
+                isInvalid={!!passwordError}
+                errorMessage={passwordError}
+              />
 
               {/* 名前入力 グリッドレイアウトを使用して2列に並べる*/}
               <div className="grid grid-cols-2 gap-3">
                 {/* 性の入力 */}
-                <div className="relative">
-                  <input
-                    id="lastName"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
-                    placeholder="姓（任意）"
-                  />
-                  <label
-                    htmlFor="lastName"
-                    className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
-                  >
-                    姓
-                  </label>
-                </div>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="姓（任意）"
+                  label="姓"
+                />
 
                 {/* 名の入力 */}
-                <div className="relative">
-                  <input
-                    id="firstName"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 pt-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 peer"
-                    placeholder="名（任意）"
-                  />
-                  <label
-                    htmlFor="firstName"
-                    className="absolute left-3 top-2 text-xs font-medium text-gray-700 peer-disabled:text-gray-500"
-                  >
-                    名
-                  </label>
-                </div>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="名（任意）"
+                  label="名"
+                />
               </div>
+              {/* input→Input STEP3 MOD END */}
 
               {/* エラーメッセージ表示 */}
               {error && (
@@ -195,25 +200,38 @@ export default function RegisterPage() {
               )}
 
               {/* 登録ボタン */}
-              <button
+              {/* button → Button STEP3 MOD START */}
+              <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                color="primary"
+                isLoading={isLoading}
+                className="w-full px-4 py-2"
               >
-                {isLoading ? '登録中...' : '登録'}
-              </button>
+                {isLoading ? '登録中' : '登録'}
+              </Button>
+              {/* button → Button STEP3 MOD END */}
             </form>
 
             {/* ログインリンク */}
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 flex items-center justify-center gap-1">
                 すでにアカウントをお持ちの場合は
-                <Link href="/login" className="text-blue-600 hover:underline ml-1">
+                {/* button → Button STEP3 MOD START */}
+                <Button
+                  as={Link}
+                  href="/login"
+                  variant="light"
+                  color="primary"
+                  size="md"
+                  className="h-auto p-0 min-w-0 data-[hover=true]:bg-transparent font-medium"
+                >
                   ログイン
-                </Link>
+                </Button>
+                {/* button → Button STEP3 MOD END  */}
               </p>
             </div>
-          </div>
+          </Card>
+          {/* div → Card STEP3 MOD END */}
         </div>
       </div>
     </div>
