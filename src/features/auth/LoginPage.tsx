@@ -181,11 +181,18 @@ export default function LoginPage() {
             </form>
             {/* 新規登録リンク */}
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 flex items-center justify-center gap-1">
                 アカウントをお持ちでない場合は
-                <Link href="/register" className="text-blue-600 hover:underline ml-1">
+                <Button
+                  as={Link}
+                  href="/register"
+                  variant="light"
+                  color="primary"
+                  size="md"
+                  className="h-auto p-0 min-w-0 data-[hover=true]:bg-transparent font-medium"
+                >
                   新規登録
-                </Link>
+                </Button>
               </p>
             </div>
           </Card>
