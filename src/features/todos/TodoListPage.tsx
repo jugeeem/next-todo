@@ -7,14 +7,32 @@ import {
   CardHeader,
   Checkbox,
   Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectItem,
   Textarea,
+  useDisclosure,
 } from '@heroui/react';
 import Link from 'next/link';
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { z } from 'zod';
-import { createTodo, deleteTodo, getTodoList, logout, updateTodo } from '@/lib/api';
+import {
+  createTodo,
+  deleteTodo,
+  getTodoList,
+  logout,
+  updateTodo,
+} from '@/lib/api';
 
 // インターフェースの定義
 
@@ -103,7 +121,10 @@ const createTodoSchema = z.object({
     .string()
     .min(1, 'タイトルは必須です')
     .max(32, 'タイトルは32文字以内で入力してください'),
-  descriptions: z.string().max(128, '説明は128文字以内で入力してください').optional(),
+  descriptions: z
+    .string()
+    .max(128, '説明は128文字以内で入力してください')
+    .optional(),
 });
 
 /**
@@ -129,9 +150,11 @@ export default function TodoListPage({
           totalItems: initialData.data.total,
           itemsPerPage: initialData.data.perPage,
         }
-      : null,
+      : null
   );
-  const [currentUserRole, _setCurrentUserRole] = useState<number>(initialUserRole || 4);
+  const [currentUserRole, setCurrentUserRole] = useState<number>(
+    initialUserRole || 4
+  );
 
   // フィルターとソートの状態管理
   const [completedFilter, setCompletedFilter] = useState<
@@ -139,7 +162,7 @@ export default function TodoListPage({
   >('all');
   // ソート条件
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'title'>(
-    'createdAt',
+    'createdAt'
   );
   // ソート順の状態
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -159,6 +182,12 @@ export default function TodoListPage({
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
+
+  // 削除確認モーダルの状態管理 STEP3 ADD START
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  // delete対象のTodoを特定するためのstate
+  const [todoToDelete, setTodoToDelete] = useState<number | null>(null);
+  // STEP3 ADD END
 
   // スクロール位置保持用のref
   const scrollPositionRef = useRef<number>(0);
@@ -298,18 +327,33 @@ export default function TodoListPage({
     }
   };
 
+  // Todo削除モーダルを開く関数を追加し、どのTodoを削除するのかを特定するために、削除対象のTodo IDをstateに保持する。 STEP3 ADD START
+  /**
+   * Todo削除確認モーダルを開く。
+   * @param {number} todoId - 削除対象のTodo ID
+   */
+  const openDeleteModal = (todoId: number) => {
+    // 削除対象のTodo IDをstateに設定し、モーダルを開く
+    setTodoToDelete(todoId);
+    onOpen();
+  };
+
   /**
    * Todo削除用の非同期関数。（サーバーアクションを使用）
    * 指定したTodoの削除処理を行い、Todo一覧を再取得します。
-   * @param {number} todoId - 削除対象のTodo ID
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const handleDeleteTodo = async (todoId: number) => {
-    // 削除確認
-    if (!confirm('このTodoを削除してもよろしいですか？')) return;
+  // モーダル表示で確認後削除処理に変更 STEP3 MOD START
+  const handleDeleteTodo = async () => {
+    if (!todoToDelete) return;
+
+    // モーダルを閉じる
+    onClose();
+
+    setIsLoading(true);
     try {
       // サーバーアクションの呼び出し
-      const result = await deleteTodo(todoId.toString());
+      const result = await deleteTodo(todoToDelete.toString());
 
       // 削除失敗時の処理
       if (!result.success) {
@@ -320,8 +364,12 @@ export default function TodoListPage({
       await fetchTodos();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの削除に失敗しました');
+    } finally {
+      setIsLoading(false);
+      setTodoToDelete(null);
     }
   };
+  // STEP3 MOD END
   /**
    * ログアウト用の非同期関数。（サーバーアクションを使用）
    * サーバーアクション内でリダイレクト処理が実行されます。
@@ -340,33 +388,33 @@ export default function TodoListPage({
   }, [initialData, fetchTodos]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className='min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100'>
       {/* ヘッダーナビゲーション */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/todos" className="hover:opacity-80 transition-opacity">
-              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
+      <header className='bg-white shadow-sm border-b border-gray-200'>
+        <div className='max-w-7xl mx-auto px-6 py-4'>
+          <div className='flex items-center justify-between'>
+            <Link href='/todos' className='hover:opacity-80 transition-opacity'>
+              <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
             </Link>
 
-            <nav className="flex items-center gap-6">
+            <nav className='flex items-center gap-6'>
               <Link
-                href="/todos"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                href='/todos'
+                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
               >
                 Todo一覧
               </Link>
               <Link
-                href="profile"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                href='profile'
+                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
               >
                 プロフィール
               </Link>
               {/* ADMIN・MANAGERの場合のみ表示 */}
               {currentUserRole <= 2 && (
                 <Link
-                  href="/users"
-                  className="text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                  href='/users'
+                  className='text-gray-700 hover:text-blue-500 font-medium transition-colors'
                 >
                   ユーザー管理
                 </Link>
@@ -374,9 +422,9 @@ export default function TodoListPage({
             </nav>
 
             <Button
-              type="button"
+              type='button'
               onPress={handleLogout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition-colors cursor-pointer"
+              className='px-6 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition-colors cursor-pointer'
             >
               ログアウト
             </Button>
@@ -385,37 +433,39 @@ export default function TodoListPage({
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
+      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
         {/* エラーメッセージ */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <p className='text-red-700 text-sm'>{error}</p>
           </div>
         )}
 
         {/* Todo作成フォーム */}
         {/* Cardを追加 STEP3 ADD START */}
-        <Card className="mb-10">
+        <Card className='mb-10'>
           <CardHeader>
-            <h2 className="text-2xl font-semibold text-gray-900">新しいTodoを作成</h2>
+            <h2 className='text-2xl font-semibold text-gray-900'>
+              新しいTodoを作成
+            </h2>
           </CardHeader>
           <CardBody>
-            <form onSubmit={handleCreateTodo} className="space-y-6">
+            <form onSubmit={handleCreateTodo} className='space-y-6'>
               {/* タイトル入力欄 */}
               {/* input → Input STEP3 MOD START */}
               <Input
-                id="title"
-                type="text"
+                id='title'
+                type='text'
                 value={newTodoTitle}
                 onChange={(e) => {
                   setNewTodoTitle(e.target.value);
                   setTitleError(''); // エラーメッセージをクリア
                 }}
                 maxLength={32}
-                placeholder="Todoのタイトル（32文字以内）"
-                label="タイトル"
+                placeholder='Todoのタイトル（32文字以内）'
+                label='タイトル'
                 isRequired
-                validationBehavior="aria"
+                validationBehavior='aria'
                 isInvalid={!!titleError}
                 errorMessage={titleError}
               />
@@ -424,9 +474,9 @@ export default function TodoListPage({
               {/* 説明入力欄 */}
               {/* textarea -> Textarea STEP3 MOD START */}
               <Textarea
-                id="description"
-                label="説明"
-                placeholder="Todoの説明（128文字以内）"
+                id='description'
+                label='説明'
+                placeholder='Todoの説明（128文字以内）'
                 value={newTodoDescription}
                 onChange={(e) => {
                   setNewTodoDescription(e.target.value);
@@ -439,15 +489,15 @@ export default function TodoListPage({
               {/* textarea -> Textarea STEP3 MOD END */}
 
               {/* Todo作成ボタン */}
-              <div className="flex justify-end">
+              <div className='flex justify-end'>
                 {/* button → Button STEP3 MOD START */}
                 <Button
-                  type="submit"
-                  color="primary"
+                  type='submit'
+                  color='primary'
                   isLoading={isCreating}
-                  className="px-8 py-2.5 font-medium"
+                  className='px-8 py-2.5 font-medium'
                 >
-                  {isCreating ? '作成中...' : '作成'}
+                  {isCreating ? '作成中' : '作成'}
                 </Button>
                 {/* button → Button STEP3 MOD END */}
               </div>
@@ -456,14 +506,14 @@ export default function TodoListPage({
         </Card>
 
         {/* フィルター・ソートコントロール */}
-        <Card className="mb-8 p-4">
+        <Card className='mb-8 p-4'>
           <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
               {/* 表示フィルター */}
               {/* select → Select STEP3 MOD START */}
               <Select
-                id="filter"
-                label="表示フィルター"
+                id='filter'
+                label='表示フィルター'
                 selectedKeys={new Set([completedFilter])}
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys)[0] as
@@ -474,15 +524,15 @@ export default function TodoListPage({
                   setPage(1);
                 }}
               >
-                <SelectItem key="all">すべて</SelectItem>
-                <SelectItem key="completed">完了済み</SelectItem>
-                <SelectItem key="incomplete">未完了</SelectItem>
+                <SelectItem key='all'>すべて</SelectItem>
+                <SelectItem key='completed'>完了済み</SelectItem>
+                <SelectItem key='incomplete'>未完了</SelectItem>
               </Select>
 
               {/* ソート項目 */}
               <Select
-                id="sortBy"
-                label="並び順"
+                id='sortBy'
+                label='並び順'
                 selectedKeys={new Set([sortBy])}
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys)[0] as
@@ -492,23 +542,23 @@ export default function TodoListPage({
                   setSortBy(selected);
                 }}
               >
-                <SelectItem key="createdAt">作成日時</SelectItem>
-                <SelectItem key="updatedAt">更新日時</SelectItem>
-                <SelectItem key="title">タイトル</SelectItem>
+                <SelectItem key='createdAt'>作成日時</SelectItem>
+                <SelectItem key='updatedAt'>更新日時</SelectItem>
+                <SelectItem key='title'>タイトル</SelectItem>
               </Select>
 
               {/* ソート順序 */}
               <Select
-                id="sortOrder"
-                label="順序"
+                id='sortOrder'
+                label='順序'
                 selectedKeys={new Set([sortOrder])}
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys)[0] as 'asc' | 'desc';
                   setSortOrder(selected);
                 }}
               >
-                <SelectItem key="desc">降順</SelectItem>
-                <SelectItem key="asc">昇順</SelectItem>
+                <SelectItem key='desc'>降順</SelectItem>
+                <SelectItem key='asc'>昇順</SelectItem>
               </Select>
               {/* select → Select STEP3 MOD END */}
             </div>
@@ -518,17 +568,20 @@ export default function TodoListPage({
         {/* Todo一覧表示 */}
         <Card>
           <CardBody>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Todo一覧</h2>
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-2xl font-semibold text-gray-900'>Todo一覧</h2>
 
               {/* ページネーション情報 */}
               {paginationInfo && (
-                <p className="text-sm text-gray-600">
+                <p className='text-sm text-gray-600'>
                   全{paginationInfo.totalItems}件中{' '}
-                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
+                  {(paginationInfo.currentPage - 1) *
+                    paginationInfo.itemsPerPage +
+                    1}
+                  ～
                   {Math.min(
                     paginationInfo.currentPage * paginationInfo.itemsPerPage,
-                    paginationInfo.totalItems,
+                    paginationInfo.totalItems
                   )}
                   件を表示
                 </p>
@@ -537,36 +590,36 @@ export default function TodoListPage({
 
             {/* ローディング表示 */}
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-gray-500">読み込み中...</div>
+              <div className='flex items-center justify-center py-16'>
+                <div className='text-gray-500'>読み込み中...</div>
               </div>
             ) : todos.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 text-lg">
+              <div className='text-center py-12 text-gray-500 text-lg'>
                 Todoがありません
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className='space-y-4'>
                 {todos.map((todo) => (
                   <Card
                     key={todo.id}
-                    className="bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all"
+                    className='bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all'
                   >
-                    <CardBody className="flex flex-row items-center justify-between">
-                      <div className="flex items-start gap-4 flex-1">
+                    <CardBody className='flex flex-row items-center justify-between'>
+                      <div className='flex items-start gap-4 flex-1'>
                         {/* 完了チェックボックス */}
                         {/* Checkboxに変更 STEP3 MOD START */}
                         <Checkbox
                           isSelected={todo.completed}
                           onValueChange={() => toggleCompleteTodo(todo)}
-                          className="mt-1 h-5"
+                          className='mt-1 h-5'
                         />
                         {/* STEP3 MOD END */}
 
-                        <div className="flex-1">
+                        <div className='flex-1'>
                           {/* タイトル */}
                           <Link
                             href={`/todos/${todo.id}`}
-                            className="hover:text-blue-600 transition-colors"
+                            className='hover:text-blue-600 transition-colors'
                           >
                             <h3
                               className={`font-medium text-lg ${
@@ -581,42 +634,45 @@ export default function TodoListPage({
 
                           {/* 説明 */}
                           {todo.descriptions && (
-                            <p className="text-sm text-gray-600 mt-2">
+                            <p className='text-sm text-gray-600 mt-2'>
                               {todo.descriptions}
                             </p>
                           )}
 
                           {/* 作成・更新日時 */}
-                          <p className="text-xs text-gray-400 mt-3">
-                            作成: {new Date(todo.createdAt).toLocaleString('ja-JP')}
+                          <p className='text-xs text-gray-400 mt-3'>
+                            作成:{' '}
+                            {new Date(todo.createdAt).toLocaleString('ja-JP')}
                           </p>
                         </div>
                       </div>
 
                       {/* アクションボタン */}
-                      <div className="flex items-center gap-3 ml-4">
+                      <div className='flex items-center gap-3 ml-4'>
                         {/* 詳細ボタン */}
                         {/* Buttonに変更 STEP3 MOD START */}
                         <Button
-                          type="button"
-                          color="primary"
+                          type='button'
+                          color='primary'
                           as={Link}
                           href={`/todos/${todo.id}`}
-                          className="font-medium"
+                          className='font-medium'
                         >
                           詳細
                         </Button>
                         {/* STEP3 MOD END */}
 
                         {/* 削除ボタン */}
+                        {/* モーダルを開くように変更 STEP3 MOD START */}
                         <Button
-                          type="submit"
-                          color="danger"
-                          onPress={() => handleDeleteTodo(todo.id)}
-                          className="font-medium"
+                          type='button'
+                          color='danger'
+                          onPress={() => openDeleteModal(todo.id)}
+                          className='font-medium'
                         >
                           削除
                         </Button>
+                        {/* STEP3 MOD END */}
                       </div>
                     </CardBody>
                   </Card>
@@ -626,26 +682,29 @@ export default function TodoListPage({
 
             {/* ページネーションコントロール */}
             {paginationInfo && paginationInfo.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+              <div className='flex items-center justify-between mt-8 pt-6 border-t border-gray-200'>
                 {/* button → Button STEP3 MOD START */}
                 <Button
-                  type="button"
+                  type='button'
                   onPress={() => setPage(page - 1)}
                   isDisabled={page === 1}
                   variant={page === 1 ? 'flat' : 'solid'}
-                  className="px-6 py-2.5"
+                  className='px-6 py-2.5'
                 >
                   前のページ
                 </Button>
-                <span className="text-sm text-gray-600 font-medium">
-                  ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
+                <span className='text-sm text-gray-600 font-medium'>
+                  ページ {paginationInfo.currentPage} /{' '}
+                  {paginationInfo.totalPages}
                 </span>
                 <Button
-                  type="button"
+                  type='button'
                   onPress={() => setPage(page + 1)}
                   isDisabled={page === paginationInfo.totalPages}
-                  variant={page === paginationInfo.totalPages ? 'flat' : 'solid'}
-                  className="px-6 py-2.5"
+                  variant={
+                    page === paginationInfo.totalPages ? 'flat' : 'solid'
+                  }
+                  className='px-6 py-2.5'
                 >
                   次のページ
                 </Button>
@@ -654,6 +713,32 @@ export default function TodoListPage({
             )}
           </CardBody>
         </Card>
+
+        {/* 削除確認モーダルの追加 STEP3 ADD START */}
+        <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
+          <ModalContent>
+            <ModalHeader className='flex flex-col gap-1'>削除確認</ModalHeader>
+            <ModalBody>
+              <p className='text-gray-700'>
+                このTodoを削除してもよろしいですか？
+              </p>
+              <p className='text-sm text-gray-500 mt-2'>
+                この操作は取り消すことができません。
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button onPress={onClose}>キャンセル</Button>
+              <Button
+                color='danger'
+                onPress={handleDeleteTodo}
+                isLoading={isLoading}
+              >
+                {isLoading ? '削除中' : '削除する'}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* STEP3 ADD END */}
       </main>
     </div>
   );
