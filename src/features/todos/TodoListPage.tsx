@@ -1,5 +1,16 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Checkbox,
+  Input,
+  Select,
+  SelectItem,
+  Textarea,
+} from '@heroui/react';
 import Link from 'next/link';
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -140,6 +151,11 @@ export default function TodoListPage({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Todo作成中の状態
   const [isCreating, setIsCreating] = useState<boolean>(false);
+
+  // タイトル用のエラーメッセージと説明欄用のエラーメッセージを分割 STEP3 ADD START
+  const [titleError, setTitleError] = useState<string>('');
+  const [descriptionError, setDescriptionError] = useState<string>('');
+  // STEP3 ADD END
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
@@ -198,6 +214,10 @@ export default function TodoListPage({
   const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    // フィールドごとのエラーを送信時にクリア STEP3 MOD START
+    setTitleError('');
+    setDescriptionError('');
+    // STEP3 MOD END
 
     /**
      * 入力バリデーションの実行
@@ -207,10 +227,19 @@ export default function TodoListPage({
       descriptions: newTodoDescription,
     });
     // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
+    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
     if (!validationInput.success) {
-      setError(validationInput.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validationInput.error.errors;
+
+      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+      errors.forEach((err) => {
+        if (err.path[0] === 'title') setTitleError(err.message);
+        if (err.path[0] === 'descriptions') setDescriptionError(err.message);
+      });
       return;
     }
+    // STEP3 MOD END
 
     // Todo作成処理開始
     setIsCreating(true);
@@ -310,20 +339,8 @@ export default function TodoListPage({
     }
   }, [initialData, fetchTodos]);
 
-  /**
-   * テキストエリアの自動リサイズ関数
-   * 入力内容に応じてテキストエリアの高さを自動調整します。
-   * @param {HTMLTextAreaElement} textarea - 対象のテキストエリア要素
-   */
-  const autoResizeTextarea = (element: HTMLTextAreaElement) => {
-    // 高さのスタイルをリセット
-    element.style.height = 'auto';
-    // スクロール高さに基づいて高さを設定
-    element.style.height = `${element.scrollHeight}px`;
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* ヘッダーナビゲーション */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -356,13 +373,13 @@ export default function TodoListPage({
               )}
             </nav>
 
-            <button
+            <Button
               type="button"
-              onClick={handleLogout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
+              onPress={handleLogout}
+              className="px-6 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -377,262 +394,266 @@ export default function TodoListPage({
         )}
 
         {/* Todo作成フォーム */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-10">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-            新しいTodoを作成
-          </h2>
-
-          <form onSubmit={handleCreateTodo} className="space-y-6">
-            {/* タイトル入力欄 */}
-            <div className="relative">
-              <input
+        {/* Cardを追加 STEP3 ADD START */}
+        <Card className="mb-10">
+          <CardHeader>
+            <h2 className="text-2xl font-semibold text-gray-900">新しいTodoを作成</h2>
+          </CardHeader>
+          <CardBody>
+            <form onSubmit={handleCreateTodo} className="space-y-6">
+              {/* タイトル入力欄 */}
+              {/* input → Input STEP3 MOD START */}
+              <Input
                 id="title"
                 type="text"
                 value={newTodoTitle}
-                onChange={(e) => setNewTodoTitle(e.target.value)}
-                disabled={isCreating}
+                onChange={(e) => {
+                  setNewTodoTitle(e.target.value);
+                  setTitleError(''); // エラーメッセージをクリア
+                }}
                 maxLength={32}
                 placeholder="Todoのタイトル（32文字以内）"
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                label="タイトル"
+                isRequired
+                validationBehavior="aria"
+                isInvalid={!!titleError}
+                errorMessage={titleError}
               />
-              <label
-                htmlFor="title"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-              >
-                タイトル<span className="text-red-500 text-xs ml-0.5">*</span>
-              </label>
-            </div>
+              {/* input → Input STEP3 MOD END */}
 
-            <div className="relative">
-              <textarea
+              {/* 説明入力欄 */}
+              {/* textarea -> Textarea STEP3 MOD START */}
+              <Textarea
                 id="description"
+                label="説明"
+                placeholder="Todoの説明（128文字以内）"
                 value={newTodoDescription}
                 onChange={(e) => {
                   setNewTodoDescription(e.target.value);
-                  autoResizeTextarea(e.target);
+                  setDescriptionError(''); // エラーメッセージをクリア
                 }}
-                disabled={isCreating}
                 maxLength={128}
-                rows={1}
-                placeholder="Todoの説明（128文字以内）"
-                className="w-full px-3 py-2 pt-6 pb-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors resize-none min-h-[100px]"
+                isInvalid={!!descriptionError}
+                errorMessage={descriptionError}
               />
-              <label
-                htmlFor="description"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-              >
-                説明
-              </label>
-            </div>
+              {/* textarea -> Textarea STEP3 MOD END */}
 
-            {/* Todo作成ボタン */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="px-8 py-2.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-              >
-                {isCreating ? '作成中...' : '作成'}
-              </button>
-            </div>
-          </form>
-        </div>
+              {/* Todo作成ボタン */}
+              <div className="flex justify-end">
+                {/* button → Button STEP3 MOD START */}
+                <Button
+                  type="submit"
+                  color="primary"
+                  isLoading={isCreating}
+                  className="px-8 py-2.5 font-medium"
+                >
+                  {isCreating ? '作成中...' : '作成'}
+                </Button>
+                {/* button → Button STEP3 MOD END */}
+              </div>
+            </form>
+          </CardBody>
+        </Card>
 
         {/* フィルター・ソートコントロール */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 表示フィルター */}
-            <div>
-              <label
-                htmlFor="filter"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                表示フィルター
-              </label>
-              <select
+        <Card className="mb-8 p-4">
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* 表示フィルター */}
+              {/* select → Select STEP3 MOD START */}
+              <Select
                 id="filter"
-                value={completedFilter}
-                onChange={(e) => {
-                  setCompletedFilter(
-                    e.target.value as 'all' | 'completed' | 'incomplete',
-                  );
+                label="表示フィルター"
+                selectedKeys={new Set([completedFilter])}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as
+                    | 'all'
+                    | 'completed'
+                    | 'incomplete';
+                  setCompletedFilter(selected);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus: ring-blue-500"
               >
-                <option value="all">すべて</option>
-                <option value="completed">完了済み</option>
-                <option value="incomplete">未完了</option>
-              </select>
-            </div>
+                <SelectItem key="all">すべて</SelectItem>
+                <SelectItem key="completed">完了済み</SelectItem>
+                <SelectItem key="incomplete">未完了</SelectItem>
+              </Select>
 
-            {/* ソート項目 */}
-            <div>
-              <label
-                htmlFor="sortBy"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                並び順
-              </label>
-              <select
+              {/* ソート項目 */}
+              <Select
                 id="sortBy"
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as 'createdAt' | 'updatedAt' | 'title')
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                label="並び順"
+                selectedKeys={new Set([sortBy])}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as
+                    | 'createdAt'
+                    | 'updatedAt'
+                    | 'title';
+                  setSortBy(selected);
+                }}
               >
-                <option value="createdAt">作成日時</option>
-                <option value="updatedAt">更新日時</option>
-                <option value="title">タイトル</option>
-              </select>
-            </div>
+                <SelectItem key="createdAt">作成日時</SelectItem>
+                <SelectItem key="updatedAt">更新日時</SelectItem>
+                <SelectItem key="title">タイトル</SelectItem>
+              </Select>
 
-            {/* ソート順序 */}
-            <div>
-              <label
-                htmlFor="sortOrder"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                順序
-              </label>
-              <select
+              {/* ソート順序 */}
+              <Select
                 id="sortOrder"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                label="順序"
+                selectedKeys={new Set([sortOrder])}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as 'asc' | 'desc';
+                  setSortOrder(selected);
+                }}
               >
-                <option value="desc">降順</option>
-                <option value="asc">昇順</option>
-              </select>
+                <SelectItem key="desc">降順</SelectItem>
+                <SelectItem key="asc">昇順</SelectItem>
+              </Select>
+              {/* select → Select STEP3 MOD END */}
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
         {/* Todo一覧表示 */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Todo一覧</h2>
+        <Card>
+          <CardBody>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Todo一覧</h2>
 
-            {/* ページネーション情報 */}
-            {paginationInfo && (
-              <p className="text-sm text-gray-600">
-                全{paginationInfo.totalItems}件中{' '}
-                {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
-                {Math.min(
-                  paginationInfo.currentPage * paginationInfo.itemsPerPage,
-                  paginationInfo.totalItems,
-                )}
-                件を表示
-              </p>
-            )}
-          </div>
-
-          {/* ローディング表示 */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-gray-500">読み込み中...</div>
+              {/* ページネーション情報 */}
+              {paginationInfo && (
+                <p className="text-sm text-gray-600">
+                  全{paginationInfo.totalItems}件中{' '}
+                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
+                  {Math.min(
+                    paginationInfo.currentPage * paginationInfo.itemsPerPage,
+                    paginationInfo.totalItems,
+                  )}
+                  件を表示
+                </p>
+              )}
             </div>
-          ) : todos.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 text-lg">
-              Todoがありません
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {todos.map((todo) => (
-                <div
-                  key={todo.id}
-                  className="flex items-center justify-between p-5 bg-gray-50 rouded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-                >
-                  <div className="flex items-start gap-4 flex-1">
-                    {/* 完了チェックボックス */}
-                    <input
-                      type="checkbox"
-                      checked={todo.completed}
-                      onChange={() => toggleCompleteTodo(todo)}
-                      className="mt-1 w-5 h-5 text-blue-500 rouded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                    />
 
-                    <div className="flex-1">
-                      {/* タイトル */}
-                      <Link
-                        href={`/todos/${todo.id}`}
-                        className="hover:text-blue-600 transition-colors"
-                      >
-                        <h3
-                          className={`font-medium text-lg ${
-                            todo.completed
-                              ? 'line-through text-gray-500'
-                              : 'text-gray-900'
-                          }`}
+            {/* ローディング表示 */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500">読み込み中...</div>
+              </div>
+            ) : todos.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 text-lg">
+                Todoがありません
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {todos.map((todo) => (
+                  <Card
+                    key={todo.id}
+                    className="bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all"
+                  >
+                    <CardBody className="flex flex-row items-center justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        {/* 完了チェックボックス */}
+                        {/* Checkboxに変更 STEP3 MOD START */}
+                        <Checkbox
+                          isSelected={todo.completed}
+                          onValueChange={() => toggleCompleteTodo(todo)}
+                          className="mt-1 h-5"
+                        />
+                        {/* STEP3 MOD END */}
+
+                        <div className="flex-1">
+                          {/* タイトル */}
+                          <Link
+                            href={`/todos/${todo.id}`}
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            <h3
+                              className={`font-medium text-lg ${
+                                todo.completed
+                                  ? 'line-through text-gray-500'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {todo.title}
+                            </h3>
+                          </Link>
+
+                          {/* 説明 */}
+                          {todo.descriptions && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              {todo.descriptions}
+                            </p>
+                          )}
+
+                          {/* 作成・更新日時 */}
+                          <p className="text-xs text-gray-400 mt-3">
+                            作成: {new Date(todo.createdAt).toLocaleString('ja-JP')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* アクションボタン */}
+                      <div className="flex items-center gap-3 ml-4">
+                        {/* 詳細ボタン */}
+                        {/* Buttonに変更 STEP3 MOD START */}
+                        <Button
+                          type="button"
+                          color="primary"
+                          as={Link}
+                          href={`/todos/${todo.id}`}
+                          className="font-medium"
                         >
-                          {todo.title}
-                        </h3>
-                      </Link>
+                          詳細
+                        </Button>
+                        {/* STEP3 MOD END */}
 
-                      {/* 説明 */}
-                      {todo.descriptions && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {todo.descriptions}
-                        </p>
-                      )}
+                        {/* 削除ボタン */}
+                        <Button
+                          type="submit"
+                          color="danger"
+                          onPress={() => handleDeleteTodo(todo.id)}
+                          className="font-medium"
+                        >
+                          削除
+                        </Button>
+                      </div>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-                      {/* 作成・更新日時 */}
-                      <p className="text-xs text-gray-400 mt-3">
-                        作成: {new Date(todo.createdAt).toLocaleString('ja-JP')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* アクションボタン */}
-                  <div className="flex items-center gap-3 ml-4">
-                    {/* 編集ボタン */}
-                    <Link
-                      href={`/todos/${todo.id}`}
-                      className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium"
-                    >
-                      詳細
-                    </Link>
-
-                    {/* 削除ボタン */}
-                    <button
-                      type="submit"
-                      onClick={() => handleDeleteTodo(todo.id)}
-                      className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium cursor-pointer"
-                    >
-                      削除
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ページネーションコントロール */}
-          {paginationInfo && paginationInfo.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1}
-                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-default transition-colors font-medium"
-              >
-                前のページ
-              </button>
-              <span className="text-sm text-gray-600">
-                ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
-              </span>
-              <button
-                type="submit"
-                onClick={() => setPage(page + 1)}
-                disabled={page === paginationInfo.totalPages}
-                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-default transition-colors font-medium"
-              >
-                次のページ
-              </button>
-            </div>
-          )}
-        </div>
+            {/* ページネーションコントロール */}
+            {paginationInfo && paginationInfo.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+                {/* button → Button STEP3 MOD START */}
+                <Button
+                  type="button"
+                  onPress={() => setPage(page - 1)}
+                  isDisabled={page === 1}
+                  variant={page === 1 ? 'flat' : 'solid'}
+                  className="px-6 py-2.5"
+                >
+                  前のページ
+                </Button>
+                <span className="text-sm text-gray-600 font-medium">
+                  ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
+                </span>
+                <Button
+                  type="button"
+                  onPress={() => setPage(page + 1)}
+                  isDisabled={page === paginationInfo.totalPages}
+                  variant={page === paginationInfo.totalPages ? 'flat' : 'solid'}
+                  className="px-6 py-2.5"
+                >
+                  次のページ
+                </Button>
+                {/* button → Button STEP3 MOD END */}
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </main>
     </div>
   );
