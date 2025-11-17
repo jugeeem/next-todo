@@ -6,7 +6,13 @@ import {
   CardBody,
   CardHeader,
   Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Textarea,
+  useDisclosure,
 } from '@heroui/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -93,6 +99,10 @@ export default function TodoDetailPage({
   // 現在のユーザーの権限情報
   const [currentUserRole] = useState<number>(initialUserRole || 4);
 
+  // モーダルの追加処理 STEP3 ADD START
+  // 削除確認モーダルの状態管理
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  // STEP3 ADD END
   const params = useParams();
   const todoId = params.id as string;
 
@@ -215,13 +225,16 @@ export default function TodoDetailPage({
 
   /**
    * TODOの削除処理
-   * 確認ダイアログを表示し、OKの場合にAPIに削除リクエストを送信します。
+   * モーダルで確認後、APIに削除リクエストを送信します。
    * @returns {Promise<void>}
    */
+  // モーダル表示で確認後削除処理に変更 STEP3 MOD START
   const handleDeleteTodo = async () => {
-    if (!confirm('このTodoを削除してもよろしいですか？')) return;
+    // モーダルを閉じる
+    onClose();
 
     // 削除処理の開始
+    setIsLoading(true);
     try {
       // サーバーアクションを使用してTodo削除を実行
       const result = await deleteTodo(todoId);
@@ -236,8 +249,12 @@ export default function TodoDetailPage({
       setError(
         err instanceof Error ? err.message : '不明なエラーが発生しました'
       );
+    } finally {
+      // 削除処理の終了
+      setIsLoading(false);
     }
   };
+  // STEP3 MOD END
 
   /**
    * ログアウト用の非同期関数。
@@ -483,7 +500,7 @@ export default function TodoDetailPage({
                   {/* button → Button STEP3 MOD START */}
                   <Button
                     type='button'
-                    onPress={handleDeleteTodo}
+                    onPress={onOpen} // モーダルを開く。 STEP3 MOD
                     color='danger'
                     className='font-medium'
                   >
@@ -505,6 +522,31 @@ export default function TodoDetailPage({
             )}
           </CardBody>
         </Card>
+
+        {/* 削除確認モーダルの追加 STEP3 ADD START */}
+        <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
+          <ModalContent>
+            <ModalHeader className='flex flex-col gap-1'>削除確認</ModalHeader>
+            <ModalBody>
+              <p className='text-gray-700'>
+                このTodoを削除してもよろしいですか？
+              </p>
+              <p className='text-sm text-gray-500 mt-2'>
+                この操作は取り消すことができません。
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button onPress={onClose}>キャンセル</Button>
+              <Button
+                color='danger'
+                onPress={handleDeleteTodo}
+                isLoading={isLoading}
+              >
+                {isLoading ? '削除中' : '削除する'}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </main>
     </div>
   );
