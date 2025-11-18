@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
+import {
+  Input,
+  Card,
+  CardHeader,
+  CardBody,
+  Select,
+  SelectItem,
+  Button,
+  CardFooter,
+} from '@heroui/react';
 
 /**
  * ロール番号とラベルの対応表。
@@ -38,6 +48,11 @@ export default function CreateUserPage() {
   const [role, setRole] = useState<number>(4);
   // 作成中フラグ
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  // ユーザー名用のエラーメッセージ、パスワード用のエラーメッセージを分割する STEP3 ADD START
+  const [usernameError, setUsernameError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
+  // STEP3 ADD END
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // 現在のユーザー権限情報
@@ -85,7 +100,9 @@ export default function CreateUserPage() {
       } catch (err) {
         // エラー発生時はコンソールにエラーを表示し、ログインページへリダイレクト
         console.error('権限チェックエラー:', err);
-        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+        setError(
+          err instanceof Error ? err.message : '不明なエラーが発生しました'
+        );
         router.replace('/login');
       }
     };
@@ -105,7 +122,7 @@ export default function CreateUserPage() {
     (roleValue) => ({
       value: roleValue,
       label: roleLabels[roleValue],
-    }),
+    })
   );
 
   /**
@@ -140,7 +157,13 @@ export default function CreateUserPage() {
     e.preventDefault();
     // 作成中フラグを設定
     setIsCreating(true);
+    // エラーメッセージの初期化
     setError('');
+    // STEP3 MOD START
+    setUsernameError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    // STEP3 MOD END
 
     /**
      * バリデーションの実行。
@@ -156,8 +179,19 @@ export default function CreateUserPage() {
       lastName,
     });
     // バリデーションエラー時の処理
+    // フィールドごとにエラー状態を設定する。 STEP3 MOD START
     if (!validationInput.success) {
-      setError(validationInput.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validationInput.error.errors;
+
+      // err.path[0]でフィールド名を特定し、対応するエラーステートにメッセージを設定
+      errors.forEach((err) => {
+        if (err.path[0] === 'username') setUsernameError(err.message);
+        if (err.path[0] === 'password') setPasswordError(err.message);
+        if (err.path[0] === 'confirmPassword') {
+          setConfirmPasswordError(err.message);
+        }
+      });
       setIsCreating(false);
       return;
     }
@@ -193,7 +227,9 @@ export default function CreateUserPage() {
       router.push('/users');
     } catch (err) {
       // エラー発生時の処理
-      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+      setError(
+        err instanceof Error ? err.message : '不明なエラーが発生しました'
+      );
     } finally {
       setIsCreating(false);
     }
@@ -221,39 +257,39 @@ export default function CreateUserPage() {
   // 権限チェック中の画面表示
   if (!currentUserRole || currentUserRole >= 3) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">権限を確認中...</div>
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='text-gray-500'>権限を確認中...</div>
       </div>
     );
   }
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className='min-h-screen flex flex-col bg-gray-50'>
       {/* ヘッダーナビゲーション */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+      <header className='bg-white shadow-sm border-b border-gray-200'>
+        <div className='max-w-7xl mx-auto px-6 py-4'>
+          <div className='flex items-center justify-between'>
             {/* 見出し */}
-            <Link href="/todos" className="hover:opacity-80 transition-opacity">
-              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
+            <Link href='/todos' className='hover:opacity-80 transition-opacity'>
+              <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
             </Link>
             {/* ナビゲーションリンク */}
-            <nav className="flex items-center gap-6">
+            <nav className='flex items-center gap-6'>
               <Link
-                href="/todos"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                href='/todos'
+                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
               >
                 Todo一覧
               </Link>
               <Link
-                href="/profile"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                href='/profile'
+                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
               >
                 プロフィール
               </Link>
               {currentUserRole <= 2 && (
                 <Link
-                  href="/users"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  href='/users'
+                  className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
                 >
                   ユーザー管理
                 </Link>
@@ -261,187 +297,175 @@ export default function CreateUserPage() {
             </nav>
 
             {/* ログアウトボタン */}
-            <button
-              type="button"
-              onClick={logout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
+            <Button
+              type='button'
+              onPress={logout}
+              className='px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer'
             >
               ログアウト
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
+      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
         {/* エラーメッセージ */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <p className='text-red-700 text-sm'>{error}</p>
           </div>
         )}
 
         {/* ページタイトル */}
-        <div className="flex items-center justify-between mb-6">
+        <div className='flex items-center justify-between mb-6'>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">ユーザー作成</h2>
+            <h2 className='text-3xl font-bold text-gray-900'>ユーザー作成</h2>
           </div>
         </div>
 
         {/* ユーザー作成フォーム */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-            ユーザー情報入力
-          </h3>
+        <Card className='p-8'>
+          <CardHeader>
+            <h3 className='text-2xl font-semibold text-gray-900 mb-2'>
+              ユーザー情報入力
+            </h3>
+          </CardHeader>
 
           {/* 入力フォーム */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className='space-y-2'>
             {/* ユーザー入力 */}
-            <div className="relative">
-              <input
-                id="username"
-                type="text"
+            <CardBody>
+              {/* input → Input に変更 STEP3 MOD START */}
+              <Input
+                id='username'
+                label='ユーザー名'
+                type='text'
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isCreating}
-                placeholder="username"
-                required
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:cursor-not-allowed peer transition-colors"
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setUsernameError('');
+                }}
+                placeholder='username'
+                isRequired
+                validationBehavior='aria'
+                isInvalid={!!usernameError}
+                errorMessage={usernameError}
               />
-              <label
-                htmlFor="username"
-                className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-              >
-                ユーザー名 <span className="text-red-500">*</span>
-              </label>
-              <p className="text-xs text-gray-500 mt-1">1～50文字で入力してください</p>
-            </div>
+              {/* STEP3 MOD END */}
+              <p className='text-xs text-gray-500 mt-1'>
+                1～50文字で入力してください
+              </p>
+            </CardBody>
 
             {/* パスワード入力 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <input
-                  id="password"
-                  type="password"
+            <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                {/* input → Input に変更 STEP3 MOD START */}
+                <Input
+                  id='password'
+                  label='パスワード'
+                  type='password'
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isCreating}
-                  placeholder="6文字以上"
-                  required
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError('');
+                  }}
+                  isRequired
+                  validationBehavior='aria'
+                  placeholder='6文字以上'
+                  isInvalid={!!passwordError}
+                  errorMessage={passwordError}
                 />
-                <label
-                  htmlFor="password"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  パスワード <span className="text-red-500">*</span>
-                </label>
-                <p className="text-xs text-gray-500 mt-1">最小6文字</p>
+                {/* STEP3 MOD END */}
+                <p className='text-xs text-gray-500 mt-1'>最小6文字</p>
               </div>
 
               {/* 確認用パスワード */}
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type="password"
+              <div>
+                <Input
+                  id='confirmPassword'
+                  type='password'
+                  label='確認用パスワード'
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError('');
+                  }}
                   disabled={isCreating}
-                  required
-                  placeholder="パスワードを再入力"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  isRequired
+                  validationBehavior='aria'
+                  placeholder='パスワードを再入力'
+                  isInvalid={!!confirmPasswordError}
+                  errorMessage={confirmPasswordError}
                 />
-                <label
-                  htmlFor="confirmPassword"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  パスワード確認 <span className="text-red-500">*</span>
-                </label>
               </div>
-            </div>
+            </CardBody>
 
             {/* 名前入力 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* 姓 */}
-              <div className="relative">
-                <input
-                  id="lastName"
-                  type="text"
+              <div>
+                <Input
+                  id='lastName'
+                  label='姓'
+                  type='text'
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  disabled={isCreating}
-                  placeholder="姓"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  placeholder='姓'
                 />
-                <label
-                  htmlFor="lastName"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  姓
-                </label>
               </div>
 
               {/* 名 */}
-              <div className="relative">
-                <input
-                  id="firstName"
-                  type="text"
+              <div>
+                <Input
+                  id='firstName'
+                  label='名'
+                  type='text'
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  disabled={isCreating}
-                  placeholder="名"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  placeholder='名'
                 />
-                <label
-                  htmlFor="firstName"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  名
-                </label>
               </div>
-            </div>
+            </CardBody>
 
             {/* 権限選択 */}
-            <div className="relative">
-              <select
-                id="role"
-                value={role}
-                onChange={(e) => setRole(Number(e.target.value))}
-                disabled={isCreating}
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+            <CardBody>
+              <Select
+                id='role'
+                label='ロール'
+                selectedKeys={[String(role)]}
+                onSelectionChange={(keys) => {
+                  const selectedValue = Array.from(keys)[0];
+                  setRole(Number(selectedValue));
+                }}
+                isDisabled={isCreating}
+                isRequired
+                validationBehavior='aria'
+                placeholder='ロールを選択してください'
               >
                 {canCreateRole.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
+                  <SelectItem key={String(role.value)}>{role.label}</SelectItem>
                 ))}
-              </select>
-              <label
-                htmlFor="role"
-                className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-              >
-                ロール <span className="text-red-500">*</span>
-              </label>
-            </div>
+              </Select>
+            </CardBody>
 
             {/* 送信ボタン */}
-            <div className="flex justify-end items-center gap-4 pt-6 border-t border-gray-200">
-              <Link
-                href="/users"
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium text-center cursor-pointer"
-              >
+            <CardFooter className='justify-end gap-4 pt-6'>
+              <Button as={Link} href='/users' className='font-medium'>
                 キャンセル
-              </Link>
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors cursor-pointer"
+              </Button>
+              <Button
+                type='submit'
+                color='primary'
+                isLoading={isCreating}
+                className='font-medium'
               >
-                {isCreating ? '作成中...' : 'ユーザーを作成'}
-              </button>
-            </div>
+                {isCreating ? '作成中' : 'ユーザーを作成'}
+              </Button>
+            </CardFooter>
           </form>
-        </div>
+        </Card>
       </main>
     </div>
   );
