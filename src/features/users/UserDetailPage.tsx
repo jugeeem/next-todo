@@ -1,6 +1,26 @@
 'use client';
 
-import Link from 'next/link';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Input,
+  Link,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Select,
+  SelectItem,
+  useDisclosure,
+} from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { deleteUser as deleteUserAction, logout, updateUser } from '@/lib/api';
@@ -127,6 +147,11 @@ export default function UserDetailPage({
   // 成功メッセージ
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+  // モーダルの追加処理 STEP3 ADD START
+  // 削除確認モーダルの状態管理
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  // STEP3 ADD END
+
   /**
    * ユーザー情報の更新処理。
    * ユーザー情報の編集が完了したときに実行され、APIに更新リクエストを送信します。
@@ -176,9 +201,10 @@ export default function UserDetailPage({
    * @return {Promise<void>}
    * @throws {Error} ユーザー削除に失敗した場合にスローされるエラー
    */
+  // モーダル表示で確認後削除処理に変更 STEP3 MOD START
   const deleteUser = async () => {
-    /// 確認ダイアログの表示
-    if (!confirm('本当にこのユーザーを削除しますか？')) return;
+    // モーダルを閉じる
+    onClose();
 
     // 処理の開始
     try {
@@ -195,6 +221,7 @@ export default function UserDetailPage({
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     }
   };
+  // STEP3 MOD END
 
   /**
    * ログアウト処理。
@@ -235,46 +262,53 @@ export default function UserDetailPage({
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/todos" className="hover:opacity-80 transition-opacity">
-              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
-            </Link>
-
-            <nav className="flex items-center gap-6">
-              <Link
-                href="/todos"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Todo一覧
-              </Link>
-              <Link
-                href="/profile"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                プロフィール
-              </Link>
-              {currentUserRole <= 2 && (
-                <Link
-                  href="/users"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  ユーザー管理
-                </Link>
-              )}
-            </nav>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium cursor-pointer"
+      {/* herouiに変更 STEP3 MOD START */}
+      <Navbar className="border-b border-gray-200">
+        <NavbarBrand>
+          <Link href="/todos" className="hover:opacity-80 transition-opacity">
+            <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
+          </Link>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
+            <Link
+              href="/todos"
+              color="foreground"
+              className="hover:text-blue-600 font-medium"
             >
+              Todo一覧
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link
+              href="/profile"
+              color="foreground"
+              className="hover:text-blue-600 font-medium"
+            >
+              プロフィール
+            </Link>
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
+              <Link
+                href="/users"
+                color="foreground"
+                className="hover:text-blue-600 font-medium"
+              >
+                ユーザー管理
+              </Link>
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button type="button" onPress={handleLogout} className="font-medium">
               ログアウト
-            </button>
-          </div>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
+      {/* STEP3 MOD END */}
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* メインコンテンツ */}
@@ -298,62 +332,66 @@ export default function UserDetailPage({
           </div>
           <div className="flex items-center gap-3">
             {/* 戻るボタン */}
-            <Link
-              href="/users"
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors"
-            >
+            {/* Buttonに変更 STEP3 MOD START */}
+            <Button type="button" as={Link} href="/users" className="font-medium">
               ユーザー一覧に戻る
-            </Link>
+            </Button>
+            {/* STEP3 MOD END */}
           </div>
         </div>
 
         {/* ユーザー情報カード */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-8 mb-8">
+          <CardHeader className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-semibold text-gray-900">ユーザー情報</h3>
             {/* 編集ボタン(ADMINのみ) */}
             {currentUserRole === 1 && !isEditing && (
-              <button
+              // button → Button STEP3 MOD START
+              <Button
                 type="button"
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium cursor-pointer"
+                onPress={() => setIsEditing(true)}
+                color="primary"
+                className="font-medium"
               >
                 編集
-              </button>
+              </Button>
+              // STEP3 MOD END
             )}
             {/* 保存・キャンセルボタン */}
             {isEditing && (
               <div className="flex items-center gap-3">
-                <button
+                {/* button → Button STEP3 MOD START */}
+                <Button
                   type="button"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors font-medium cursor-pointer"
+                  onPress={handleSave}
+                  color="primary"
+                  isLoading={isSaving}
+                  className="font-medium"
                 >
-                  {isSaving ? '保存中...' : '保存'}
-                </button>
-                <button
+                  {isSaving ? '保存中' : '保存'}
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => {
+                  onPress={() => {
                     setIsEditing(false);
                     setFirstName(user.firstName || '');
                     setLastName(user.lastName || '');
                     setRole(user.role);
                   }}
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 transition-colors font-medium cursor-pointer"
+                  className="font-medium"
                 >
                   キャンセル
-                </button>
+                </Button>
+                {/* STEP3 MOD END */}
               </div>
             )}
-          </div>
+          </CardHeader>
 
           {/* ユーザー情報表示 */}
 
           {/* 編集モードでない場合 */}
           {!isEditing ? (
-            <div className="space-y-4">
+            <CardBody className="space-y-4">
               {/* ユーザー名 */}
               <div>
                 <label
@@ -421,123 +459,122 @@ export default function UserDetailPage({
                   </p>
                 </div>
               </div>
-            </div>
+            </CardBody>
           ) : (
             // 編集モード
-            <div className="space-y-6">
+            <CardBody className="space-y-6">
               {/* 名前編集 */}
 
               {/* ユーザー名 */}
               <div>
-                <label
-                  htmlFor="username-readonly"
-                  className="block text-sm font-medium text-gray-500 mb-1"
-                >
-                  ユーザー名（変更不可）
-                </label>
-                <p id="username-readonly" className="text-lg text-gray-400">
-                  {user.username}
-                </p>
+                {/* Inputに変更 STEP3 MOD START */}
+                <Input
+                  id="username"
+                  type="text"
+                  isDisabled
+                  isReadOnly
+                  label="ユーザー名"
+                  defaultValue={user.username}
+                />
+                {/* STEP3 MOD END */}
               </div>
 
               {/* 姓 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative">
-                  <input
+                <div>
+                  {/* input → Input STEP3 MOD START */}
+                  <Input
                     id="lastName"
+                    label="姓"
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                    placeholder="姓"
                   />
-                  <label
-                    htmlFor="lastName"
-                    className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                  >
-                    姓
-                  </label>
+                  {/* STEP3 MOD END */}
                 </div>
 
                 {/* 名 */}
-                <div className="relative">
-                  <input
+                <div>
+                  {/* input → Input STEP3 MOD START */}
+                  <Input
                     id="firstName"
+                    label="名"
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                    placeholder="名"
                   />
-                  <label
-                    htmlFor="firstName"
-                    className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                  >
-                    名
-                  </label>
+                  {/* STEP3 MOD END */}
                 </div>
               </div>
 
               {/* 権限編集 */}
-              <div className="relative">
-                <select
+              <div>
+                {/* select → Select STEP3 MOD START */}
+                <Select
                   id="role"
-                  value={role}
-                  onChange={(e) => setRole(Number(e.target.value))}
-                  disabled={isSaving}
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  label="ロール"
+                  selectedKeys={[String(role)]}
+                  onSelectionChange={(keys) => {
+                    const selectedRole = Array.from(keys)[0];
+                    setRole(Number(selectedRole));
+                  }}
+                  isRequired
+                  validationBehavior="aria"
+                  placeholder="ロールを選択してください"
                 >
-                  <option value={1}>ADMIN</option>
-                  <option value={2}>MANAGER</option>
-                  <option value={3}>USER</option>
-                  <option value={4}>GUEST</option>
-                </select>
-                <label
-                  htmlFor="role"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  ロール
-                </label>
+                  <SelectItem key={1}>ADMIN</SelectItem>
+                  <SelectItem key={2}>MANAGER</SelectItem>
+                  <SelectItem key={3}>USER</SelectItem>
+                  <SelectItem key={4}>GUEST</SelectItem>
+                </Select>
+                {/* STEP3 MOD END */}
               </div>
-            </div>
+            </CardBody>
           )}
 
           {/* 削除ボタン（ADMINのみ、自分以外） */}
           {currentUserRole === 1 && currentUserId !== user.id && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
+            <CardFooter className="mt-6">
+              {/* button → Button STEP3 MOD START */}
+              <Button
                 type="button"
-                onClick={deleteUser}
-                className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium cursor-pointer"
+                onPress={onOpen} // モーダルを開く
+                color="danger"
+                className="font-medium"
               >
                 このユーザーを削除
-              </button>
-            </div>
+              </Button>
+              {/* STEP3 MOD END */}
+            </CardFooter>
           )}
-        </div>
+        </Card>
 
         {/* Todoリスト表示 */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-8">
+          <CardHeader className="justify-between">
             <h3 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h3>
             {todos.length > 0 && <span>全{todos.length}件</span>}
-          </div>
+          </CardHeader>
 
           {/* MANAGER権限でほかのユーザーの詳細ページを参照している場合 */}
           {currentUserRole === 2 && currentUserId !== user.id ? (
-            <div className="text-center py-12">
+            <CardBody className="text-center py-12">
               <p className="text-gray-500 text-sm">
                 他のユーザーのTodoは閲覧できません
               </p>
               <p className="text-gray-400 text-xs mt-2">
                 MANAGER権限では自分のTodoのみ閲覧可能です
               </p>
-            </div>
+            </CardBody>
           ) : todos.length === 0 ? ( // Todoがない場合
-            <div className="text-center py-12 text-gray-500">Todoがありません</div>
+            <CardBody className="text-center py-12">
+              <p className="text-gray-500">Todoがありません</p>
+            </CardBody>
           ) : (
             // Todoリスト表示
-            <div className="space-y-3">
+            <CardBody className="space-y-4">
               {displayTodos.map((todo) => (
                 <div
                   key={todo.id}
@@ -574,28 +611,47 @@ export default function UserDetailPage({
               ))}
               {/* もっと見るボタン */}
               {displayTodoCount < todos.length && (
-                <div className="flex items-center justify-center mt-6 pt-4 border-t border-gray-200">
-                  <button
+                <CardFooter className="justify-center mt-4">
+                  <Button
                     type="button"
-                    onClick={loadMoreTodos}
-                    className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium cursor-pointer"
+                    onPress={loadMoreTodos}
+                    color="primary"
+                    className="font-medium"
                   >
                     もっと見る
-                  </button>
-                </div>
+                  </Button>
+                </CardFooter>
               )}
 
               {/* 全件表示完了メッセージ */}
               {displayTodoCount >= todos.length && todos.length > 10 && (
-                <div className="text-center mt-6 pt-4 border-t border-gray-200">
+                <CardFooter className="justify-center mt-4">
                   <p className="text-sm text-gray-500">
                     すべてのTodoが表示されています
                   </p>
-                </div>
+                </CardFooter>
               )}
-            </div>
+            </CardBody>
           )}
-        </div>
+        </Card>
+
+        {/* 削除確認モーダルの追加 STEP3 ADD START */}
+        <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
+          <ModalContent>
+            <ModalHeader>削除確認</ModalHeader>
+            <ModalBody>
+              <p>このユーザーを削除してもよろしいですか？</p>
+              <p>この操作は取り消すことができません。</p>
+            </ModalBody>
+            <ModalFooter>
+              <Button onPress={onClose}>キャンセル</Button>
+              <Button color="danger" onPress={deleteUser}>
+                削除する
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* STEP3 ADD END */}
       </main>
     </div>
   );
