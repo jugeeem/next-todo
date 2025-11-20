@@ -1,5 +1,19 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Textarea,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type FormEvent, useEffect, useState } from 'react';
@@ -73,11 +87,19 @@ export default function TodoDetailPage({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   // ローディング状態
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  // エラーメッセージの状態
+  // サーバーエラーメッセージの状態
   const [error, setError] = useState<string>('');
+  // エラーメッセージを分離させるためバリデーションエラーの状態を追加。 STEP3 ADD START
+  const [titleError, setTitleError] = useState<string>('');
+  const [descriptionsError, setDescriptionsError] = useState<string>('');
+  // STEP3 ADD END
   // 現在のユーザーの権限情報
   const [currentUserRole] = useState<number>(initialUserRole || 4);
 
+  // モーダルの追加処理 STEP3 ADD START
+  // 削除確認モーダルの状態管理
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  // STEP3 ADD END
   const params = useParams();
   const todoId = params.id as string;
 
@@ -130,6 +152,12 @@ export default function TodoDetailPage({
   const handleUpdateTodo = async (e: FormEvent) => {
     e.preventDefault();
 
+    // エラー状態の初期化 STEP3 ADD START
+    setError('');
+    setTitleError('');
+    setDescriptionsError('');
+    // STEP3 ADD END
+
     // TODOが存在しない場合は処理を中断
     if (!todo) {
       setError('Todoが見つかりませんでした');
@@ -142,11 +170,19 @@ export default function TodoDetailPage({
       descriptions: descriptions,
     });
 
+    // バリデーションエラー発生箇所を特定してエラーメッセージを設定。 STEP3 MOD START
     // バリデーションエラー時の処理
     if (!validation.success) {
-      setError(validation.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validation.error.errors;
+      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+      errors.forEach((err) => {
+        if (err.path[0] === 'title') setTitleError(err.message);
+        if (err.path[0] === 'descriptions') setDescriptionsError(err.message);
+      });
       return;
     }
+    // STEP3 MOD END
 
     // 更新処理の開始
     setIsLoading(true);
@@ -182,13 +218,16 @@ export default function TodoDetailPage({
 
   /**
    * TODOの削除処理
-   * 確認ダイアログを表示し、OKの場合にAPIに削除リクエストを送信します。
+   * モーダルで確認後、APIに削除リクエストを送信します。
    * @returns {Promise<void>}
    */
+  // モーダル表示で確認後削除処理に変更 STEP3 MOD START
   const handleDeleteTodo = async () => {
-    if (!confirm('このTodoを削除してもよろしいですか？')) return;
+    // モーダルを閉じる
+    onClose();
 
     // 削除処理の開始
+    setIsLoading(true);
     try {
       // サーバーアクションを使用してTodo削除を実行
       const result = await deleteTodo(todoId);
@@ -201,8 +240,12 @@ export default function TodoDetailPage({
       window.location.href = '/todos';
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+    } finally {
+      // 削除処理の終了
+      setIsLoading(false);
     }
   };
+  // STEP3 MOD END
 
   /**
    * ログアウト用の非同期関数。
@@ -225,18 +268,10 @@ export default function TodoDetailPage({
     }
     setIsEditing(false);
     setError('');
-  };
-
-  /**
-   * テキストエリアの自動リサイズ関数
-   * 入力内容に応じてテキストエリアの高さを自動調整します。
-   * @param {<HTMLTextAreaElement>} textarea - 対象のテキストエリア要素
-   */
-  const autoResizeTextarea = (element: HTMLTextAreaElement) => {
-    // 高さのスタイルをリセット
-    element.style.height = 'auto';
-    // スクロール高さに基づいて高さを設定
-    element.style.height = `${element.scrollHeight}px`;
+    // エラー状態の初期化 STEP3 ADD START
+    setTitleError('');
+    setDescriptionsError('');
+    // STEP3 ADD END
   };
 
   // ロード中表示
@@ -265,7 +300,7 @@ export default function TodoDetailPage({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* ヘッダーナビゲーション */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -296,14 +331,15 @@ export default function TodoDetailPage({
                 </Link>
               )}
             </nav>
-
-            <button
+            {/* button → Button STEP3 MOD START */}
+            <Button
               type="button"
-              onClick={handleLogout}
+              onPress={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
-            </button>
+            </Button>
+            {/* button → Button STEP3 MOD END */}
           </div>
         </div>
       </header>
@@ -328,8 +364,8 @@ export default function TodoDetailPage({
         )}
 
         {/* Todo詳細/編集フォーム */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
+        <Card>
+          <CardHeader className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-gray-900">
               {isEditing ? 'Todo編集' : 'Todo詳細'}
             </h2>
@@ -344,131 +380,148 @@ export default function TodoDetailPage({
             >
               {todo.completed ? '完了' : '未完了'}
             </span>
-          </div>
+          </CardHeader>
 
-          {isEditing ? (
-            // 編集中表示画面
-            <form onSubmit={handleUpdateTodo} className="space-y-6">
-              {/* タイトル入力欄 */}
-              <div className="relative">
-                <input
+          <CardBody>
+            {isEditing ? (
+              // 編集中表示画面
+              <form onSubmit={handleUpdateTodo} className="space-y-6">
+                {/* タイトル入力欄 */}
+                {/* input → Input STEP3 MOD START */}
+                <Input
                   id="title"
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={isLoading}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setTitleError('');
+                  }}
                   maxLength={32}
                   placeholder="Todoのタイトル（32文字以内）"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  label="タイトル"
+                  isRequired
+                  // ブラウザ標準のバリデーション表示を無効化
+                  validationBehavior="aria"
+                  isInvalid={!!titleError}
+                  errorMessage={titleError}
                 />
-                <label
-                  htmlFor="title"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  タイトル<span>*</span>
-                </label>
-              </div>
-
-              {/* 説明入力欄 */}
-              <div className="relative">
-                <textarea
+                {/* input → Input STEP3 MOD END */}
+                {/* 説明入力欄 */}
+                {/* textarea → Textarea STEP3 MOD START */}
+                <Textarea
                   id="descriptions"
+                  label="説明"
+                  placeholder="Todoの説明（128文字以内）"
                   value={descriptions}
                   onChange={(e) => {
                     setDescriptions(e.target.value);
-                    autoResizeTextarea(e.target);
+                    setDescriptionsError('');
                   }}
-                  disabled={isLoading}
                   maxLength={128}
-                  rows={1}
-                  placeholder="Todoの説明（128文字以内）"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors resize-none min-h-[100px]"
+                  isInvalid={!!descriptionsError}
+                  errorMessage={descriptionsError}
                 />
-                <label
-                  htmlFor="descriptions"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                >
-                  説明
-                </label>
-              </div>
-
-              {/* ボタン */}
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  disabled={isLoading}
-                  className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-8 py-2.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                >
-                  {isLoading ? '保存中...' : '保存'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            /* Todo詳細フォーム表示 */
-            // TODOタイトル
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">タイトル</h3>
-                <p className="text-lg text-gray-900">{todo.title}</p>
-              </div>
-              {/* TODO説明 */}
-              {todo.descriptions && (
+                {/* textarea → Textarea STEP3 MOD END */}
+                {/* ボタン */}
+                <div className="flex justify-end gap-3 pt-4">
+                  {/* button → Button STEP3 MOD START */}
+                  <Button type="button" onPress={cancelEdit} className="font-medium">
+                    キャンセル
+                  </Button>
+                  <Button
+                    type="submit"
+                    isLoading={isLoading}
+                    color="primary"
+                    className="font-medium"
+                  >
+                    {isLoading ? '保存中' : '保存'}
+                  </Button>
+                  {/* button → Button STEP3 MOD END */}
+                </div>
+              </form>
+            ) : (
+              /* Todo詳細フォーム表示 */
+              // TODOタイトル
+              <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">説明</h3>
-                  <p className="text-gray-700 whitespace-pre-wrap">
-                    {todo.descriptions}
-                  </p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">タイトル</h3>
+                  <p className="text-lg text-gray-900">{todo.title}</p>
                 </div>
-              )}
+                {/* TODO説明 */}
+                {todo.descriptions && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">説明</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {todo.descriptions}
+                    </p>
+                  </div>
+                )}
 
-              {/* 日時情報 */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">作成日時: </span>
-                    <span className="text-gray-700">
-                      {new Date(todo.createdAt).toLocaleString('ja-JP')}
-                    </span>
+                {/* 日時情報 */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">作成日時: </span>
+                      <span className="text-gray-700">
+                        {new Date(todo.createdAt).toLocaleString('ja-JP')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">更新日時: </span>
+                      <span className="text-gray-700">
+                        {new Date(todo.updatedAt).toLocaleString('ja-JP')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-gray-500">更新日時: </span>
-                    <span className="text-gray-700">
-                      {new Date(todo.updatedAt).toLocaleString('ja-JP')}
-                    </span>
-                  </div>
+                </div>
+
+                {/* ボタン */}
+                <div className="flex justify-end gap-3 pt-4">
+                  {/* button → Button STEP3 MOD START */}
+                  <Button
+                    type="button"
+                    onPress={onOpen} // モーダルを開く。 STEP3 MOD
+                    color="danger"
+                    className="font-medium"
+                  >
+                    削除
+                  </Button>
+                  <Button
+                    type="button"
+                    color="primary"
+                    onPress={() => {
+                      setIsEditing(true);
+                    }}
+                    className="font-medium"
+                  >
+                    編集
+                  </Button>
+                  {/* button → Button STEP3 MOD END */}
                 </div>
               </div>
+            )}
+          </CardBody>
+        </Card>
 
-              {/* ボタン */}
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleDeleteTodo}
-                  className="px-6 py-2.5 bg-red-500 text-white rounded-md hover:bg-red-600 font-medium transition-colors cursor-pointer"
-                >
-                  削除
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditing(true);
-                  }}
-                  className="px-6 py-2.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium cursor-pointer"
-                >
-                  編集
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* 削除確認モーダルの追加 STEP3 ADD START */}
+        <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
+          <ModalContent>
+            <ModalHeader className="flex flex-col gap-1">削除確認</ModalHeader>
+            <ModalBody>
+              <p className="text-gray-700">このTodoを削除してもよろしいですか？</p>
+              <p className="text-sm text-gray-500 mt-2">
+                この操作は取り消すことができません。
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button onPress={onClose}>キャンセル</Button>
+              <Button color="danger" onPress={handleDeleteTodo} isLoading={isLoading}>
+                {isLoading ? '削除中' : '削除する'}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* STEP3 ADD END */}
       </main>
     </div>
   );

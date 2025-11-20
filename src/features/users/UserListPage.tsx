@@ -1,5 +1,25 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Select,
+  SelectItem,
+  useDisclosure,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { logout } from '@/lib/api';
@@ -108,6 +128,11 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
   // エラーメッセージ
   const [error, setError] = useState<string>('');
 
+  // ユーザー削除モーダル関連のステートと関数を追加 STEP3 ADD START
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  // STEP3 ADD END
+
   /**
    * ユーザー一覧データを取得する非同期関数。
    * ユーザーの検索条件に基づいて、APIからユーザー一覧データを取得し、ステートに設定します。
@@ -175,23 +200,35 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
     fetchUsers();
   }, [fetchUsers]);
 
+  // ユーザー削除モーダルを開く関数を追加し、削除対象のユーザーをステートに保存する。 STEP3 ADD START
+  /**
+   * ユーザー削除モーダルを開く。
+   * @param {string} userId - 削除対象のユーザーID
+   */
+  const openDeleteUser = (userId: string) => {
+    // 削除対象のユーザーIDをステートに保存し、モーダルを開く
+    setUserToDelete(userId);
+    onOpen();
+  };
+  // STEP3 ADD END
+
   /**
    * ユーザー削除用の非同期関数。
    * 指定されたユーザーIDのアカウントを削除します。（ADMIN専用機能）
-   * @param {string} userId - 削除するユーザーのID
    * @return {Promise<void>}
    * @throws {Error} ユーザー削除に失敗した場合にエラーをスローします。
    */
-  const deleteUser = async (userId: string) => {
-    // 削除確認ダイアログを表示
-    if (!confirm('このユーザーを削除してもよろしいですか？')) {
-      // ユーザーがキャンセルした場合は処理を中断
-      return;
-    }
+  const deleteUser = async () => {
+    // 削除対象のユーザーがない場合は処理を終了する。
+    if (!userToDelete) return;
 
+    // モーダルを閉じる
+    onClose();
+
+    setIsLoading(true);
     try {
       // DELETEリクエストを送信してユーザーを削除
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userToDelete}`, {
         method: 'DELETE',
       });
 
@@ -205,6 +242,8 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
       await fetchUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -236,50 +275,53 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* 見出し */}
-            <Link href="/todos" className="hover:opacity-80 transition-opacity">
-              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
-            </Link>
-
-            {/* ナビゲーションメニュー */}
-            <nav className="flex items-center gap-6">
-              <Link
-                href="/todos"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Todo一覧
-              </Link>
-              <Link
-                href="/profile"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                プロフィール
-              </Link>
-              {/* ADMINまたはMANAGER権限のユーザーのみ表示 */}
-              {currentUserRole <= 2 && (
-                <Link
-                  href="/users"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  ユーザー管理
-                </Link>
-              )}
-            </nav>
-
-            {/* ログアウトボタン */}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
+      {/* herouiに変更 STEP3 MOD START */}
+      <Navbar className="border-b border-gray-200">
+        <NavbarBrand>
+          <Link href="/todos" className="hover:opacity-80 transition-opacity">
+            <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
+          </Link>
+        </NavbarBrand>
+        <NavbarContent className="hidden sm:flex gap-4" justify="center">
+          <NavbarItem>
+            <Link
+              href="/todos"
+              color="foreground"
+              className="hover:text-blue-600 font-medium"
             >
+              Todo一覧
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link
+              href="/profile"
+              color="foreground"
+              className="hover:text-blue-600 font-medium"
+            >
+              プロフィール
+            </Link>
+          </NavbarItem>
+          {currentUserRole <= 2 && (
+            <NavbarItem>
+              <Link
+                href="/users"
+                color="foreground"
+                className="hover:text-blue-600 font-medium"
+              >
+                ユーザー管理
+              </Link>
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button type="button" onPress={handleLogout} className="font-medium">
               ログアウト
-            </button>
-          </div>
-        </div>
-      </header>
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
+      {/* STEP3 MOD END */}
 
       {/* メインコンテンツ */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
@@ -296,220 +338,249 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
             <h2 className="text-3xl font-bold text-gray-900">ユーザー管理</h2>
           </div>
           {/* 新規ユーザー作成ボタン */}
-          <Link
+          <Button
+            as={Link}
             href="/users/create"
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium whitespace-nowrap flex items-center gap-2 shadow-md hover:shadow-lg"
+            color="primary"
+            className="font-medium shadow-md hover:shadow-lg"
           >
             新規ユーザー作成
-          </Link>
+          </Button>
         </div>
 
-        {/* 検索条件のコントロール */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-          <div className="mb-6">
+        {/* 検索・フィルターCard */}
+        <Card className="mb-8">
+          <CardHeader>
+            <h3 className="text-xl font-semibold text-gray-900">検索・フィルター</h3>
+          </CardHeader>
+          <CardBody className="space-y-4">
             {/* 検索ボックス */}
-            <div className="relative">
-              <input
-                id="search"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1); // 検索条件が変わったらページ番号を1にリセット
-                }}
-                placeholder="ユーザー名で検索"
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors peer"
-              />
-              <label
-                htmlFor="search"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500"
-              >
-                ユーザー検索
-              </label>
-            </div>
-          </div>
+            <Input
+              id="search"
+              label="ユーザー名"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="ユーザー名で検索"
+            />
 
-          {/* ロールフィルター、ソートのコントロール */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="relative">
-              <select
-                id="roleFilter"
-                value={roleFilter}
-                onChange={(e) => {
-                  // valueが文字列と数値の両方を取るので、パターンによって処理を分ける
-                  const value =
-                    e.target.value === 'all' ? 'all' : Number(e.target.value);
-                  setRoleFilter(value);
-                  setPage(1); // フィルター条件が変わったらページ番号を1にリセット
-                }}
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-              >
-                <option value="all">すべて</option>
-                <option value="1">ADMIN</option>
-                <option value="2">MANAGER</option>
-                <option value="3">USER</option>
-                <option value="4">GUEST</option>
-              </select>
-              <label
-                htmlFor="roleFilter"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500 mb-2"
-              >
-                ロールフィルター
-              </label>
-            </div>
-
-            {/* ソート項目 */}
-            <div className="relative">
-              <select
-                id="sortBy"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-              >
-                <option value="createdAt">作成日時</option>
-                <option value="username">ユーザー名</option>
-                <option value="firstName">名前</option>
-                <option value="lastName">姓</option>
-                <option value="role">ロール</option>
-              </select>
-              <label
-                htmlFor="sortBy"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500 mb-2"
-              >
-                並び順
-              </label>
-            </div>
-
-            {/* ソート順序 */}
-            <div className="relative">
-              <select
-                id="sortOrder"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-              >
-                <option value="desc">降順</option>
-                <option value="asc">昇順</option>
-              </select>
-              <label
-                htmlFor="sortOrder"
-                className="absolute left-3 top-2 text-xs font-medium text-gray-500"
-              >
-                順序
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* ユーザー一覧表示 */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">ユーザー一覧</h2>
-
-            {/* ページネーション情報 */}
-            {paginationInfo && (
-              <p>
-                全{paginationInfo.totalItems}件中{' '}
-                {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
-                {Math.min(
-                  paginationInfo.currentPage * paginationInfo.itemsPerPage,
-                  paginationInfo.totalItems,
-                )}
-                件を表示
-              </p>
-            )}
-          </div>
-
-          {/* ローディング表示 */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-gray-500">読み込み中...</div>
-            </div>
-          ) : users.length === 0 ? ( // ユーザーが存在しない場合の表示
-            <div className="text-center py-12 text-gray-500 text-lg">
-              ユーザーが見つかりませんでした
-            </div>
-          ) : (
-            // ユーザーリストをページネーションで表示。
-            <div className="space-y-4">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+            {/* ロールフィルター、ソートのコントロール */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* ロールフィルター */}
+              <div>
+                {/* select → Select STEP3 MOD START */}
+                <Select
+                  id="roleFilter"
+                  label="ロールフィルター"
+                  selectedKeys={[String(roleFilter)]}
+                  onSelectionChange={(keys) => {
+                    // Set から最初の要素を取得
+                    const selected = Array.from(keys)[0] as string;
+                    // 'all' の場合はそのまま、数値の場合は Number に変換
+                    setRoleFilter(selected === 'all' ? 'all' : Number(selected));
+                    setPage(1); // フィルター条件が変わったらページ番号を1にリセット
+                  }}
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    {/* ユーザー情報 */}
-                    <div className="flex-1">
-                      {/* ユーザー名 */}
-                      <div className="flex items-center gap-3">
-                        <Link
-                          href={`/users/${user.id}`}
-                          className="font-medium text-lg text-gray-900 hover:text-blue-600 transition-colors"
-                        >
-                          {user.username}
-                        </Link>
-                        {/* ロールバッジ */}
-                        <span className={roleStyles[user.role]}>
-                          {roleLabels[user.role]}
-                        </span>
+                  <SelectItem key="all">すべて</SelectItem>
+                  <SelectItem key="1">ADMIN</SelectItem>
+                  <SelectItem key="2">MANAGER</SelectItem>
+                  <SelectItem key="3">USER</SelectItem>
+                  <SelectItem key="4">GUEST</SelectItem>
+                </Select>
+                {/* STEP3 MOD END */}
+              </div>
+
+              {/* ソート項目 */}
+              <div>
+                <Select
+                  id="sortBy"
+                  label="並び順"
+                  selectedKeys={[sortBy]}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0] as typeof sortBy;
+                    setSortBy(selected);
+                  }}
+                >
+                  <SelectItem key="createdAt">作成日時</SelectItem>
+                  <SelectItem key="username">ユーザー名</SelectItem>
+                  <SelectItem key="firstName">名前</SelectItem>
+                  <SelectItem key="lastName">姓</SelectItem>
+                  <SelectItem key="role">ロール</SelectItem>
+                </Select>
+              </div>
+
+              {/* ソート順序 */}
+              <div>
+                <Select
+                  id="sortOrder"
+                  label="順序"
+                  selectedKeys={[sortOrder]}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0] as 'asc' | 'desc';
+                    setSortOrder(selected);
+                  }}
+                >
+                  <SelectItem key="desc">降順</SelectItem>
+                  <SelectItem key="asc">昇順</SelectItem>
+                </Select>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* ユーザー一覧Card */}
+        <Card>
+          <CardBody>
+            {/* ヘッダー部分 */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">ユーザー一覧</h2>
+
+              {/* ページネーション情報 */}
+              {paginationInfo && (
+                <p className="text-sm text-gray-600">
+                  全{paginationInfo.totalItems}件中{' '}
+                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
+                  {Math.min(
+                    paginationInfo.currentPage * paginationInfo.itemsPerPage,
+                    paginationInfo.totalItems,
+                  )}
+                  件を表示
+                </p>
+              )}
+            </div>
+
+            {/* ローディング表示 */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500">読み込み中...</div>
+              </div>
+            ) : users.length === 0 ? ( // ユーザーが存在しない場合の表示
+              <div className="text-center py-12 text-gray-500 text-lg">
+                ユーザーが見つかりませんでした
+              </div>
+            ) : (
+              // 各ユーザーを個別のCardで表示
+              <div className="space-y-4">
+                {users.map((user) => (
+                  <Card
+                    key={user.id}
+                    className="bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all"
+                  >
+                    <CardBody className="flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        {/* ユーザー情報 */}
+                        <div className="flex-1">
+                          {/* ユーザー名 */}
+                          <Link
+                            href={`/users/${user.id}`}
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            <h3 className="font-medium text-lg text-gray-900 flex items-center gap-3">
+                              {user.username}
+                              {/* ロールバッジ */}
+                              <span className={roleStyles[user.role]}>
+                                {roleLabels[user.role]}
+                              </span>
+                            </h3>
+                          </Link>
+
+                          {/* フルネーム */}
+                          <p className="text-sm text-gray-600 mt-2">
+                            {getFullName(user)}
+                          </p>
+
+                          {/* 作成日時 */}
+                          <p className="text-xs text-gray-400 mt-3">
+                            作成: {new Date(user.createdAt).toLocaleString('ja-JP')}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* フルネーム */}
-                      <p className="text-sm text-gray-600 mt-1">{getFullName(user)}</p>
-                    </div>
-                  </div>
-                  {/* 詳細ボタン */}
-                  <Link
-                    href={`/users/${user.id}`}
-                    className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium"
-                  >
-                    詳細
-                  </Link>
-                  {/* ADMIN権限のユーザーのみ削除ボタンを表示（自分のアカウントは削除できないようにする） */}
-                  {currentUserRole === 1 && user.id !== currentUserId && (
-                    <button
-                      type="button"
-                      onClick={() => deleteUser(user.id)}
-                      className="px-4 py-2 ml-3 text-sm bg-red-500 text-white rounded-md font-medium  hover:bg-red-600 transition-colors cursor-pointer"
-                    >
-                      削除
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                      {/* アクションボタン */}
+                      <div className="flex items-center gap-3 ml-4">
+                        {/* 詳細ボタン */}
+                        <Button
+                          as={Link}
+                          href={`/users/${user.id}`}
+                          color="primary"
+                          size="sm"
+                          className="font-medium"
+                        >
+                          詳細
+                        </Button>
 
-          {/* ページネーションコントロールボタン */}
-          {paginationInfo && paginationInfo.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-              {/* 前のページボタン */}
-              <button
-                type="button"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
-              >
-                前のページ
-              </button>
+                        {/* ADMIN権限のユーザーのみ削除ボタンを表示 */}
+                        {currentUserRole === 1 && user.id !== currentUserId && (
+                          <Button
+                            type="button"
+                            onPress={() => openDeleteUser(user.id)}
+                            color="danger"
+                            size="sm"
+                            className="font-medium"
+                          >
+                            削除
+                          </Button>
+                        )}
+                      </div>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-              {/* 現在のページ情報 */}
-              <span className="text-sm text-gray-600">
-                ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
-              </span>
+            {/* ページネーションコントロールボタン */}
+            {paginationInfo && paginationInfo.totalPages > 1 && (
+              <CardFooter className="justify-between mt-8 pt-6 border-t border-gray-200">
+                <Button
+                  type="button"
+                  onPress={() => setPage(page - 1)}
+                  isDisabled={page === 1}
+                  variant={page === 1 ? 'flat' : 'solid'}
+                  className="px-6 py-2.5"
+                >
+                  前のページ
+                </Button>
 
-              {/* 次のページボタン */}
-              <button
-                type="button"
-                onClick={() => setPage(page + 1)}
-                disabled={page === paginationInfo.totalPages}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
-              >
-                次のページ
-              </button>
-            </div>
-          )}
-        </div>
+                <span className="text-sm text-gray-600 font-medium">
+                  ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
+                </span>
+
+                <Button
+                  type="button"
+                  onPress={() => setPage(page + 1)}
+                  isDisabled={page === paginationInfo.totalPages}
+                  variant={page === paginationInfo.totalPages ? 'flat' : 'solid'}
+                  className="px-6 py-2.5"
+                >
+                  次のページ
+                </Button>
+              </CardFooter>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* 削除確認モーダルの追加 STEP3 ADD START */}
+        <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
+          <ModalContent>
+            <ModalHeader className="flex flex-col gap-1">削除確認</ModalHeader>
+            <ModalBody>
+              <p className="text-gray-700">このユーザーを削除してもよろしいですか？</p>
+              <p className="text-sm text-gray-500 mt-2">
+                この操作は取り消すことができません。
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button onPress={onClose}>キャンセル</Button>
+              <Button color="danger" onPress={deleteUser} isLoading={isLoading}>
+                削除
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* STEP3 ADD END */}
       </main>
     </div>
   );

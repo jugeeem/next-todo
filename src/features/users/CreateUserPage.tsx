@@ -1,5 +1,15 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Input,
+  Select,
+  SelectItem,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -38,6 +48,11 @@ export default function CreateUserPage() {
   const [role, setRole] = useState<number>(4);
   // 作成中フラグ
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  // ユーザー名用のエラーメッセージ、パスワード用のエラーメッセージを分割する STEP3 ADD START
+  const [usernameError, setUsernameError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
+  // STEP3 ADD END
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // 現在のユーザー権限情報
@@ -140,7 +155,13 @@ export default function CreateUserPage() {
     e.preventDefault();
     // 作成中フラグを設定
     setIsCreating(true);
+    // エラーメッセージの初期化
     setError('');
+    // STEP3 MOD START
+    setUsernameError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    // STEP3 MOD END
 
     /**
      * バリデーションの実行。
@@ -156,8 +177,19 @@ export default function CreateUserPage() {
       lastName,
     });
     // バリデーションエラー時の処理
+    // フィールドごとにエラー状態を設定する。 STEP3 MOD START
     if (!validationInput.success) {
-      setError(validationInput.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validationInput.error.errors;
+
+      // err.path[0]でフィールド名を特定し、対応するエラーステートにメッセージを設定
+      errors.forEach((err) => {
+        if (err.path[0] === 'username') setUsernameError(err.message);
+        if (err.path[0] === 'password') setPasswordError(err.message);
+        if (err.path[0] === 'confirmPassword') {
+          setConfirmPasswordError(err.message);
+        }
+      });
       setIsCreating(false);
       return;
     }
@@ -261,13 +293,13 @@ export default function CreateUserPage() {
             </nav>
 
             {/* ログアウトボタン */}
-            <button
+            <Button
               type="button"
-              onClick={logout}
+              onPress={logout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -289,159 +321,144 @@ export default function CreateUserPage() {
         </div>
 
         {/* ユーザー作成フォーム */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-            ユーザー情報入力
-          </h3>
+        <Card className="p-8">
+          <CardHeader>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+              ユーザー情報入力
+            </h3>
+          </CardHeader>
 
           {/* 入力フォーム */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-2">
             {/* ユーザー入力 */}
-            <div className="relative">
-              <input
+            <CardBody>
+              {/* input → Input に変更 STEP3 MOD START */}
+              <Input
                 id="username"
+                label="ユーザー名"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isCreating}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setUsernameError('');
+                }}
                 placeholder="username"
-                required
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:cursor-not-allowed peer transition-colors"
+                isRequired
+                validationBehavior="aria"
+                isInvalid={!!usernameError}
+                errorMessage={usernameError}
               />
-              <label
-                htmlFor="username"
-                className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-              >
-                ユーザー名 <span className="text-red-500">*</span>
-              </label>
+              {/* STEP3 MOD END */}
               <p className="text-xs text-gray-500 mt-1">1～50文字で入力してください</p>
-            </div>
+            </CardBody>
 
             {/* パスワード入力 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <input
+            <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                {/* input → Input に変更 STEP3 MOD START */}
+                <Input
                   id="password"
+                  label="パスワード"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isCreating}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError('');
+                  }}
+                  isRequired
+                  validationBehavior="aria"
                   placeholder="6文字以上"
-                  required
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  isInvalid={!!passwordError}
+                  errorMessage={passwordError}
                 />
-                <label
-                  htmlFor="password"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  パスワード <span className="text-red-500">*</span>
-                </label>
+                {/* STEP3 MOD END */}
                 <p className="text-xs text-gray-500 mt-1">最小6文字</p>
               </div>
 
               {/* 確認用パスワード */}
-              <div className="relative">
-                <input
+              <div>
+                <Input
                   id="confirmPassword"
                   type="password"
+                  label="確認用パスワード"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError('');
+                  }}
                   disabled={isCreating}
-                  required
+                  isRequired
+                  validationBehavior="aria"
                   placeholder="パスワードを再入力"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  isInvalid={!!confirmPasswordError}
+                  errorMessage={confirmPasswordError}
                 />
-                <label
-                  htmlFor="confirmPassword"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  パスワード確認 <span className="text-red-500">*</span>
-                </label>
               </div>
-            </div>
+            </CardBody>
 
             {/* 名前入力 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 姓 */}
-              <div className="relative">
-                <input
+              <div>
+                <Input
                   id="lastName"
+                  label="姓"
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  disabled={isCreating}
                   placeholder="姓"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
                 />
-                <label
-                  htmlFor="lastName"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  姓
-                </label>
               </div>
 
               {/* 名 */}
-              <div className="relative">
-                <input
+              <div>
+                <Input
                   id="firstName"
+                  label="名"
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  disabled={isCreating}
                   placeholder="名"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
                 />
-                <label
-                  htmlFor="firstName"
-                  className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-                >
-                  名
-                </label>
               </div>
-            </div>
+            </CardBody>
 
             {/* 権限選択 */}
-            <div className="relative">
-              <select
+            <CardBody>
+              <Select
                 id="role"
-                value={role}
-                onChange={(e) => setRole(Number(e.target.value))}
-                disabled={isCreating}
-                className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                label="ロール"
+                selectedKeys={[String(role)]}
+                onSelectionChange={(keys) => {
+                  const selectedValue = Array.from(keys)[0];
+                  setRole(Number(selectedValue));
+                }}
+                isRequired
+                validationBehavior="aria"
+                placeholder="ロールを選択してください"
               >
                 {canCreateRole.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
+                  <SelectItem key={String(role.value)}>{role.label}</SelectItem>
                 ))}
-              </select>
-              <label
-                htmlFor="role"
-                className="absolute left-3 top-2 text-xs text-gray-500 peer-disabled:text-gray-400"
-              >
-                ロール <span className="text-red-500">*</span>
-              </label>
-            </div>
+              </Select>
+            </CardBody>
 
             {/* 送信ボタン */}
-            <div className="flex justify-end items-center gap-4 pt-6 border-t border-gray-200">
-              <Link
-                href="/users"
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium text-center cursor-pointer"
-              >
+            <CardFooter className="justify-end gap-4 pt-6">
+              <Button as={Link} href="/users" className="font-medium">
                 キャンセル
-              </Link>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={isCreating}
-                className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors cursor-pointer"
+                color="primary"
+                isLoading={isCreating}
+                className="font-medium"
               >
-                {isCreating ? '作成中...' : 'ユーザーを作成'}
-              </button>
-            </div>
+                {isCreating ? '作成中' : 'ユーザーを作成'}
+              </Button>
+            </CardFooter>
           </form>
-        </div>
+        </Card>
       </main>
     </div>
   );

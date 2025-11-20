@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, Card, CardBody, CardFooter, CardHeader, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -136,8 +137,23 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   const [isSavingPassword, setIsSavingPassword] = useState<boolean>(false);
   // プロフィール編集時のエラーメッセージ
   const [error, setError] = useState<string>('');
-  // パスワード変更用エラーメッセージ
-  const [passwordError, setPasswordError] = useState<string>(''); // パスワード変更用エラー
+
+  // バリデーションエラーメッセージ表示用にステートを分割 STEP3 MOD START
+  const [firstNameError, setFirstNameError] = useState<string>('');
+  const [lastNameError, setLastNameError] = useState<string>('');
+  // STEP3 MOD END
+
+  // 現在のパスワード、新しいパスワード、確認用パスワードのエラーメッセージにステートを分割 STEP3 MOD START
+  // 現在のパスワードのエラーメッセージ
+  const [currentPasswordError, setCurrentPasswordError] = useState<string>('');
+  // 新しいパスワードのエラーメッセージ
+  const [newPasswordError, setnewPasswordError] = useState<string>('');
+  // 確認用パスワードのエラーメッセージ
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
+  // パスワード全体のエラーメッセージ
+  const [passwordError, setPasswordError] = useState<string>('');
+  // STEP3 MOD END
+
   // 編集成功用のメッセージ (レイアウトの関係上同じ成功メッセージだとパスワード変更時の成功メッセージが見にくかったので、ステートを分割しました。)
   // const [successMessage, setSuccessMessage] = useState<string>('');
   const [profileSuccessMessage, setProfileSuccessMessage] = useState<string>('');
@@ -155,6 +171,10 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
     e.preventDefault();
     // 表示されるメッセージ情報の初期化
     setError('');
+    // 姓 名のエラーメッセージをクリア STEP3 ADD START
+    setFirstNameError('');
+    setLastNameError('');
+    // STEP3 ADD END
     setProfileSuccessMessage('');
 
     // バリデーションチェック
@@ -164,10 +184,18 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
     });
 
     // バリデーションエラー時の処理
+    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
     if (!validation.success) {
-      setError(validation.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validation.error.errors;
+      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+      errors.forEach((err) => {
+        if (err.path[0] === 'firstName') setFirstNameError(err.message);
+        if (err.path[0] === 'lastName') setLastNameError(err.message);
+      });
       return;
     }
+    // STEP3 MOD END
 
     // 処理の開始
     setIsSavingProfile(true);
@@ -196,6 +224,13 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       setFirstName(data.data.firstName || '');
       setLastName(data.data.lastName || '');
       setProfileSuccessMessage('プロフィールが更新されました');
+
+      // エラーメッセージのクリア STEP3 ADD START
+      setError('');
+      setFirstNameError('');
+      setLastNameError('');
+      // STEP3 ADD END
+
       setIsEditingProfile(false);
 
       // 3秒後に成功メッセージをクリア
@@ -220,8 +255,11 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     // 表示されるメッセージ情報の初期化
-    setPasswordError('');
     setPasswordSuccessMessage('');
+    // フィールドごとのエラーをクリア STEP3 MOD START
+    setCurrentPasswordError('');
+    setnewPasswordError('');
+    // STEP3 MOD END
 
     // バリデーションチェック
     const validation = passwordChangeSchema.safeParse({
@@ -229,10 +267,27 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       newPassword,
       confirmPassword,
     });
+
+    // バリデーションエラー時の処理
+    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
     if (!validation.success) {
-      setPasswordError(validation.error.errors[0].message);
+      // エラーメッセージを一覧で取得
+      const errors = validation.error.errors;
+      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+      errors.forEach((err) => {
+        if (err.path[0] === 'currentPassword') {
+          setCurrentPasswordError(err.message);
+        }
+        if (err.path[0] === 'newPassword') {
+          setnewPasswordError(err.message);
+        }
+        if (err.path[0] === 'confirmPassword') {
+          setConfirmPasswordError(err.message);
+        }
+      });
       return;
     }
+    // STEP3 MOD END
 
     // 新しいパスワードと確認用パスワードの一致チェック
     if (newPassword !== confirmPassword) {
@@ -264,6 +319,14 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+
+      // エラーメッセージのクリア STEP3 ADD START
+      setPasswordError('');
+      setCurrentPasswordError('');
+      setnewPasswordError('');
+      setConfirmPasswordError('');
+      // STEP3 ADD END
+
       setIsChangingPassword(false);
 
       // 成功メッセージの設定
@@ -302,6 +365,10 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
     // 編集モードの終了とエラーメッセージのクリア
     setIsEditingProfile(false);
     setError('');
+    // フィールドごとのエラーをクリア STEP3 ADD START
+    setFirstNameError('');
+    setLastNameError('');
+    // STEP3 ADD END
   };
 
   /**
@@ -315,6 +382,11 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
     setNewPassword('');
     setConfirmPassword('');
     setPasswordError('');
+    // フィールドごとのエラーをクリア STEP3 ADD START
+    setCurrentPasswordError('');
+    setnewPasswordError('');
+    setConfirmPasswordError('');
+    // STEP3 ADD END
     setIsChangingPassword(false);
   };
 
@@ -355,13 +427,15 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
             </nav>
 
             {/* ログアウトボタン */}
-            <button
+            {/* button → Button STEP3 MOD START */}
+            <Button
               type="button"
-              onClick={handleLogout}
+              onPress={handleLogout}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
-            </button>
+            </Button>
+            {/* STEP3 MOD END */}
           </div>
         </div>
       </header>
@@ -381,85 +455,91 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
           </div>
         )}
         {/* プロフィール情報 */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
+        {/* div → Card STEP3 MOD START */}
+        <Card className="p-6 mb-8">
+          <CardHeader className="justify-between mb-4">
             <h2 className="text-2xl font-semibold text-gray-900">プロフィール情報</h2>
 
             {/* 編集ボタン */}
             {!isEditingProfile && (
-              <button
+              // button → Button STEP3 MOD START
+              <Button
                 type="button"
-                onClick={() => setIsEditingProfile(true)}
-                className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium cursor-pointer"
+                onPress={() => setIsEditingProfile(true)}
+                color="primary"
+                className="font-medium"
               >
                 編集
-              </button>
+              </Button>
+              // STEP3 MOD END
             )}
-          </div>
+          </CardHeader>
 
           {isEditingProfile ? (
             // プロフィール編集フォーム
             <form onSubmit={updateProfile} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 姓 */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    disabled={isSavingProfile}
-                    placeholder="姓"
-                    className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-notallowed peer transition-colors"
-                  />
-                  <label
-                    htmlFor="lastName"
-                    className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                  >
-                    姓
-                  </label>
-                </div>
+                {/* input → Input STEP3 MOD START */}
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  maxLength={50}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    setError(''); // 全体のエラーメッセージをクリア
+                    setLastNameError(''); // エラーメッセージをクリア
+                  }}
+                  placeholder="姓(任意)"
+                  label="姓"
+                  isInvalid={!!lastNameError}
+                  errorMessage={lastNameError}
+                />
 
                 {/* 名 */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    disabled={isSavingProfile}
-                    placeholder="名"
-                    className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
-                  />
-                  <label
-                    htmlFor="firstName"
-                    className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                  >
-                    名
-                  </label>
-                </div>
-              </div>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  maxLength={50}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    setError(''); // 全体のエラーメッセージをクリア
+                    setFirstNameError(''); // エラーメッセージをクリア
+                  }}
+                  placeholder="名(任意)"
+                  label="名"
+                  isInvalid={!!firstNameError}
+                  errorMessage={firstNameError}
+                />
+              </CardBody>
+              {/* input → Input STEP3 MOD END */}
 
               {/* ボタン */}
-              <div className="flex justify-end gap-3">
-                <button
+              <CardFooter className="gap-3 justify-end">
+                {/* button → Button STEP3 MOD START */}
+                <Button
                   type="button"
-                  onClick={cancelEditProfile}
-                  disabled={isSavingProfile}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+                  onPress={cancelEditProfile}
+                  className="font-medium"
                 >
                   キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isSavingProfile}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+                  isLoading={isSavingProfile}
+                  color="primary"
+                  className="font-medium"
                 >
                   {isSavingProfile ? '保存中...' : '保存'}
-                </button>
-              </div>
+                </Button>
+                {/* STEP3 MOD END */}
+              </CardFooter>
             </form>
           ) : (
             // プロフィール表示
-            <div className="space-y-4">
+            <CardBody className="space-y-4">
               {/* ユーザー名 */}
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">ユーザー名</p>
@@ -477,15 +557,19 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                   <p className="text-lg text-gray-900">{user.firstName || '未設定'}</p>
                 </div>
               </div>
-            </div>
+            </CardBody>
           )}
-        </div>
+        </Card>
+        {/* STEP3 MOD END */}
         {/* Todo統計情報 */}
+        {/* div → Card STEP3 MOD START */}
         {todoStats && (
-          <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Todo統計</h2>
+          <Card className="shadow-md rounded-lg p-8 mb-8">
+            <CardHeader>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Todo統計</h2>
+            </CardHeader>
             {/* 総Todo数 */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <CardBody className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 text-center">
                 <p className="text-sm font-medium text-blue-600 mb-1">総Todo数</p>
                 <p className="text-3xl font-bold text-blue-900">
@@ -513,16 +597,22 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                   {todoStats.completionRate.toFixed(1)}%
                 </p>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
+          // div → Card STEP3 MOD END
         )}
         {/* 自分のTodo一覧表示 */}
-        <div className="bg-white shadow-md rounded-lg p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h2>
+        {/* div → Card STEP3 MOD START */}
+        <Card className="p-8 mb-8">
+          <CardHeader>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h2>
+          </CardHeader>
           {userTodos.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">Todoがありません</p>
+            <CardBody>
+              <p className="text-center text-gray-500 py-8">Todoがありません</p>
+            </CardBody>
           ) : (
-            <div className="space-y-3">
+            <CardBody className="space-y-4">
               {userTodos.slice(0, 20).map((todo) => (
                 <Link
                   key={todo.id}
@@ -555,33 +645,38 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                   </div>
                 </Link>
               ))}
-            </div>
+            </CardBody>
           )}
           {userTodos.length > 5 && (
-            <div>
+            <CardFooter className="text-right">
               <Link
                 href="/todos"
                 className="text-blue-500 hover:text-blue-600 font-medium transition-colors"
               >
                 すべてのTodoを見る →
               </Link>
-            </div>
+            </CardFooter>
           )}
-        </div>
+        </Card>
+        {/* STEP3 MOD END */}
         {/* パスワード変更 */}
-        <div className="bg-white shadow-md rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
+        {/* div → Card STEP3 MOD START */}
+        <Card className="p-6">
+          <CardHeader className="justify-between mb-4">
             <h2 className="text-2xl font-semibold text-gray-900">パスワード変更</h2>
             {!isChangingPassword && (
-              <button
+              // button → Button STEP3 MOD START
+              <Button
                 type="button"
-                onClick={() => setIsChangingPassword(true)}
-                className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium cursor-pointer"
+                onPress={() => setIsChangingPassword(true)}
+                color="primary"
+                className="font-medium"
               >
                 変更
-              </button>
+              </Button>
+              // STEP3 MOD END
             )}
-          </div>
+          </CardHeader>
 
           {/* パスワード変更の成功メッセージ */}
           {passwordSuccessMessage && (
@@ -599,87 +694,88 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
           {/* パスワード変更フォーム */}
           {isChangingPassword ? (
             // パスワード変更フォーム
-            <form onSubmit={changePassword} className="space-y-6">
+            <form onSubmit={changePassword}>
               {/* 現在のパスワード */}
-              <div className="relative">
-                <input
+              {/* input → Input STEP3 MOD START */}
+              {/* CardBody STEP3 ADD START */}
+              <CardBody className="space-y-6">
+                <Input
                   id="currentPassword"
                   type="password"
                   value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  disabled={isSavingPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    setCurrentPasswordError(''); // フィールドエラーをクリア
+                    setPasswordError(''); // 全体エラーをクリア
+                  }}
                   placeholder="現在のパスワード"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  label="現在のパスワード"
+                  isRequired
+                  validationBehavior="aria"
+                  isInvalid={!!currentPasswordError}
+                  errorMessage={currentPasswordError}
                 />
-                <label
-                  htmlFor="currentPassword"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                >
-                  現在のパスワード
-                  <span className="text-red-500 text-xs ml-0.5">*</span>
-                </label>
-              </div>
-
-              {/* 新しいパスワード */}
-              <div className="relative">
-                <input
+                {/* 新しいパスワード */}
+                <Input
                   id="newPassword"
                   type="password"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={isSavingPassword}
-                  minLength={6}
-                  placeholder="新しいパスワード（6文字以上）"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setnewPasswordError(''); // フィールドエラーをクリア
+                    setPasswordError(''); // 全体エラーをクリア
+                  }}
+                  placeholder="新しいパスワード(6文字以上)"
+                  isRequired
+                  validationBehavior="aria"
+                  label="新しいパスワード"
+                  isInvalid={!!newPasswordError}
+                  errorMessage={newPasswordError}
                 />
-                <label
-                  htmlFor="newPassword"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                >
-                  新しいパスワード
-                  <span className="text-red-500 text-xs ml-0.5">*</span>
-                </label>
-              </div>
 
-              {/* 確認用パスワード */}
-              <div className="relative">
-                <input
+                {/* 確認用パスワード */}
+                <Input
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isSavingPassword}
-                  minLength={6}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError(''); // フィールドエラーをクリア
+                    setPasswordError(''); // 全体エラーをクリア
+                  }}
                   placeholder="新しいパスワードを再入力"
-                  className="w-full px-3 py-2 pt-6 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:bg-gray-100 disabled:cursor-not-allowed peer transition-colors"
+                  isRequired
+                  validationBehavior="aria"
+                  label="新しいパスワード(確認)"
+                  isInvalid={!!confirmPasswordError}
+                  errorMessage={confirmPasswordError}
                 />
-                <label
-                  htmlFor="confirmPassword"
-                  className="absolute left-3 top-2 text-xs font-medium text-gray-500 peer-disabled:text-gray-400"
-                >
-                  新しいパスワード（確認）
-                  <span className="text-red-500 text-xs ml-0.5">*</span>
-                </label>
-              </div>
+                {/* input → Input STEP3 MOD END */}
+              </CardBody>
+              {/* STEP3 ADD END */}
 
               {/* ボタン */}
-              <div className="flex justify-end gap-3">
-                <button
+              {/* div → CardFooter STEP3 MOD START */}
+              <CardFooter className="justify-end gap-3">
+                {/* button → Button STEP3 MOD START */}
+                <Button
                   type="button"
-                  onClick={cancelPasswordChange}
+                  onPress={cancelPasswordChange}
                   disabled={isSavingPassword}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+                  className="font-medium"
                 >
                   キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isSavingPassword}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+                  isLoading={isSavingPassword}
+                  color="primary"
+                  className="font-medium"
                 >
-                  {isSavingPassword ? '変更中...' : '変更'}
-                </button>
-              </div>
+                  {isSavingPassword ? '変更中' : '変更'}
+                </Button>
+                {/* STEP3 MOD END */}
+              </CardFooter>
             </form>
           ) : (
             // 通常表示
@@ -687,7 +783,8 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
               パスワードを変更する場合は変更ボタンをクリックしてください。
             </p>
           )}
-        </div>
+        </Card>
+        {/* STEP3 MOD END */}
       </main>
     </div>
   );
