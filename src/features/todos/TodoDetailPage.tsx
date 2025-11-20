@@ -61,10 +61,7 @@ const updateTodoSchema = z.object({
     .string()
     .min(1, 'タイトルは必須です')
     .max(32, 'タイトルは32文字以内で入力してください'),
-  descriptions: z
-    .string()
-    .max(128, '説明は128文字以内で入力してください')
-    .optional(),
+  descriptions: z.string().max(128, '説明は128文字以内で入力してください').optional(),
 });
 
 /**
@@ -84,7 +81,7 @@ export default function TodoDetailPage({
   const [title, setTitle] = useState<string>(selectedTodo?.title || '');
   // 説明フォームの入力状態
   const [descriptions, setDescriptions] = useState<string>(
-    selectedTodo?.descriptions || ''
+    selectedTodo?.descriptions || '',
   );
   // 編集中かどうかの状態
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -136,9 +133,7 @@ export default function TodoDetailPage({
         setTitle(result.data.title);
         setDescriptions(result.data.descriptions || '');
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : '不明なエラーが発生しました'
-        );
+        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
       } finally {
         // ローディング終了
         setIsLoading(false);
@@ -214,9 +209,7 @@ export default function TodoDetailPage({
       setTodo(updatedTodo);
       setIsEditing(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       // ローディング終了
       setIsLoading(false);
@@ -246,9 +239,7 @@ export default function TodoDetailPage({
       // 削除成功時はTodo一覧ページにリダイレクト
       window.location.href = '/todos';
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       // 削除処理の終了
       setIsLoading(false);
@@ -286,9 +277,9 @@ export default function TodoDetailPage({
   // ロード中表示
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center'>
-          <div className='text-gray-500 text-lg'>読み込み中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-gray-500 text-lg">読み込み中...</div>
         </div>
       </div>
     );
@@ -297,13 +288,10 @@ export default function TodoDetailPage({
   // Todoのnullチェック
   if (!todo) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center'>
-          <p className='text-red-500 text-lg mb-4'>Todoが見つかりません</p>
-          <Link
-            href='/todos'
-            className='text-blue-500 hover:text-blue-600 font-medium'
-          >
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-4">Todoが見つかりません</p>
+          <Link href="/todos" className="text-blue-500 hover:text-blue-600 font-medium">
             ← Todo一覧に戻る
           </Link>
         </div>
@@ -312,32 +300,32 @@ export default function TodoDetailPage({
   }
 
   return (
-    <div className='min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100'>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* ヘッダーナビゲーション */}
-      <header className='bg-white shadow-sm border-b border-gray-200'>
-        <div className='max-w-7xl mx-auto px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            <Link href='/todos' className='hover:opacity-80 transition-opacity'>
-              <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/todos" className="hover:opacity-80 transition-opacity">
+              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
             </Link>
 
-            <nav className='flex items-center gap-6'>
+            <nav className="flex items-center gap-6">
               <Link
-                href='/todos'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/todos"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 Todo一覧
               </Link>
               <Link
-                href='/profile'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/profile"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 プロフィール
               </Link>
               {currentUserRole <= 2 && (
                 <Link
-                  href='/users'
-                  className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                  href="/users"
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 >
                   ユーザー管理
                 </Link>
@@ -345,9 +333,9 @@ export default function TodoDetailPage({
             </nav>
             {/* button → Button STEP3 MOD START */}
             <Button
-              type='button'
+              type="button"
               onPress={handleLogout}
-              className='px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer'
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
             </Button>
@@ -357,12 +345,12 @@ export default function TodoDetailPage({
       </header>
 
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* 戻るリンク */}
-        <div className='mb-6'>
+        <div className="mb-6">
           <Link
-            href='/todos'
-            className='text-blue-500 hover:text-blue-600 font-medium transition-colors'
+            href="/todos"
+            className="text-blue-500 hover:text-blue-600 font-medium transition-colors"
           >
             ← Todo一覧に戻る
           </Link>
@@ -370,15 +358,15 @@ export default function TodoDetailPage({
 
         {/* エラーメッセージ表示 */}
         {error && (
-          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-red-700 text-sm'>{error}</p>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
         {/* Todo詳細/編集フォーム */}
         <Card>
-          <CardHeader className='flex items-center justify-between'>
-            <h2 className='text-2xl font-semibold text-gray-900'>
+          <CardHeader className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-gray-900">
               {isEditing ? 'Todo編集' : 'Todo詳細'}
             </h2>
 
@@ -397,23 +385,23 @@ export default function TodoDetailPage({
           <CardBody>
             {isEditing ? (
               // 編集中表示画面
-              <form onSubmit={handleUpdateTodo} className='space-y-6'>
+              <form onSubmit={handleUpdateTodo} className="space-y-6">
                 {/* タイトル入力欄 */}
                 {/* input → Input STEP3 MOD START */}
                 <Input
-                  id='title'
-                  type='text'
+                  id="title"
+                  type="text"
                   value={title}
                   onChange={(e) => {
                     setTitle(e.target.value);
                     setTitleError('');
                   }}
                   maxLength={32}
-                  placeholder='Todoのタイトル（32文字以内）'
-                  label='タイトル'
+                  placeholder="Todoのタイトル（32文字以内）"
+                  label="タイトル"
                   isRequired
                   // ブラウザ標準のバリデーション表示を無効化
-                  validationBehavior='aria'
+                  validationBehavior="aria"
                   isInvalid={!!titleError}
                   errorMessage={titleError}
                 />
@@ -421,9 +409,9 @@ export default function TodoDetailPage({
                 {/* 説明入力欄 */}
                 {/* textarea → Textarea STEP3 MOD START */}
                 <Textarea
-                  id='descriptions'
-                  label='説明'
-                  placeholder='Todoの説明（128文字以内）'
+                  id="descriptions"
+                  label="説明"
+                  placeholder="Todoの説明（128文字以内）"
                   value={descriptions}
                   onChange={(e) => {
                     setDescriptions(e.target.value);
@@ -435,20 +423,16 @@ export default function TodoDetailPage({
                 />
                 {/* textarea → Textarea STEP3 MOD END */}
                 {/* ボタン */}
-                <div className='flex justify-end gap-3 pt-4'>
+                <div className="flex justify-end gap-3 pt-4">
                   {/* button → Button STEP3 MOD START */}
-                  <Button
-                    type='button'
-                    onPress={cancelEdit}
-                    className='font-medium'
-                  >
+                  <Button type="button" onPress={cancelEdit} className="font-medium">
                     キャンセル
                   </Button>
                   <Button
-                    type='submit'
+                    type="submit"
                     isLoading={isLoading}
-                    color='primary'
-                    className='font-medium'
+                    color="primary"
+                    className="font-medium"
                   >
                     {isLoading ? '保存中' : '保存'}
                   </Button>
@@ -458,37 +442,33 @@ export default function TodoDetailPage({
             ) : (
               /* Todo詳細フォーム表示 */
               // TODOタイトル
-              <div className='space-y-6'>
+              <div className="space-y-6">
                 <div>
-                  <h3 className='text-sm font-medium text-gray-500 mb-2'>
-                    タイトル
-                  </h3>
-                  <p className='text-lg text-gray-900'>{todo.title}</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">タイトル</h3>
+                  <p className="text-lg text-gray-900">{todo.title}</p>
                 </div>
                 {/* TODO説明 */}
                 {todo.descriptions && (
                   <div>
-                    <h3 className='text-sm font-medium text-gray-500 mb-2'>
-                      説明
-                    </h3>
-                    <p className='text-gray-700 whitespace-pre-wrap'>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">説明</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap">
                       {todo.descriptions}
                     </p>
                   </div>
                 )}
 
                 {/* 日時情報 */}
-                <div className='pt-4 border-t border-gray-200'>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className='text-gray-500'>作成日時: </span>
-                      <span className='text-gray-700'>
+                      <span className="text-gray-500">作成日時: </span>
+                      <span className="text-gray-700">
                         {new Date(todo.createdAt).toLocaleString('ja-JP')}
                       </span>
                     </div>
                     <div>
-                      <span className='text-gray-500'>更新日時: </span>
-                      <span className='text-gray-700'>
+                      <span className="text-gray-500">更新日時: </span>
+                      <span className="text-gray-700">
                         {new Date(todo.updatedAt).toLocaleString('ja-JP')}
                       </span>
                     </div>
@@ -496,23 +476,23 @@ export default function TodoDetailPage({
                 </div>
 
                 {/* ボタン */}
-                <div className='flex justify-end gap-3 pt-4'>
+                <div className="flex justify-end gap-3 pt-4">
                   {/* button → Button STEP3 MOD START */}
                   <Button
-                    type='button'
+                    type="button"
                     onPress={onOpen} // モーダルを開く。 STEP3 MOD
-                    color='danger'
-                    className='font-medium'
+                    color="danger"
+                    className="font-medium"
                   >
                     削除
                   </Button>
                   <Button
-                    type='button'
-                    color='primary'
+                    type="button"
+                    color="primary"
                     onPress={() => {
                       setIsEditing(true);
                     }}
-                    className='font-medium'
+                    className="font-medium"
                   >
                     編集
                   </Button>
@@ -526,27 +506,22 @@ export default function TodoDetailPage({
         {/* 削除確認モーダルの追加 STEP3 ADD START */}
         <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
           <ModalContent>
-            <ModalHeader className='flex flex-col gap-1'>削除確認</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1">削除確認</ModalHeader>
             <ModalBody>
-              <p className='text-gray-700'>
-                このTodoを削除してもよろしいですか？
-              </p>
-              <p className='text-sm text-gray-500 mt-2'>
+              <p className="text-gray-700">このTodoを削除してもよろしいですか？</p>
+              <p className="text-sm text-gray-500 mt-2">
                 この操作は取り消すことができません。
               </p>
             </ModalBody>
             <ModalFooter>
               <Button onPress={onClose}>キャンセル</Button>
-              <Button
-                color='danger'
-                onPress={handleDeleteTodo}
-                isLoading={isLoading}
-              >
+              <Button color="danger" onPress={handleDeleteTodo} isLoading={isLoading}>
                 {isLoading ? '削除中' : '削除する'}
               </Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
+        {/* STEP3 ADD END */}
       </main>
     </div>
   );

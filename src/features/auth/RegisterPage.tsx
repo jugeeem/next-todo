@@ -75,8 +75,8 @@ export default function RegisterPage() {
 
       // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
       errors.forEach((err) => {
-        err.path[0] === 'username' && setUsernameError(err.message);
-        err.path[0] === 'password' && setPasswordError(err.message);
+        if (err.path[0] === 'username') setUsernameError(err.message);
+        if (err.path[0] === 'password') setPasswordError(err.message);
       });
       setIsLoading(false);
       return;

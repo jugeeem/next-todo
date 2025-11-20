@@ -1,19 +1,19 @@
 'use client';
 
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Input,
+  Select,
+  SelectItem,
+} from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
-import {
-  Input,
-  Card,
-  CardHeader,
-  CardBody,
-  Select,
-  SelectItem,
-  Button,
-  CardFooter,
-} from '@heroui/react';
 
 /**
  * ロール番号とラベルの対応表。
@@ -100,9 +100,7 @@ export default function CreateUserPage() {
       } catch (err) {
         // エラー発生時はコンソールにエラーを表示し、ログインページへリダイレクト
         console.error('権限チェックエラー:', err);
-        setError(
-          err instanceof Error ? err.message : '不明なエラーが発生しました'
-        );
+        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
         router.replace('/login');
       }
     };
@@ -122,7 +120,7 @@ export default function CreateUserPage() {
     (roleValue) => ({
       value: roleValue,
       label: roleLabels[roleValue],
-    })
+    }),
   );
 
   /**
@@ -227,9 +225,7 @@ export default function CreateUserPage() {
       router.push('/users');
     } catch (err) {
       // エラー発生時の処理
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       setIsCreating(false);
     }
@@ -257,39 +253,39 @@ export default function CreateUserPage() {
   // 権限チェック中の画面表示
   if (!currentUserRole || currentUserRole >= 3) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-gray-500'>権限を確認中...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">権限を確認中...</div>
       </div>
     );
   }
   return (
-    <div className='min-h-screen flex flex-col bg-gray-50'>
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}
-      <header className='bg-white shadow-sm border-b border-gray-200'>
-        <div className='max-w-7xl mx-auto px-6 py-4'>
-          <div className='flex items-center justify-between'>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             {/* 見出し */}
-            <Link href='/todos' className='hover:opacity-80 transition-opacity'>
-              <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
+            <Link href="/todos" className="hover:opacity-80 transition-opacity">
+              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
             </Link>
             {/* ナビゲーションリンク */}
-            <nav className='flex items-center gap-6'>
+            <nav className="flex items-center gap-6">
               <Link
-                href='/todos'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/todos"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 Todo一覧
               </Link>
               <Link
-                href='/profile'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/profile"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 プロフィール
               </Link>
               {currentUserRole <= 2 && (
                 <Link
-                  href='/users'
-                  className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                  href="/users"
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 >
                   ユーザー管理
                 </Link>
@@ -298,9 +294,9 @@ export default function CreateUserPage() {
 
             {/* ログアウトボタン */}
             <Button
-              type='button'
+              type="button"
               onPress={logout}
-              className='px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer'
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
             </Button>
@@ -309,84 +305,82 @@ export default function CreateUserPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* エラーメッセージ */}
         {error && (
-          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-red-700 text-sm'>{error}</p>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
         {/* ページタイトル */}
-        <div className='flex items-center justify-between mb-6'>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className='text-3xl font-bold text-gray-900'>ユーザー作成</h2>
+            <h2 className="text-3xl font-bold text-gray-900">ユーザー作成</h2>
           </div>
         </div>
 
         {/* ユーザー作成フォーム */}
-        <Card className='p-8'>
+        <Card className="p-8">
           <CardHeader>
-            <h3 className='text-2xl font-semibold text-gray-900 mb-2'>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
               ユーザー情報入力
             </h3>
           </CardHeader>
 
           {/* 入力フォーム */}
-          <form onSubmit={handleSubmit} className='space-y-2'>
+          <form onSubmit={handleSubmit} className="space-y-2">
             {/* ユーザー入力 */}
             <CardBody>
               {/* input → Input に変更 STEP3 MOD START */}
               <Input
-                id='username'
-                label='ユーザー名'
-                type='text'
+                id="username"
+                label="ユーザー名"
+                type="text"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setUsernameError('');
                 }}
-                placeholder='username'
+                placeholder="username"
                 isRequired
-                validationBehavior='aria'
+                validationBehavior="aria"
                 isInvalid={!!usernameError}
                 errorMessage={usernameError}
               />
               {/* STEP3 MOD END */}
-              <p className='text-xs text-gray-500 mt-1'>
-                1～50文字で入力してください
-              </p>
+              <p className="text-xs text-gray-500 mt-1">1～50文字で入力してください</p>
             </CardBody>
 
             {/* パスワード入力 */}
-            <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {/* input → Input に変更 STEP3 MOD START */}
                 <Input
-                  id='password'
-                  label='パスワード'
-                  type='password'
+                  id="password"
+                  label="パスワード"
+                  type="password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     setPasswordError('');
                   }}
                   isRequired
-                  validationBehavior='aria'
-                  placeholder='6文字以上'
+                  validationBehavior="aria"
+                  placeholder="6文字以上"
                   isInvalid={!!passwordError}
                   errorMessage={passwordError}
                 />
                 {/* STEP3 MOD END */}
-                <p className='text-xs text-gray-500 mt-1'>最小6文字</p>
+                <p className="text-xs text-gray-500 mt-1">最小6文字</p>
               </div>
 
               {/* 確認用パスワード */}
               <div>
                 <Input
-                  id='confirmPassword'
-                  type='password'
-                  label='確認用パスワード'
+                  id="confirmPassword"
+                  type="password"
+                  label="確認用パスワード"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -394,8 +388,8 @@ export default function CreateUserPage() {
                   }}
                   disabled={isCreating}
                   isRequired
-                  validationBehavior='aria'
-                  placeholder='パスワードを再入力'
+                  validationBehavior="aria"
+                  placeholder="パスワードを再入力"
                   isInvalid={!!confirmPasswordError}
                   errorMessage={confirmPasswordError}
                 />
@@ -403,28 +397,28 @@ export default function CreateUserPage() {
             </CardBody>
 
             {/* 名前入力 */}
-            <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 姓 */}
               <div>
                 <Input
-                  id='lastName'
-                  label='姓'
-                  type='text'
+                  id="lastName"
+                  label="姓"
+                  type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder='姓'
+                  placeholder="姓"
                 />
               </div>
 
               {/* 名 */}
               <div>
                 <Input
-                  id='firstName'
-                  label='名'
-                  type='text'
+                  id="firstName"
+                  label="名"
+                  type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder='名'
+                  placeholder="名"
                 />
               </div>
             </CardBody>
@@ -432,17 +426,16 @@ export default function CreateUserPage() {
             {/* 権限選択 */}
             <CardBody>
               <Select
-                id='role'
-                label='ロール'
+                id="role"
+                label="ロール"
                 selectedKeys={[String(role)]}
                 onSelectionChange={(keys) => {
                   const selectedValue = Array.from(keys)[0];
                   setRole(Number(selectedValue));
                 }}
-                isDisabled={isCreating}
                 isRequired
-                validationBehavior='aria'
-                placeholder='ロールを選択してください'
+                validationBehavior="aria"
+                placeholder="ロールを選択してください"
               >
                 {canCreateRole.map((role) => (
                   <SelectItem key={String(role.value)}>{role.label}</SelectItem>
@@ -451,15 +444,15 @@ export default function CreateUserPage() {
             </CardBody>
 
             {/* 送信ボタン */}
-            <CardFooter className='justify-end gap-4 pt-6'>
-              <Button as={Link} href='/users' className='font-medium'>
+            <CardFooter className="justify-end gap-4 pt-6">
+              <Button as={Link} href="/users" className="font-medium">
                 キャンセル
               </Button>
               <Button
-                type='submit'
-                color='primary'
+                type="submit"
+                color="primary"
                 isLoading={isCreating}
-                className='font-medium'
+                className="font-medium"
               >
                 {isCreating ? '作成中' : 'ユーザーを作成'}
               </Button>

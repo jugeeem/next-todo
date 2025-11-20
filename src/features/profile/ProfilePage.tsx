@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  Input,
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-  CardFooter,
-} from '@heroui/react';
+import { Button, Card, CardBody, CardFooter, CardHeader, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -163,10 +156,8 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
 
   // 編集成功用のメッセージ (レイアウトの関係上同じ成功メッセージだとパスワード変更時の成功メッセージが見にくかったので、ステートを分割しました。)
   // const [successMessage, setSuccessMessage] = useState<string>('');
-  const [profileSuccessMessage, setProfileSuccessMessage] =
-    useState<string>('');
-  const [passwordSuccessMessage, setPasswordSuccessMessage] =
-    useState<string>('');
+  const [profileSuccessMessage, setProfileSuccessMessage] = useState<string>('');
+  const [passwordSuccessMessage, setPasswordSuccessMessage] = useState<string>('');
 
   /**
    * プロフィール更新用の非同期関数。
@@ -247,9 +238,7 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
         setProfileSuccessMessage('');
       }, 3000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       setIsSavingProfile(false);
     }
@@ -348,7 +337,7 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       }, 3000);
     } catch (err) {
       setPasswordError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
+        err instanceof Error ? err.message : '不明なエラーが発生しました',
       );
     } finally {
       setIsSavingPassword(false);
@@ -402,35 +391,35 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   };
 
   return (
-    <div className='min-h-screen flex flex-col bg-gray-50'>
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ヘッダーナビゲーション */}
-      <header className='bg-white shadow-sm border-b border-gray-200'>
-        <div className='max-w-7xl mx-auto px-6 py-4'>
-          <div className='flex items-center justify-between'>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             {/* 見出し */}
-            <Link href='/todos' className='hover:opacity-80 transition-opacity'>
-              <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
+            <Link href="/todos" className="hover:opacity-80 transition-opacity">
+              <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
             </Link>
 
             {/* ナビゲーションリンク */}
-            <nav className='flex items-center gap-6'>
+            <nav className="flex items-center gap-6">
               <Link
-                href='/todos'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/todos"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 Todo一覧
               </Link>
               <Link
-                href='/profile'
-                className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                href="/profile"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
                 プロフィール
               </Link>
               {/* ADMIN・MANAGERの場合のみ表示 */}
               {user.role <= 2 && (
                 <Link
-                  href='/users'
-                  className='text-gray-700 hover:text-blue-600 font-medium transition-colors'
+                  href="/users"
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 >
                   ユーザー管理
                 </Link>
@@ -440,9 +429,9 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
             {/* ログアウトボタン */}
             {/* button → Button STEP3 MOD START */}
             <Button
-              type='button'
+              type="button"
               onPress={handleLogout}
-              className='px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer'
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors cursor-pointer"
             >
               ログアウト
             </Button>
@@ -452,35 +441,33 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       </header>
 
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* 成功メッセージ */}
         {profileSuccessMessage && (
-          <div className='mb-8 p-4 bg-green-50 border border-green-200 rounded-lg'>
-            <p className='text-green-700 text-sm'>{profileSuccessMessage}</p>
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm">{profileSuccessMessage}</p>
           </div>
         )}
         {/* エラーメッセージ */}
         {error && (
-          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-red-700 text-sm'>{error}</p>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
         {/* プロフィール情報 */}
         {/* div → Card STEP3 MOD START */}
-        <Card className='p-6 mb-8'>
-          <CardHeader className='justify-between mb-4'>
-            <h2 className='text-2xl font-semibold text-gray-900'>
-              プロフィール情報
-            </h2>
+        <Card className="p-6 mb-8">
+          <CardHeader className="justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900">プロフィール情報</h2>
 
             {/* 編集ボタン */}
             {!isEditingProfile && (
               // button → Button STEP3 MOD START
               <Button
-                type='button'
+                type="button"
                 onPress={() => setIsEditingProfile(true)}
-                color='primary'
-                className='font-medium'
+                color="primary"
+                className="font-medium"
               >
                 編集
               </Button>
@@ -490,13 +477,13 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
 
           {isEditingProfile ? (
             // プロフィール編集フォーム
-            <form onSubmit={updateProfile} className='space-y-6'>
-              <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <form onSubmit={updateProfile} className="space-y-6">
+              <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 姓 */}
                 {/* input → Input STEP3 MOD START */}
                 <Input
-                  id='lastName'
-                  type='text'
+                  id="lastName"
+                  type="text"
                   value={lastName}
                   maxLength={50}
                   onChange={(e) => {
@@ -504,16 +491,16 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                     setError(''); // 全体のエラーメッセージをクリア
                     setLastNameError(''); // エラーメッセージをクリア
                   }}
-                  placeholder='姓(任意)'
-                  label='姓'
+                  placeholder="姓(任意)"
+                  label="姓"
                   isInvalid={!!lastNameError}
                   errorMessage={lastNameError}
                 />
 
                 {/* 名 */}
                 <Input
-                  id='firstName'
-                  type='text'
+                  id="firstName"
+                  type="text"
                   value={firstName}
                   maxLength={50}
                   onChange={(e) => {
@@ -521,8 +508,8 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                     setError(''); // 全体のエラーメッセージをクリア
                     setFirstNameError(''); // エラーメッセージをクリア
                   }}
-                  placeholder='名(任意)'
-                  label='名'
+                  placeholder="名(任意)"
+                  label="名"
                   isInvalid={!!firstNameError}
                   errorMessage={firstNameError}
                 />
@@ -530,20 +517,20 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
               {/* input → Input STEP3 MOD END */}
 
               {/* ボタン */}
-              <CardFooter className='gap-3 justify-end'>
+              <CardFooter className="gap-3 justify-end">
                 {/* button → Button STEP3 MOD START */}
                 <Button
-                  type='button'
+                  type="button"
                   onPress={cancelEditProfile}
-                  className='font-medium'
+                  className="font-medium"
                 >
                   キャンセル
                 </Button>
                 <Button
-                  type='submit'
+                  type="submit"
                   isLoading={isSavingProfile}
-                  color='primary'
-                  className='font-medium'
+                  color="primary"
+                  className="font-medium"
                 >
                   {isSavingProfile ? '保存中...' : '保存'}
                 </Button>
@@ -552,28 +539,22 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
             </form>
           ) : (
             // プロフィール表示
-            <CardBody className='space-y-4'>
+            <CardBody className="space-y-4">
               {/* ユーザー名 */}
               <div>
-                <p className='text-sm font-medium text-gray-500 mb-1'>
-                  ユーザー名
-                </p>
+                <p className="text-sm font-medium text-gray-500 mb-1">ユーザー名</p>
                 <p>{user.username}</p>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 姓 */}
                 <div>
-                  <p className='text-sm font-medium text-gray-500 mb-1'>姓</p>
-                  <p className='text-lg text-gray-900'>
-                    {user.lastName || '未設定'}
-                  </p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">姓</p>
+                  <p className="text-lg text-gray-900">{user.lastName || '未設定'}</p>
                 </div>
                 <div>
-                  <p className='text-sm font-medium text-gray-500 mb-1'>名</p>
-                  <p className='text-lg text-gray-900'>
-                    {user.firstName || '未設定'}
-                  </p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">名</p>
+                  <p className="text-lg text-gray-900">{user.firstName || '未設定'}</p>
                 </div>
               </div>
             </CardBody>
@@ -583,46 +564,36 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
         {/* Todo統計情報 */}
         {/* div → Card STEP3 MOD START */}
         {todoStats && (
-          <Card className='shadow-md rounded-lg p-8 mb-8'>
+          <Card className="shadow-md rounded-lg p-8 mb-8">
             <CardHeader>
-              <h2 className='text-2xl font-semibold text-gray-900 mb-6'>
-                Todo統計
-              </h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Todo統計</h2>
             </CardHeader>
             {/* 総Todo数 */}
-            <CardBody className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-              <div className='bg-blue-50 rounded-lg p-4 text-center'>
-                <p className='text-sm font-medium text-blue-600 mb-1'>
-                  総Todo数
-                </p>
-                <p className='text-3xl font-bold text-blue-900'>
+            <CardBody className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <p className="text-sm font-medium text-blue-600 mb-1">総Todo数</p>
+                <p className="text-3xl font-bold text-blue-900">
                   {todoStats.totalTodos}
                 </p>
               </div>
               {/* 完了済みTodo数 */}
-              <div className='bg-green-50 rounded-lg p-4 text-center'>
-                <p className='text-sm font-medium text-green-600 mb-1'>
-                  完了済み
-                </p>
-                <p className='text-3xl font-bold text-green-900'>
+              <div className="bg-green-50 rounded-lg p-4 text-center">
+                <p className="text-sm font-medium text-green-600 mb-1">完了済み</p>
+                <p className="text-3xl font-bold text-green-900">
                   {todoStats.completedTodos}
                 </p>
               </div>
               {/* 未完了Todo数 */}
-              <div className='bg-yellow-50 rounded-lg p-4 text-center'>
-                <p className='text-sm font-medium text-yellow-600 mb-1'>
-                  未完了
-                </p>
-                <p className='text-3xl font-bold text-yellow-900'>
+              <div className="bg-yellow-50 rounded-lg p-4 text-center">
+                <p className="text-sm font-medium text-yellow-600 mb-1">未完了</p>
+                <p className="text-3xl font-bold text-yellow-900">
                   {todoStats.pendingTodos}
                 </p>
               </div>
               {/* 完了率 */}
-              <div className='bg-purple-50 rounded-lg p-4 text-center'>
-                <p className='text-sm font-medium text-purple-600 mb-1'>
-                  完了率
-                </p>
-                <p className='text-3xl font-bold text-purple-900'>
+              <div className="bg-purple-50 rounded-lg p-4 text-center">
+                <p className="text-sm font-medium text-purple-600 mb-1">完了率</p>
+                <p className="text-3xl font-bold text-purple-900">
                   {todoStats.completionRate.toFixed(1)}%
                 </p>
               </div>
@@ -632,32 +603,30 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
         )}
         {/* 自分のTodo一覧表示 */}
         {/* div → Card STEP3 MOD START */}
-        <Card className='p-8 mb-8'>
+        <Card className="p-8 mb-8">
           <CardHeader>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-6'>
-              最近のTodo
-            </h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h2>
           </CardHeader>
           {userTodos.length === 0 ? (
             <CardBody>
-              <p className='text-center text-gray-500 py-8'>Todoがありません</p>
+              <p className="text-center text-gray-500 py-8">Todoがありません</p>
             </CardBody>
           ) : (
-            <CardBody className='space-y-4'>
+            <CardBody className="space-y-4">
               {userTodos.slice(0, 20).map((todo) => (
                 <Link
                   key={todo.id}
                   href={`/todos/${todo.id}`}
-                  className='block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors'
+                  className="block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
                 >
-                  <div className='flex items-center gap-3'>
+                  <div className="flex items-center gap-3">
                     <input
-                      type='checkbox'
+                      type="checkbox"
                       checked={todo.completed}
                       readOnly
-                      className='w-5 h-5 text-blue-500 rounded-md border-gray-300'
+                      className="w-5 h-5 text-blue-500 rounded-md border-gray-300"
                     />
-                    <div className='flex-1'>
+                    <div className="flex-1">
                       <h3
                         className={`font-medium ${
                           todo.completed
@@ -668,7 +637,7 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
                         {todo.title}
                       </h3>
                       {todo.descriptions && (
-                        <p className='text-sm text-gray-600 mt-1'>
+                        <p className="text-sm text-gray-600 mt-1">
                           {todo.descriptions}
                         </p>
                       )}
@@ -679,10 +648,10 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
             </CardBody>
           )}
           {userTodos.length > 5 && (
-            <CardFooter className='text-right'>
+            <CardFooter className="text-right">
               <Link
-                href='/todos'
-                className='text-blue-500 hover:text-blue-600 font-medium transition-colors'
+                href="/todos"
+                className="text-blue-500 hover:text-blue-600 font-medium transition-colors"
               >
                 すべてのTodoを見る →
               </Link>
@@ -692,18 +661,16 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
         {/* STEP3 MOD END */}
         {/* パスワード変更 */}
         {/* div → Card STEP3 MOD START */}
-        <Card className='p-6'>
-          <CardHeader className='justify-between mb-4'>
-            <h2 className='text-2xl font-semibold text-gray-900'>
-              パスワード変更
-            </h2>
+        <Card className="p-6">
+          <CardHeader className="justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900">パスワード変更</h2>
             {!isChangingPassword && (
               // button → Button STEP3 MOD START
               <Button
-                type='button'
+                type="button"
                 onPress={() => setIsChangingPassword(true)}
-                color='primary'
-                className='font-medium'
+                color="primary"
+                className="font-medium"
               >
                 変更
               </Button>
@@ -713,15 +680,15 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
 
           {/* パスワード変更の成功メッセージ */}
           {passwordSuccessMessage && (
-            <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-lg'>
-              <p className='text-green-700 text-sm'>{passwordSuccessMessage}</p>
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-700 text-sm">{passwordSuccessMessage}</p>
             </div>
           )}
 
           {/* パスワード変更用のエラーメッセージ */}
           {passwordError && (
-            <div className='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg'>
-              <p className='text-red-700 text-sm'>{passwordError}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{passwordError}</p>
             </div>
           )}
           {/* パスワード変更フォーム */}
@@ -731,55 +698,55 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
               {/* 現在のパスワード */}
               {/* input → Input STEP3 MOD START */}
               {/* CardBody STEP3 ADD START */}
-              <CardBody className='space-y-6'>
+              <CardBody className="space-y-6">
                 <Input
-                  id='currentPassword'
-                  type='password'
+                  id="currentPassword"
+                  type="password"
                   value={currentPassword}
                   onChange={(e) => {
                     setCurrentPassword(e.target.value);
                     setCurrentPasswordError(''); // フィールドエラーをクリア
                     setPasswordError(''); // 全体エラーをクリア
                   }}
-                  placeholder='現在のパスワード'
-                  label='現在のパスワード'
+                  placeholder="現在のパスワード"
+                  label="現在のパスワード"
                   isRequired
-                  validationBehavior='aria'
+                  validationBehavior="aria"
                   isInvalid={!!currentPasswordError}
                   errorMessage={currentPasswordError}
                 />
                 {/* 新しいパスワード */}
                 <Input
-                  id='newPassword'
-                  type='password'
+                  id="newPassword"
+                  type="password"
                   value={newPassword}
                   onChange={(e) => {
                     setNewPassword(e.target.value);
                     setnewPasswordError(''); // フィールドエラーをクリア
                     setPasswordError(''); // 全体エラーをクリア
                   }}
-                  placeholder='新しいパスワード(6文字以上)'
+                  placeholder="新しいパスワード(6文字以上)"
                   isRequired
-                  validationBehavior='aria'
-                  label='新しいパスワード'
+                  validationBehavior="aria"
+                  label="新しいパスワード"
                   isInvalid={!!newPasswordError}
                   errorMessage={newPasswordError}
                 />
 
                 {/* 確認用パスワード */}
                 <Input
-                  id='confirmPassword'
-                  type='password'
+                  id="confirmPassword"
+                  type="password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     setConfirmPasswordError(''); // フィールドエラーをクリア
                     setPasswordError(''); // 全体エラーをクリア
                   }}
-                  placeholder='新しいパスワードを再入力'
+                  placeholder="新しいパスワードを再入力"
                   isRequired
-                  validationBehavior='aria'
-                  label='新しいパスワード(確認)'
+                  validationBehavior="aria"
+                  label="新しいパスワード(確認)"
                   isInvalid={!!confirmPasswordError}
                   errorMessage={confirmPasswordError}
                 />
@@ -789,21 +756,21 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
 
               {/* ボタン */}
               {/* div → CardFooter STEP3 MOD START */}
-              <CardFooter className='justify-end gap-3'>
+              <CardFooter className="justify-end gap-3">
                 {/* button → Button STEP3 MOD START */}
                 <Button
-                  type='button'
+                  type="button"
                   onPress={cancelPasswordChange}
                   disabled={isSavingPassword}
-                  className='font-medium'
+                  className="font-medium"
                 >
                   キャンセル
                 </Button>
                 <Button
-                  type='submit'
+                  type="submit"
                   isLoading={isSavingPassword}
-                  color='primary'
-                  className='font-medium'
+                  color="primary"
+                  className="font-medium"
                 >
                   {isSavingPassword ? '変更中' : '変更'}
                 </Button>
@@ -812,7 +779,7 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
             </form>
           ) : (
             // 通常表示
-            <p className='text-gray-600'>
+            <p className="text-gray-600">
               パスワードを変更する場合は変更ボタンをクリックしてください。
             </p>
           )}

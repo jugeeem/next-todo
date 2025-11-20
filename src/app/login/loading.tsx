@@ -8,8 +8,8 @@ import { Spinner } from '@heroui/react';
  */
 export default function Loading() {
   return (
-    <div className='flex justify-center items-center p-8'>
-      <Spinner color='primary' />
+    <div className="flex justify-center items-center p-8">
+      <Spinner color="primary" />
     </div>
   );
 }
