@@ -22,7 +22,7 @@ import {
 } from '@heroui/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { logout } from '@/lib/api';
+import { deleteUser, logout } from '@/lib/api';
 
 // インターフェースの定義
 
@@ -127,11 +127,13 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // エラーメッセージ
   const [error, setError] = useState<string>('');
+  // 成功メッセージ
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  // 削除対象のユーザーIDを保存するステート
+  const [userToDeleteId, setUserToDeleteId] = useState<string | null>(null);
 
-  // ユーザー削除モーダル関連のステートと関数を追加 STEP3 ADD START
+  // ユーザー削除モーダル関連のステートと関数を追加
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  // STEP3 ADD END
 
   /**
    * ユーザー一覧データを取得する非同期関数。
@@ -207,7 +209,7 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
    */
   const openDeleteUser = (userId: string) => {
     // 削除対象のユーザーIDをステートに保存し、モーダルを開く
-    setUserToDelete(userId);
+    setUserToDeleteId(userId);
     onOpen();
   };
   // STEP3 ADD END
@@ -218,28 +220,48 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
    * @return {Promise<void>}
    * @throws {Error} ユーザー削除に失敗した場合にエラーをスローします。
    */
-  const deleteUser = async () => {
+  const handleDeleteUser = async () => {
     // 削除対象のユーザーがない場合は処理を終了する。
-    if (!userToDelete) return;
+    if (!userToDeleteId) return;
 
     // モーダルを閉じる
     onClose();
 
+    // エラーメッセージと成功メッセージをクリア
+    setError('');
+    setSuccessMessage('');
     setIsLoading(true);
-    try {
-      // DELETEリクエストを送信してユーザーを削除
-      const response = await fetch(`/api/users/${userToDelete}`, {
-        method: 'DELETE',
-      });
 
-      // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザーの削除に失敗しました');
+    try {
+      // lib/api.tsの削除関数を使用
+      const result = await deleteUser(userToDeleteId);
+
+      // エラーレスポンスの場合は、例外をスロー
+      if (!result.success) {
+        throw new Error(result.error || 'ユーザーの削除に失敗しました');
       }
 
-      // 削除終了後、ユーザー一覧を再取得して表示を更新。
-      await fetchUsers();
+      // 削除成功メッセージを表示
+      setSuccessMessage('ユーザーを削除しました');
+
+      // ステートから削除されたユーザーを除外。現在のusersを参照してidが削除対象と異なるものだけを残す。
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userToDeleteId));
+
+      // ページネーション情報を更新
+      if (paginationInfo) {
+        setPaginationInfo({
+          ...paginationInfo,
+          totalItems: paginationInfo.totalItems - 1,
+        });
+      }
+
+      // 削除対象ユーザーをクリア
+      setUserToDeleteId(null);
+
+      // 成功メッセージを3秒後にクリア
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
@@ -329,6 +351,13 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
         {error && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* 成功メッセージ表示 */}
+        {successMessage && (
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm">{successMessage}</p>
           </div>
         )}
 
@@ -574,7 +603,7 @@ export default function UserListPage({ currentUserId, currentUserRole }: Props) 
             </ModalBody>
             <ModalFooter>
               <Button onPress={onClose}>キャンセル</Button>
-              <Button color="danger" onPress={deleteUser} isLoading={isLoading}>
+              <Button color="danger" onPress={handleDeleteUser} isLoading={isLoading}>
                 削除
               </Button>
             </ModalFooter>
