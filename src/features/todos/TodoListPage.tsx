@@ -5,73 +5,29 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Checkbox,
   Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Select,
-  SelectItem,
   Textarea,
   useDisclosure,
 } from '@heroui/react';
-import Link from 'next/link';
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import {
-  createTodo,
-  deleteTodo,
-  getTodoList,
-  logout,
-  updateTodo,
-} from '@/lib/api';
+import { createTodo, deleteTodo, getTodoList, updateTodo } from '@/lib/api';
+import { TodoFilter } from './components/TodoFilter';
+import { TodoList } from './components/TodoList';
+import type {
+  CompletedFilter,
+  PaginationInfo,
+  SortBy,
+  SortOrder,
+  Todo,
+} from './components/types';
 
 // インターフェースの定義
-
-/**
- * ページネーション情報
- * ページネーション情報の型インターフェースです。
- * @interface PaginationInfo
- * @property {number} currentPage - 現在のページ番号
- * @property {number} totalPages - 総ページ数
- * @property {number} totalItems - 総アイテム数
- * @property {number} itemsPerPage - 1ページあたりのアイテム数
- */
-interface PaginationInfo {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-}
-/** TODOアイテム
- * TODOアイテムの型インターフェースです。
- * @interface Todo
- * @property {number} id - TODO ID
- * @property {string} title - TODOタイトル
- * @property {string | null} [descriptions] - TODO説明（任意）
- * @property {boolean} completed - 完了状態
- * @property {number} userId - ユーザーID
- * @property {string} createdAt - 作成日時（ISO8601形式）
- * @property {string} updatedAt - 更新日時（ISO8601形式）
- */
-
-interface Todo {
-  id: number;
-  title: string;
-  descriptions: string | null;
-  completed: boolean;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-}
 
 /**
  * Todo一覧取得レスポンス
@@ -121,10 +77,7 @@ const createTodoSchema = z.object({
     .string()
     .min(1, 'タイトルは必須です')
     .max(32, 'タイトルは32文字以内で入力してください'),
-  descriptions: z
-    .string()
-    .max(128, '説明は128文字以内で入力してください')
-    .optional(),
+  descriptions: z.string().max(128, '説明は128文字以内で入力してください').optional(),
 });
 
 /**
@@ -134,8 +87,8 @@ const createTodoSchema = z.object({
  */
 export default function TodoListPage({
   initialData,
-  currentUserRole: initialUserRole,
-}: Props) {
+}: // currentUserRole: initialUserRole,
+Props) {
   // ステートの管理
   // Todo一覧データ
   const [todos, setTodos] = useState<Todo[]>(initialData?.data?.data || []);
@@ -150,9 +103,8 @@ export default function TodoListPage({
           totalItems: initialData.data.total,
           itemsPerPage: initialData.data.perPage,
         }
-      : null
+      : null,
   );
-  const [currentUserRole] = useState<number>(initialUserRole || 4);
 
   // フィルターとソートの状態管理
   const [completedFilter, setCompletedFilter] = useState<
@@ -160,7 +112,7 @@ export default function TodoListPage({
   >('all');
   // ソート条件
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'title'>(
-    'createdAt'
+    'createdAt',
   );
   // ソート順の状態
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -173,19 +125,17 @@ export default function TodoListPage({
   // Todo作成中の状態
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
-  // タイトル用のエラーメッセージと説明欄用のエラーメッセージを分割 STEP3 ADD START
+  // タイトル用のエラーメッセージと説明欄用のエラーメッセージを分割 STEP3
   const [titleError, setTitleError] = useState<string>('');
   const [descriptionError, setDescriptionError] = useState<string>('');
-  // STEP3 ADD END
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
 
-  // 削除確認モーダルの状態管理 STEP3 ADD START
+  // 削除確認モーダルの状態管理 STEP3
   const { isOpen, onOpen, onClose } = useDisclosure();
   // delete対象のTodoを特定するためのstate
   const [todoToDelete, setTodoToDelete] = useState<number | null>(null);
-  // STEP3 ADD END
 
   // スクロール位置保持用のref
   const scrollPositionRef = useRef<number>(0);
@@ -241,10 +191,9 @@ export default function TodoListPage({
   const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    // フィールドごとのエラーを送信時にクリア STEP3 MOD START
+    // フィールドごとのエラーを送信時にクリア STEP3
     setTitleError('');
     setDescriptionError('');
-    // STEP3 MOD END
 
     /**
      * 入力バリデーションの実行
@@ -254,7 +203,7 @@ export default function TodoListPage({
       descriptions: newTodoDescription,
     });
     // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
-    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
+    // フィールドごとのエラー状態を設定する。 STEP3
     if (!validationInput.success) {
       // エラーメッセージを一覧で取得
       const errors = validationInput.error.errors;
@@ -266,7 +215,6 @@ export default function TodoListPage({
       });
       return;
     }
-    // STEP3 MOD END
 
     // Todo作成処理開始
     setIsCreating(true);
@@ -325,7 +273,7 @@ export default function TodoListPage({
     }
   };
 
-  // Todo削除モーダルを開く関数を追加し、どのTodoを削除するのかを特定するために、削除対象のTodo IDをstateに保持する。 STEP3 ADD START
+  // Todo削除モーダルを開く関数を追加し、どのTodoを削除するのかを特定するために、削除対象のTodo IDをstateに保持する。 STEP3
   /**
    * Todo削除確認モーダルを開く。
    * @param {number} todoId - 削除対象のTodo ID
@@ -341,7 +289,7 @@ export default function TodoListPage({
    * 指定したTodoの削除処理を行い、Todo一覧を再取得します。
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  // モーダル表示で確認後削除処理に変更 STEP3 MOD START
+  // モーダル表示で確認後削除処理に変更 STEP3
   const handleDeleteTodo = async () => {
     if (!todoToDelete) return;
 
@@ -367,15 +315,6 @@ export default function TodoListPage({
       setTodoToDelete(null);
     }
   };
-  // STEP3 MOD END
-  /**
-   * ログアウト用の非同期関数。（サーバーアクションを使用）
-   * サーバーアクション内でリダイレクト処理が実行されます。
-   * @returns {Promise<void>} 非同期処理完了を表すPromise
-   */
-  const handleLogout = async () => {
-    await logout();
-  };
 
   // フィルター変更時の処理
   useEffect(() => {
@@ -385,53 +324,78 @@ export default function TodoListPage({
     }
   }, [initialData, fetchTodos]);
 
+  /**
+   * フィルター変更時のハンドラ関数。
+   * フィルターが変更されたときに呼び出され、状態を更新します。
+   *
+   * @param {CompletedFilter} filter - 新しいフィルター値
+   */
+  const handleFilterChange = (filter: CompletedFilter) => {
+    // フィルター状態を更新し、ページ番号を1にリセットする
+    setCompletedFilter(filter);
+    setPage(1);
+  };
+
+  /**
+   * ソート項目変更時のハンドラ関数。
+   * ソート項目が変更されたときに呼び出され、状態を更新します。
+   *
+   * @param {SortBy} newSortBy - 新しいソート項目
+   */
+  const handleSortByChange = (newSortBy: SortBy) => {
+    setSortBy(newSortBy);
+  };
+
+  /**
+   * ソート順序変更時のハンドラ関数。
+   * ソート順序が変更されたときに呼び出され、状態を更新します。
+   *
+   * @param {SortOrder} newSortOrder - 新しいソート順序
+   */
+  const handleSortOrderChange = (newSortOrder: SortOrder) => {
+    setSortOrder(newSortOrder);
+  };
   return (
-    <div className='min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100'>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* エラーメッセージ */}
         {error && (
-          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-red-700 text-sm'>{error}</p>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
         {/* Todo作成フォーム */}
-        {/* Cardを追加 STEP3 ADD START */}
-        <Card className='mb-10'>
+        <Card className="mb-10">
           <CardHeader>
-            <h2 className='text-2xl font-semibold text-gray-900'>
-              新しいTodoを作成
-            </h2>
+            <h2 className="text-2xl font-semibold text-gray-900">新しいTodoを作成</h2>
           </CardHeader>
           <CardBody>
-            <form onSubmit={handleCreateTodo} className='space-y-6'>
+            <form onSubmit={handleCreateTodo} className="space-y-6">
               {/* タイトル入力欄 */}
-              {/* input → Input STEP3 MOD START */}
               <Input
-                id='title'
-                type='text'
+                id="title"
+                type="text"
                 value={newTodoTitle}
                 onChange={(e) => {
                   setNewTodoTitle(e.target.value);
                   setTitleError(''); // エラーメッセージをクリア
                 }}
                 maxLength={32}
-                placeholder='Todoのタイトル（32文字以内）'
-                label='タイトル'
+                placeholder="Todoのタイトル（32文字以内）"
+                label="タイトル"
                 isRequired
-                validationBehavior='aria'
+                validationBehavior="aria"
                 isInvalid={!!titleError}
                 errorMessage={titleError}
               />
-              {/* input → Input STEP3 MOD END */}
 
               {/* 説明入力欄 */}
-              {/* textarea -> Textarea STEP3 MOD START */}
               <Textarea
-                id='description'
-                label='説明'
-                placeholder='Todoの説明（128文字以内）'
+                id="description"
+                label="説明"
+                placeholder="Todoの説明（128文字以内）"
                 value={newTodoDescription}
                 onChange={(e) => {
                   setNewTodoDescription(e.target.value);
@@ -441,259 +405,109 @@ export default function TodoListPage({
                 isInvalid={!!descriptionError}
                 errorMessage={descriptionError}
               />
-              {/* textarea -> Textarea STEP3 MOD END */}
 
               {/* Todo作成ボタン */}
-              <div className='flex justify-end'>
-                {/* button → Button STEP3 MOD START */}
+              <div className="flex justify-end">
                 <Button
-                  type='submit'
-                  color='primary'
+                  type="submit"
+                  color="primary"
                   isLoading={isCreating}
-                  className='px-8 py-2.5 font-medium'
+                  className="px-8 py-2.5 font-medium"
                 >
                   {isCreating ? '作成中' : '作成'}
                 </Button>
-                {/* button → Button STEP3 MOD END */}
               </div>
             </form>
           </CardBody>
         </Card>
 
         {/* フィルター・ソートコントロール */}
-        <Card className='mb-8 p-4'>
+        <Card className="mb-8 p-4">
           <CardBody>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-              {/* 表示フィルター */}
-              {/* select → Select STEP3 MOD START */}
-              <Select
-                id='filter'
-                label='表示フィルター'
-                selectedKeys={new Set([completedFilter])}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as
-                    | 'all'
-                    | 'completed'
-                    | 'incomplete';
-                  setCompletedFilter(selected);
-                  setPage(1);
-                }}
-              >
-                <SelectItem key='all'>すべて</SelectItem>
-                <SelectItem key='completed'>完了済み</SelectItem>
-                <SelectItem key='incomplete'>未完了</SelectItem>
-              </Select>
-
-              {/* ソート項目 */}
-              <Select
-                id='sortBy'
-                label='並び順'
-                selectedKeys={new Set([sortBy])}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as
-                    | 'createdAt'
-                    | 'updatedAt'
-                    | 'title';
-                  setSortBy(selected);
-                }}
-              >
-                <SelectItem key='createdAt'>作成日時</SelectItem>
-                <SelectItem key='updatedAt'>更新日時</SelectItem>
-                <SelectItem key='title'>タイトル</SelectItem>
-              </Select>
-
-              {/* ソート順序 */}
-              <Select
-                id='sortOrder'
-                label='順序'
-                selectedKeys={new Set([sortOrder])}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as 'asc' | 'desc';
-                  setSortOrder(selected);
-                }}
-              >
-                <SelectItem key='desc'>降順</SelectItem>
-                <SelectItem key='asc'>昇順</SelectItem>
-              </Select>
-              {/* select → Select STEP3 MOD END */}
-            </div>
+            <TodoFilter
+              completedFilter={completedFilter}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onFilterChange={handleFilterChange}
+              onSortByChange={handleSortByChange}
+              onSortOrderChange={handleSortOrderChange}
+            />
           </CardBody>
         </Card>
 
         {/* Todo一覧表示 */}
         <Card>
           <CardBody>
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-2xl font-semibold text-gray-900'>Todo一覧</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Todo一覧</h2>
 
               {/* ページネーション情報 */}
               {paginationInfo && (
-                <p className='text-sm text-gray-600'>
+                <p className="text-sm text-gray-600">
                   全{paginationInfo.totalItems}件中{' '}
-                  {(paginationInfo.currentPage - 1) *
-                    paginationInfo.itemsPerPage +
-                    1}
-                  ～
+                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
                   {Math.min(
                     paginationInfo.currentPage * paginationInfo.itemsPerPage,
-                    paginationInfo.totalItems
+                    paginationInfo.totalItems,
                   )}
                   件を表示
                 </p>
               )}
             </div>
 
-            {/* ローディング表示 */}
-            {isLoading ? (
-              <div className='flex items-center justify-center py-16'>
-                <div className='text-gray-500'>読み込み中...</div>
-              </div>
-            ) : todos.length === 0 ? (
-              <div className='text-center py-12 text-gray-500 text-lg'>
-                Todoがありません
-              </div>
-            ) : (
-              <div className='space-y-4'>
-                {todos.map((todo) => (
-                  <Card
-                    key={todo.id}
-                    className='bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all'
-                  >
-                    <CardBody className='flex flex-row items-center justify-between'>
-                      <div className='flex items-start gap-4 flex-1'>
-                        {/* 完了チェックボックス */}
-                        {/* Checkboxに変更 STEP3 MOD START */}
-                        <Checkbox
-                          isSelected={todo.completed}
-                          onValueChange={() => toggleCompleteTodo(todo)}
-                          className='mt-1 h-5'
-                        />
-                        {/* STEP3 MOD END */}
-
-                        <div className='flex-1'>
-                          {/* タイトル */}
-                          <Link
-                            href={`/todos/${todo.id}`}
-                            className='hover:text-blue-600 transition-colors'
-                          >
-                            <h3
-                              className={`font-medium text-lg ${
-                                todo.completed
-                                  ? 'line-through text-gray-500'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {todo.title}
-                            </h3>
-                          </Link>
-
-                          {/* 説明 */}
-                          {todo.descriptions && (
-                            <p className='text-sm text-gray-600 mt-2'>
-                              {todo.descriptions}
-                            </p>
-                          )}
-
-                          {/* 作成・更新日時 */}
-                          <p className='text-xs text-gray-400 mt-3'>
-                            作成:{' '}
-                            {new Date(todo.createdAt).toLocaleString('ja-JP')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* アクションボタン */}
-                      <div className='flex items-center gap-3 ml-4'>
-                        {/* 詳細ボタン */}
-                        {/* Buttonに変更 STEP3 MOD START */}
-                        <Button
-                          type='button'
-                          color='primary'
-                          as={Link}
-                          href={`/todos/${todo.id}`}
-                          className='font-medium'
-                        >
-                          詳細
-                        </Button>
-                        {/* STEP3 MOD END */}
-
-                        {/* 削除ボタン */}
-                        {/* モーダルを開くように変更 STEP3 MOD START */}
-                        <Button
-                          type='button'
-                          color='danger'
-                          onPress={() => openDeleteModal(todo.id)}
-                          className='font-medium'
-                        >
-                          削除
-                        </Button>
-                        {/* STEP3 MOD END */}
-                      </div>
-                    </CardBody>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <TodoList
+              todos={todos}
+              isLoading={isLoading}
+              onToggleComplete={toggleCompleteTodo}
+              onDelete={openDeleteModal}
+            />
 
             {/* ページネーションコントロール */}
             {paginationInfo && paginationInfo.totalPages > 1 && (
-              <div className='flex items-center justify-between mt-8 pt-6 border-t border-gray-200'>
-                {/* button → Button STEP3 MOD START */}
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
                 <Button
-                  type='button'
+                  type="button"
                   onPress={() => setPage(page - 1)}
                   isDisabled={page === 1}
                   variant={page === 1 ? 'flat' : 'solid'}
-                  className='px-6 py-2.5'
+                  className="px-6 py-2.5"
                 >
                   前のページ
                 </Button>
-                <span className='text-sm text-gray-600 font-medium'>
-                  ページ {paginationInfo.currentPage} /{' '}
-                  {paginationInfo.totalPages}
+                <span className="text-sm text-gray-600 font-medium">
+                  ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
                 </span>
                 <Button
-                  type='button'
+                  type="button"
                   onPress={() => setPage(page + 1)}
                   isDisabled={page === paginationInfo.totalPages}
-                  variant={
-                    page === paginationInfo.totalPages ? 'flat' : 'solid'
-                  }
-                  className='px-6 py-2.5'
+                  variant={page === paginationInfo.totalPages ? 'flat' : 'solid'}
+                  className="px-6 py-2.5"
                 >
                   次のページ
                 </Button>
-                {/* button → Button STEP3 MOD END */}
               </div>
             )}
           </CardBody>
         </Card>
 
-        {/* 削除確認モーダルの追加 STEP3 ADD START */}
         <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
           <ModalContent>
-            <ModalHeader className='flex flex-col gap-1'>削除確認</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1">削除確認</ModalHeader>
             <ModalBody>
-              <p className='text-gray-700'>
-                このTodoを削除してもよろしいですか？
-              </p>
-              <p className='text-sm text-gray-500 mt-2'>
+              <p className="text-gray-700">このTodoを削除してもよろしいですか？</p>
+              <p className="text-sm text-gray-500 mt-2">
                 この操作は取り消すことができません。
               </p>
             </ModalBody>
             <ModalFooter>
               <Button onPress={onClose}>キャンセル</Button>
-              <Button
-                color='danger'
-                onPress={handleDeleteTodo}
-                isLoading={isLoading}
-              >
+              <Button color="danger" onPress={handleDeleteTodo} isLoading={isLoading}>
                 {isLoading ? '削除中' : '削除する'}
               </Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
-        {/* STEP3 ADD END */}
       </main>
     </div>
   );
