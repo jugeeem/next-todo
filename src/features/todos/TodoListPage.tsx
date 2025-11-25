@@ -4,19 +4,16 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Textarea,
   useDisclosure,
 } from '@heroui/react';
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { z } from 'zod';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createTodo, deleteTodo, getTodoList, updateTodo } from '@/lib/api';
+import { TodoCreateForm } from './components/TodoCreateForm';
 import { TodoFilter } from './components/TodoFilter';
 import { TodoList } from './components/TodoList';
 import type {
@@ -64,22 +61,6 @@ interface Props {
   currentUserRole?: number;
 }
 
-// バリデーションスキーマの定義
-/**
- * Todo作成用のバリデーションスキーマ
- * タイトルは1文字以上32文字以内、説明は128文字以内であることを検証します。
- * @constant {z.ZodObject} createTodoSchema - Todo作成用のZodスキーマ
- * @property {z.ZodString} title - タイトルのバリデーションルール
- * @property {z.ZodString} [descriptions] - 説明のバリデーションルール（任意）
- */
-const createTodoSchema = z.object({
-  title: z
-    .string()
-    .min(1, 'タイトルは必須です')
-    .max(32, 'タイトルは32文字以内で入力してください'),
-  descriptions: z.string().max(128, '説明は128文字以内で入力してください').optional(),
-});
-
 /**
  * Todo一覧表示画面のコンポーネント。
  *
@@ -116,18 +97,10 @@ Props) {
   );
   // ソート順の状態
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  // 新規Todoのタイトル
-  const [newTodoTitle, setNewTodoTitle] = useState<string>('');
-  // 新規Todoの説明
-  const [newTodoDescription, setNewTodoDescription] = useState<string>('');
   // ローディング状態
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Todo作成中の状態
   const [isCreating, setIsCreating] = useState<boolean>(false);
-
-  // タイトル用のエラーメッセージと説明欄用のエラーメッセージを分割 STEP3
-  const [titleError, setTitleError] = useState<string>('');
-  const [descriptionError, setDescriptionError] = useState<string>('');
   // エラーメッセージ
   const [error, setError] = useState<string>('');
   // ユーザー権限の状態
@@ -188,33 +161,8 @@ Props) {
    * @param {React.FormEvent} e フォームイベント
    * @returns {Promise<void>} 非同期処理完了を表すPromise
    */
-  const handleCreateTodo = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleCreateTodo = async (title: string, description: string) => {
     setError('');
-    // フィールドごとのエラーを送信時にクリア STEP3
-    setTitleError('');
-    setDescriptionError('');
-
-    /**
-     * 入力バリデーションの実行
-     */
-    const validationInput = createTodoSchema.safeParse({
-      title: newTodoTitle,
-      descriptions: newTodoDescription,
-    });
-    // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
-    // フィールドごとのエラー状態を設定する。 STEP3
-    if (!validationInput.success) {
-      // エラーメッセージを一覧で取得
-      const errors = validationInput.error.errors;
-
-      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
-      errors.forEach((err) => {
-        if (err.path[0] === 'title') setTitleError(err.message);
-        if (err.path[0] === 'descriptions') setDescriptionError(err.message);
-      });
-      return;
-    }
 
     // Todo作成処理開始
     setIsCreating(true);
@@ -222,17 +170,14 @@ Props) {
     try {
       // サーバーアクションの呼び出し
       const result = await createTodo({
-        title: newTodoTitle.trim(),
-        descriptions: newTodoDescription.trim() || undefined,
+        title,
+        descriptions: description || undefined, // 空文字の場合はundefinedとして扱う
       });
       // 作成失敗時の処理
       if (!result.success) {
         throw new Error(result.error || 'Todoの作成に失敗しました');
       }
-
-      // 作成成功時は入力欄をクリアして一覧を再取得する。
-      setNewTodoTitle('');
-      setNewTodoDescription('');
+      // 作成成功時は一覧を再取得する。
       await fetchTodos();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Todoの作成に失敗しました');
@@ -367,59 +312,7 @@ Props) {
         )}
 
         {/* Todo作成フォーム */}
-        <Card className="mb-10">
-          <CardHeader>
-            <h2 className="text-2xl font-semibold text-gray-900">新しいTodoを作成</h2>
-          </CardHeader>
-          <CardBody>
-            <form onSubmit={handleCreateTodo} className="space-y-6">
-              {/* タイトル入力欄 */}
-              <Input
-                id="title"
-                type="text"
-                value={newTodoTitle}
-                onChange={(e) => {
-                  setNewTodoTitle(e.target.value);
-                  setTitleError(''); // エラーメッセージをクリア
-                }}
-                maxLength={32}
-                placeholder="Todoのタイトル（32文字以内）"
-                label="タイトル"
-                isRequired
-                validationBehavior="aria"
-                isInvalid={!!titleError}
-                errorMessage={titleError}
-              />
-
-              {/* 説明入力欄 */}
-              <Textarea
-                id="description"
-                label="説明"
-                placeholder="Todoの説明（128文字以内）"
-                value={newTodoDescription}
-                onChange={(e) => {
-                  setNewTodoDescription(e.target.value);
-                  setDescriptionError(''); // エラーメッセージをクリア
-                }}
-                maxLength={128}
-                isInvalid={!!descriptionError}
-                errorMessage={descriptionError}
-              />
-
-              {/* Todo作成ボタン */}
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  color="primary"
-                  isLoading={isCreating}
-                  className="px-8 py-2.5 font-medium"
-                >
-                  {isCreating ? '作成中' : '作成'}
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
+        <TodoCreateForm onSubmit={handleCreateTodo} isCreating={isCreating} />
 
         {/* フィルター・ソートコントロール */}
         <Card className="mb-8 p-4">
