@@ -16,6 +16,7 @@ import { createTodo, deleteTodo, getTodoList, updateTodo } from '@/lib/api';
 import { TodoCreateForm } from './components/TodoCreateForm';
 import { TodoFilter } from './components/TodoFilter';
 import { TodoList } from './components/TodoList';
+import { TodoPagination } from './components/TodoPagination';
 import type {
   CompletedFilter,
   PaginationInfo,
@@ -338,7 +339,7 @@ Props) {
               {paginationInfo && (
                 <p className="text-sm text-gray-600">
                   全{paginationInfo.totalItems}件中{' '}
-                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}～
+                  {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}〜
                   {Math.min(
                     paginationInfo.currentPage * paginationInfo.itemsPerPage,
                     paginationInfo.totalItems,
@@ -347,7 +348,6 @@ Props) {
                 </p>
               )}
             </div>
-
             <TodoList
               todos={todos}
               isLoading={isLoading}
@@ -356,30 +356,12 @@ Props) {
             />
 
             {/* ページネーションコントロール */}
-            {paginationInfo && paginationInfo.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-                <Button
-                  type="button"
-                  onPress={() => setPage(page - 1)}
-                  isDisabled={page === 1}
-                  variant={page === 1 ? 'flat' : 'solid'}
-                  className="px-6 py-2.5"
-                >
-                  前のページ
-                </Button>
-                <span className="text-sm text-gray-600 font-medium">
-                  ページ {paginationInfo.currentPage} / {paginationInfo.totalPages}
-                </span>
-                <Button
-                  type="button"
-                  onPress={() => setPage(page + 1)}
-                  isDisabled={page === paginationInfo.totalPages}
-                  variant={page === paginationInfo.totalPages ? 'flat' : 'solid'}
-                  className="px-6 py-2.5"
-                >
-                  次のページ
-                </Button>
-              </div>
+            {paginationInfo && (
+              <TodoPagination
+                paginationInfo={paginationInfo}
+                currentPage={page}
+                onPageChange={setPage}
+              />
             )}
           </CardBody>
         </Card>
