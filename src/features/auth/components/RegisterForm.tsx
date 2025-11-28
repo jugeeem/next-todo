@@ -2,7 +2,7 @@
 
 import { Button, Card, Input } from '@heroui/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { z } from 'zod';
 
 /**
@@ -26,8 +26,8 @@ interface RegisterFormProps {
  */
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   // フォームの状態管理
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -50,61 +50,67 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   /**
    * フォーム送信ハンドラー
+   *
+   * @param {FormEvent} e - フォームイベント
+   * @returns {Promise<void>} 非同期処理
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setUsernameError('');
-    setPasswordError('');
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
+      setError('');
+      setUsernameError('');
+      setPasswordError('');
 
-    // バリデーションの実行
-    const validationInput = schema.safeParse({
-      username,
-      password,
-      firstName,
-      lastName,
-    });
-
-    // バリデーションエラー時の処理
-    if (!validationInput.success) {
-      const errors = validationInput.error.errors;
-      errors.forEach((err) => {
-        if (err.path[0] === 'username') setUsernameError(err.message);
-        if (err.path[0] === 'password') setPasswordError(err.message);
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    // 登録APIの呼び出し
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-        }),
+      // バリデーションの実行
+      const validationInput = schema.safeParse({
+        username,
+        password,
+        firstName,
+        lastName,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '登録に失敗しました');
+      // バリデーションエラー時の処理
+      if (!validationInput.success) {
+        const errors = validationInput.error.errors;
+        errors.forEach((err) => {
+          if (err.path[0] === 'username') setUsernameError(err.message);
+          if (err.path[0] === 'password') setPasswordError(err.message);
+        });
+        setIsLoading(false);
+        return;
       }
 
-      // 成功時のコールバック実行（親コンポーネントがリダイレクトを担当）
-      onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // 登録APIの呼び出し
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username.trim(),
+            password: password,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || '登録に失敗しました');
+        }
+
+        // 成功時のコールバック実行（親コンポーネントがリダイレクトを担当）
+        onSuccess();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [username, password, firstName, lastName, onSuccess, schema],
+  );
 
   return (
     <Card className="p-8">
