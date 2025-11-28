@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Card, CardBody, CardFooter, CardHeader, Input } from '@heroui/react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import { z } from 'zod';
 
 /**
@@ -56,87 +56,90 @@ export function PasswordChangeForm() {
    * @param {FormEvent} e - フォーム送信イベント
    * @returns {Promise<void>} - 非同期処理の完了を示すPromise
    */
-  const handleChange = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleChange = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
 
-    // エラーメッセージのリセット
-    setCurrentPasswordError('');
-    setNewPasswordError('');
-    setConfirmPasswordError('');
-    setError('');
-    setSuccessMessage('');
+      // エラーメッセージのリセット
+      setCurrentPasswordError('');
+      setNewPasswordError('');
+      setConfirmPasswordError('');
+      setError('');
+      setSuccessMessage('');
 
-    // バリデーションの実行
-    const result = passwordChangeSchema.safeParse({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-
-    // バリデーション失敗時の処理
-    if (!result.success) {
-      // エラーメッセージを一覧で取得
-      const errors = result.error.errors;
-      // 各フィールドのエラーメッセージを設定
-      errors.forEach((err) => {
-        if (err.path[0] === 'currentPassword') {
-          setCurrentPasswordError(err.message);
-        }
-        if (err.path[0] === 'newPassword') {
-          setNewPasswordError(err.message);
-        }
-        if (err.path[0] === 'confirmPassword') {
-          setConfirmPasswordError(err.message);
-        }
-      });
-      return;
-    }
-
-    // パスワード一致チェック
-    if (newPassword !== confirmPassword) {
-      setError('新しいパスワードと確認用パスワードが一致しません。');
-      return;
-    }
-
-    // 変更処理の開始
-    setIsSaving(true);
-    try {
-      const response = await fetch('/api/users/me/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
+      // バリデーションの実行
+      const result = passwordChangeSchema.safeParse({
+        currentPassword,
+        newPassword,
+        confirmPassword,
       });
 
-      // パスワード変更失敗時の処理
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'パスワードの変更に失敗しました');
+      // バリデーション失敗時の処理
+      if (!result.success) {
+        // エラーメッセージを一覧で取得
+        const errors = result.error.errors;
+        // 各フィールドのエラーメッセージを設定
+        errors.forEach((err) => {
+          if (err.path[0] === 'currentPassword') {
+            setCurrentPasswordError(err.message);
+          }
+          if (err.path[0] === 'newPassword') {
+            setNewPasswordError(err.message);
+          }
+          if (err.path[0] === 'confirmPassword') {
+            setConfirmPasswordError(err.message);
+          }
+        });
+        return;
       }
 
-      // 成功後入力フォームのリセット
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      // 成功メッセージの設定
-      setSuccessMessage('パスワードが正常に変更されました。');
-      // 変更モードを終了
-      setIsChanging(false);
+      // パスワード一致チェック
+      if (newPassword !== confirmPassword) {
+        setError('新しいパスワードと確認用パスワードが一致しません。');
+        return;
+      }
 
-      // 3秒後に成功メッセージをクリア
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
-    } finally {
-      // 保存処理の終了
-      setIsSaving(false);
-    }
-  };
+      // 変更処理の開始
+      setIsSaving(true);
+      try {
+        const response = await fetch('/api/users/me/password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword,
+          }),
+        });
+
+        // パスワード変更失敗時の処理
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'パスワードの変更に失敗しました');
+        }
+
+        // 成功後入力フォームのリセット
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        // 成功メッセージの設定
+        setSuccessMessage('パスワードが正常に変更されました。');
+        // 変更モードを終了
+        setIsChanging(false);
+
+        // 3秒後に成功メッセージをクリア
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+      } finally {
+        // 保存処理の終了
+        setIsSaving(false);
+      }
+    },
+    [currentPassword, newPassword, confirmPassword],
+  );
 
   /**
    * 変更キャンセル処理。
