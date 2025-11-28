@@ -50,8 +50,25 @@ export interface Todo {
 }
 
 /**
- * 権限情報とラベルの対応表
+ * ページネーション情報のインターフェース。
+ * APIから取得されるページネーション関連の情報を表すためのインターフェースです。
  *
+ * @interface PaginationInfo
+ * @property {number} currentPage - 現在のページ番号
+ * @property {number} totalPages - 総ページ数
+ * @property {number} totalItems - 総アイテム数
+ * @property {number} itemsPerPage - 1ページ当たりのアイテム数
+ */
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+/**
+ * 権限情報とラベルの対応表
+ * @constant {Record<number, string>} roleLabels - 権限番号とそのラベルの対応表
  */
 export const roleLabels: Record<number, string> = {
   1: 'ADMIN',
@@ -86,3 +103,24 @@ export const getFullName = (user: User): string => {
   }
   return 'name is not set';
 };
+
+/**
+ * ソート項目の型定義
+ *
+ * @property {'createdAt' | 'username' | 'firstName' | 'lastName' | 'role'} SortBy - ソート対象のフィールド
+ */
+export type SortBy = 'createdAt' | 'username' | 'firstName' | 'lastName' | 'role';
+
+/**
+ * ソート順の型定義
+ *
+ * @property {'asc' | 'desc'} SortOrder - 昇順または降順
+ */
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * ロールフィルターの型定義
+ *
+ * @property {number | 'all'} RoleFilter - 特定のロール番号または'all'で全てのロールを示す
+ */
+export type RoleFilter = number | 'all';

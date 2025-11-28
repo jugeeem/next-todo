@@ -4,68 +4,34 @@ import {
   Button,
   Card,
   CardBody,
-  CardFooter,
   CardHeader,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Select,
-  SelectItem,
   useDisclosure,
 } from '@heroui/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { deleteUser, logout } from '@/lib/api';
-
-// インターフェースの定義
-
-/**
- * ユーザー情報のインターフェース。
- * ユーザー情報を表すためのインターフェースです。
- *
- * @interface User
- * @property {string} id - ユーザーID
- * @property {string} username - ユーザー名
- * @property {string} [firstName] - 名 (任意)
- * @property {string} [lastName] - 姓 (任意)
- * @property {number} role - ユーザー権限情報
- * @property {string} createdAt - 作成日時 (ISO8601形式)
- * @property {string} updatedAt - 更新日時 (ISO8601形式)
- *
- */
-interface User {
-  id: string;
-  username: string;
-  firstName?: string;
-  lastName?: string;
-  role: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * ページネーション情報のインターフェース。
- * APIから取得されるページネーション関連の情報を表すためのインターフェースです。
- *
- * @interface PaginationInfo
- * @property {number} currentPage - 現在のページ番号
- * @property {number} totalPages - 総ページ数
- * @property {number} totalItems - 総アイテム数
- * @property {number} itemsPerPage - 1ページ当たりのアイテム数
- */
-interface PaginationInfo {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-}
+import { deleteUser } from '@/lib/api';
+import type {
+  PaginationInfo,
+  RoleFilter,
+  SortBy,
+  SortOrder,
+  User,
+} from './components/types';
+import { UserList } from './components/UserList';
+import { UserPagination } from './components/UserPagination';
+import { UserSearchFilter } from './components/UserSearchFilter';
 
 /**
  * Propsのインターフェース。
  * UserListPageコンポーネントに渡されるpropsの型を定義します。
+ *
+ * @property {string} currentUserId - 現在のログインユーザーのID
+ * @property {number} currentUserRole - 現在のログインユーザーの権限情報
  */
 interface Props {
   currentUserId: string;
@@ -73,37 +39,11 @@ interface Props {
 }
 
 /**
- * ロール番号とラベルの対応表。
- * ユーザーロール番号を対応するラベルに変換するためのオブジェクトです。
- *
- */
-const roleLabels: Record<number, string> = {
-  1: 'ADMIN',
-  2: 'MANAGER',
-  3: 'USER',
-  4: 'GUEST',
-};
-
-/**
- * ロールごとのスタイルクラス。
- * ユーザー権限表示の際に、権限ごとに異なるスタイルを適用するためのオブジェクトです。
- * @returns {Record<number, string>} 権限ごとのスタイルクラスを返します。
- */
-const roleStyles: Record<number, string> = {
-  1: 'px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800',
-  2: 'px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800',
-  3: 'px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800',
-  4: 'px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800',
-};
-/**
  * ユーザー一覧ページコンポーネント。
  * ADMINおよびMANAGER専用のユーザー管理画面を表示するコンポーネントです。
  * @returns
  */
-export default function UserListPage({
-  currentUserId,
-  currentUserRole,
-}: Props) {
+export default function UserListPage({ currentUserId, currentUserRole }: Props) {
   // ステートの管理
 
   // ユーザー一覧データ
@@ -111,9 +51,7 @@ export default function UserListPage({
   // 現在のページ番号
   const [page, setPage] = useState<number>(1);
   // ページネーション情報
-  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(
-    null
-  );
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
   // ページの権限フィルター
   const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
   // ソート項目
@@ -191,9 +129,7 @@ export default function UserListPage({
       });
     } catch (err) {
       // エラー発生時の処理
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       // ローディングの終了
       setIsLoading(false);
@@ -205,17 +141,60 @@ export default function UserListPage({
     fetchUsers();
   }, [fetchUsers]);
 
-  // ユーザー削除モーダルを開く関数を追加し、削除対象のユーザーをステートに保存する。 STEP3 ADD START
   /**
-   * ユーザー削除モーダルを開く。
+   * 検索キーワード変更ハンドラー。
+   *
+   * @param {string} query - 新しい検索キーワード
+   */
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setPage(1); // 検索条件変更時にページ番号をリセット
+  };
+
+  /**
+   * ロールフィルター変更ハンドラー。
+   *
+   * @param {RoleFilter} role - 選択されたロールフィルター
+   */
+  const handleRoleFilterChange = (role: RoleFilter) => {
+    setRoleFilter(role);
+    setPage(1); // フィルター変更時にページ番号をリセット
+  };
+
+  /**
+   * ソート基準変更ハンドラー。
+   *
+   * @param {SortBy} newSortBy - 選択されたソート基準
+   */
+  const handleSortByChange = (newSortBy: SortBy) => {
+    setSortBy(newSortBy);
+  };
+
+  /**
+   * ソート順序変更ハンドラー。
+   *
+   * @param {SortOrder} newSortOrder - 選択されたソート順序
+   */
+  const handleSortOrderChange = (newSortOrder: SortOrder) => {
+    setSortOrder(newSortOrder);
+  };
+
+  /**
+   * ページ変更ハンドラー。
+   */
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  /**
+   * ユーザー削除モーダルを開くハンドラー。
+   *
    * @param {string} userId - 削除対象のユーザーID
    */
-  const openDeleteUser = (userId: string) => {
-    // 削除対象のユーザーIDをステートに保存し、モーダルを開く
+  const handleOpenDeleteModal = (userId: string) => {
     setUserToDeleteId(userId);
     onOpen();
   };
-  // STEP3 ADD END
 
   /**
    * ユーザー削除用の非同期関数。
@@ -248,9 +227,7 @@ export default function UserListPage({
       setSuccessMessage('ユーザーを削除しました');
 
       // ステートから削除されたユーザーを除外。現在のusersを参照してidが削除対象と異なるものだけを残す。
-      setUsers((prevUsers) =>
-        prevUsers.filter((user) => user.id !== userToDeleteId)
-      );
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userToDeleteId));
 
       // ページネーション情報を更新
       if (paginationInfo) {
@@ -268,325 +245,102 @@ export default function UserListPage({
         setSuccessMessage('');
       }, 3000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '不明なエラーが発生しました'
-      );
+      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * ログアウト処理の非同期関数。
-   * 現在のユーザーをログアウトし、ログインページにリダイレクトします。
-   *
-   * @return {Promise<void>}
-   * @throws {Error} ログアウトに失敗した場合にエラーをスローします。
-   */
-  const handleLogout = async () => {
-    // ログアウトAPIを呼び出し
-    await logout();
-  };
-
-  /**
-   * ユーザーのフルネームを取得する関数。
-   * ユーザーの姓と名を結合してフルネームを生成します。(なければ"name is not set"を返します)
-   * @param {User} user - ユーザーオブジェクト
-   * @return {string} ユーザーのフルネームまたはデフォルトメッセージ
-   */
-  const getFullName = (user: User): string => {
-    if (user.firstName || user.lastName) {
-      return `${user.lastName || ''} ${user.firstName || ''}`.trim();
-    }
-    return 'name is not set';
-  };
-
   return (
-    <div className='min-h-screen flex flex-col bg-gray-50'>
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* エラーメッセージ表示 */}
         {error && (
-          <div className='mb-8 p-4 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-red-700 text-sm'>{error}</p>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
         {/* 成功メッセージ表示 */}
         {successMessage && (
-          <div className='mb-8 p-4 bg-green-50 border border-green-200 rounded-lg'>
-            <p className='text-green-700 text-sm'>{successMessage}</p>
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm">{successMessage}</p>
           </div>
         )}
 
         {/* ページタイトルと新規作成ボタン */}
-        <div className='flex items-center justify-between mb-6'>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className='text-3xl font-bold text-gray-900'>ユーザー管理</h2>
+            <h2 className="text-3xl font-bold text-gray-900">ユーザー管理</h2>
           </div>
           {/* 新規ユーザー作成ボタン */}
           <Button
             as={Link}
-            href='/users/create'
-            color='primary'
-            className='font-medium shadow-md hover:shadow-lg'
+            href="/users/create"
+            color="primary"
+            className="font-medium shadow-md hover:shadow-lg"
           >
             新規ユーザー作成
           </Button>
         </div>
 
         {/* 検索・フィルターCard */}
-        <Card className='mb-8'>
+        <Card className="mb-8">
           <CardHeader>
-            <h3 className='text-xl font-semibold text-gray-900'>
-              検索・フィルター
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-900">検索・フィルター</h3>
           </CardHeader>
-          <CardBody className='space-y-4'>
-            {/* 検索ボックス */}
-            <Input
-              id='search'
-              label='ユーザー名'
-              type='text'
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder='ユーザー名で検索'
-            />
-
+          <CardBody className="space-y-4">
             {/* ロールフィルター、ソートのコントロール */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-              {/* ロールフィルター */}
-              <div>
-                {/* select → Select STEP3 MOD START */}
-                <Select
-                  id='roleFilter'
-                  label='ロールフィルター'
-                  selectedKeys={[String(roleFilter)]}
-                  onSelectionChange={(keys) => {
-                    // Set から最初の要素を取得
-                    const selected = Array.from(keys)[0] as string;
-                    // 'all' の場合はそのまま、数値の場合は Number に変換
-                    setRoleFilter(
-                      selected === 'all' ? 'all' : Number(selected)
-                    );
-                    setPage(1); // フィルター条件が変わったらページ番号を1にリセット
-                  }}
-                >
-                  <SelectItem key='all'>すべて</SelectItem>
-                  <SelectItem key='1'>ADMIN</SelectItem>
-                  <SelectItem key='2'>MANAGER</SelectItem>
-                  <SelectItem key='3'>USER</SelectItem>
-                  <SelectItem key='4'>GUEST</SelectItem>
-                </Select>
-                {/* STEP3 MOD END */}
-              </div>
-
-              {/* ソート項目 */}
-              <div>
-                <Select
-                  id='sortBy'
-                  label='並び順'
-                  selectedKeys={[sortBy]}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as typeof sortBy;
-                    setSortBy(selected);
-                  }}
-                >
-                  <SelectItem key='createdAt'>作成日時</SelectItem>
-                  <SelectItem key='username'>ユーザー名</SelectItem>
-                  <SelectItem key='firstName'>名前</SelectItem>
-                  <SelectItem key='lastName'>姓</SelectItem>
-                  <SelectItem key='role'>ロール</SelectItem>
-                </Select>
-              </div>
-
-              {/* ソート順序 */}
-              <div>
-                <Select
-                  id='sortOrder'
-                  label='順序'
-                  selectedKeys={[sortOrder]}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as 'asc' | 'desc';
-                    setSortOrder(selected);
-                  }}
-                >
-                  <SelectItem key='desc'>降順</SelectItem>
-                  <SelectItem key='asc'>昇順</SelectItem>
-                </Select>
-              </div>
-            </div>
+            <UserSearchFilter
+              searchQuery={searchQuery}
+              roleFilter={roleFilter}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSearchChange={handleSearchChange}
+              onRoleFilterChange={handleRoleFilterChange}
+              onSortByChange={handleSortByChange}
+              onSortOrderChange={handleSortOrderChange}
+            />
           </CardBody>
         </Card>
 
         {/* ユーザー一覧Card */}
         <Card>
-          <CardBody>
-            {/* ヘッダー部分 */}
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-2xl font-semibold text-gray-900'>
-                ユーザー一覧
-              </h2>
+          <UserList
+            users={users}
+            paginationInfo={paginationInfo}
+            currentUserRole={currentUserRole}
+            currentUserId={currentUserId}
+            isLoading={isLoading}
+            onDelete={handleOpenDeleteModal}
+          />
 
-              {/* ページネーション情報 */}
-              {paginationInfo && (
-                <p className='text-sm text-gray-600'>
-                  全{paginationInfo.totalItems}件中{' '}
-                  {(paginationInfo.currentPage - 1) *
-                    paginationInfo.itemsPerPage +
-                    1}
-                  ～
-                  {Math.min(
-                    paginationInfo.currentPage * paginationInfo.itemsPerPage,
-                    paginationInfo.totalItems
-                  )}
-                  件を表示
-                </p>
-              )}
-            </div>
-
-            {/* ローディング表示 */}
-            {isLoading ? (
-              <div className='flex items-center justify-center py-16'>
-                <div className='text-gray-500'>読み込み中...</div>
-              </div>
-            ) : users.length === 0 ? ( // ユーザーが存在しない場合の表示
-              <div className='text-center py-12 text-gray-500 text-lg'>
-                ユーザーが見つかりませんでした
-              </div>
-            ) : (
-              // 各ユーザーを個別のCardで表示
-              <div className='space-y-4'>
-                {users.map((user) => (
-                  <Card
-                    key={user.id}
-                    className='bg-gray-50 hover:bg-gray-100 hover:border-primary transition-all'
-                  >
-                    <CardBody className='flex flex-row items-center justify-between'>
-                      <div className='flex items-center gap-4 flex-1'>
-                        {/* ユーザー情報 */}
-                        <div className='flex-1'>
-                          {/* ユーザー名 */}
-                          <Link
-                            href={`/users/${user.id}`}
-                            className='hover:text-blue-600 transition-colors'
-                          >
-                            <h3 className='font-medium text-lg text-gray-900 flex items-center gap-3'>
-                              {user.username}
-                              {/* ロールバッジ */}
-                              <span className={roleStyles[user.role]}>
-                                {roleLabels[user.role]}
-                              </span>
-                            </h3>
-                          </Link>
-
-                          {/* フルネーム */}
-                          <p className='text-sm text-gray-600 mt-2'>
-                            {getFullName(user)}
-                          </p>
-
-                          {/* 作成日時 */}
-                          <p className='text-xs text-gray-400 mt-3'>
-                            作成:{' '}
-                            {new Date(user.createdAt).toLocaleString('ja-JP')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* アクションボタン */}
-                      <div className='flex items-center gap-3 ml-4'>
-                        {/* 詳細ボタン */}
-                        <Button
-                          as={Link}
-                          href={`/users/${user.id}`}
-                          color='primary'
-                          size='sm'
-                          className='font-medium'
-                        >
-                          詳細
-                        </Button>
-
-                        {/* ADMIN権限のユーザーのみ削除ボタンを表示 */}
-                        {currentUserRole === 1 && user.id !== currentUserId && (
-                          <Button
-                            type='button'
-                            onPress={() => openDeleteUser(user.id)}
-                            color='danger'
-                            size='sm'
-                            className='font-medium'
-                          >
-                            削除
-                          </Button>
-                        )}
-                      </div>
-                    </CardBody>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {/* ページネーションコントロールボタン */}
-            {paginationInfo && paginationInfo.totalPages > 1 && (
-              <CardFooter className='justify-between mt-8 pt-6 border-t border-gray-200'>
-                <Button
-                  type='button'
-                  onPress={() => setPage(page - 1)}
-                  isDisabled={page === 1}
-                  variant={page === 1 ? 'flat' : 'solid'}
-                  className='px-6 py-2.5'
-                >
-                  前のページ
-                </Button>
-
-                <span className='text-sm text-gray-600 font-medium'>
-                  ページ {paginationInfo.currentPage} /{' '}
-                  {paginationInfo.totalPages}
-                </span>
-
-                <Button
-                  type='button'
-                  onPress={() => setPage(page + 1)}
-                  isDisabled={page === paginationInfo.totalPages}
-                  variant={
-                    page === paginationInfo.totalPages ? 'flat' : 'solid'
-                  }
-                  className='px-6 py-2.5'
-                >
-                  次のページ
-                </Button>
-              </CardFooter>
-            )}
-          </CardBody>
+          {/* ページネーションフッター */}
+          <UserPagination
+            paginationInfo={paginationInfo}
+            currentPage={page}
+            onPageChange={handlePageChange}
+          />
         </Card>
 
-        {/* 削除確認モーダルの追加 STEP3 ADD START */}
         <Modal isOpen={isOpen} onClose={onClose} isDismissable={false}>
           <ModalContent>
-            <ModalHeader className='flex flex-col gap-1'>削除確認</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1">削除確認</ModalHeader>
             <ModalBody>
-              <p className='text-gray-700'>
-                このユーザーを削除してもよろしいですか？
-              </p>
-              <p className='text-sm text-gray-500 mt-2'>
+              <p className="text-gray-700">このユーザーを削除してもよろしいですか？</p>
+              <p className="text-sm text-gray-500 mt-2">
                 この操作は取り消すことができません。
               </p>
             </ModalBody>
             <ModalFooter>
               <Button onPress={onClose}>キャンセル</Button>
-              <Button
-                color='danger'
-                onPress={handleDeleteUser}
-                isLoading={isLoading}
-              >
+              <Button color="danger" onPress={handleDeleteUser} isLoading={isLoading}>
                 削除
               </Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
-        {/* STEP3 ADD END */}
       </main>
     </div>
   );
