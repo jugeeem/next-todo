@@ -1,15 +1,9 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
-  Button,
-} from '@heroui/react';
+import { Button, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@heroui/react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 /**
  * ヘッダーコンポーネント。
@@ -51,7 +45,9 @@ export function Header() {
           setIsAuthenticated(false);
         }
       } catch (err) {
+        // エラー発生時は未認証とする
         setIsAuthenticated(false);
+        console.error('認証確認エラー:', err);
       } finally {
         // 認証確認完了
         setIsCheckingAuth(false);
@@ -102,15 +98,15 @@ export function Header() {
   return (
     <Navbar>
       <NavbarBrand>
-        <Link href='/todos' className='hover:opacity-80 transition-opacity'>
-          <h1 className='text-3xl font-bold text-gray-900'>Todoアプリ</h1>
+        <Link href="/todos" className="hover:opacity-80 transition-opacity">
+          <h1 className="text-3xl font-bold text-gray-900">Todoアプリ</h1>
         </Link>
       </NavbarBrand>
-      <NavbarContent className='hidden sm:flex gap-4' justify='center'>
+      <NavbarContent className="hidden sm:flex gap-4" justify="center">
         <NavbarItem>
           <Link
-            href='/todos'
-            color='foreground'
+            href="/todos"
+            color="foreground"
             className={
               pathname.startsWith('/todos')
                 ? 'text-blue-500 font-medium'
@@ -123,8 +119,8 @@ export function Header() {
         </NavbarItem>
         <NavbarItem>
           <Link
-            href='/profile'
-            color='foreground'
+            href="/profile"
+            color="foreground"
             className={
               pathname.startsWith('/profile')
                 ? 'text-blue-500 font-medium'
@@ -137,8 +133,8 @@ export function Header() {
         {userRole <= 2 && (
           <NavbarItem>
             <Link
-              href='/users'
-              color='foreground'
+              href="/users"
+              color="foreground"
               className={
                 pathname.startsWith('/users')
                   ? 'text-blue-500 font-medium'
@@ -150,9 +146,9 @@ export function Header() {
           </NavbarItem>
         )}
       </NavbarContent>
-      <NavbarContent justify='end'>
+      <NavbarContent justify="end">
         <NavbarItem>
-          <Button type='button' onPress={handleLogout} className='font-medium'>
+          <Button type="button" onPress={handleLogout} className="font-medium">
             ログアウト
           </Button>
         </NavbarItem>
