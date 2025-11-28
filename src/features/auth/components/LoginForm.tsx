@@ -2,7 +2,7 @@
 import { Button, Card, Input } from '@heroui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import { z } from 'zod';
 
 /**
@@ -30,86 +30,89 @@ export function LoginForm() {
   // ページ遷移用のルーター
   const router = useRouter();
   // ユーザー名のstate
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState<string>('');
   // パスワードのstate
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState<string>('');
   // サーバーエラー用のstate
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
   // ユーザーネームのエラー用のstate
-  const [usernameError, setUsernameError] = useState('');
+  const [usernameError, setUsernameError] = useState<string>('');
   // パスワードのエラー用のstate
-  const [passwordError, setPasswordError] = useState('');
+  const [passwordError, setPasswordError] = useState<string>('');
   // ローディング状態のstate
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /**
    * フォーム送信用のハンドラ。
    * フォーム送信イベントを送信します。
+   * useCallbackでメモ化し、依存する値が変更されたときのみ再生成されます。
    *
-   * @param {React.FormEvent} e フォームイベント
-   *
+   * @param {FormEvent} e フォームイベント
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setUsernameError('');
-    setPasswordError('');
-    setError('');
-    setIsLoading(true);
+  // STEP4 指摘箇所 useCallbackを使用して、不要な再レンダリングを防止する。
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      setUsernameError('');
+      setPasswordError('');
+      setError('');
+      setIsLoading(true);
 
-    /**
-     * 入力バリデーションの実行
-     * @param {object} input 入力データ
-     * @returns {boolean} バリデーション結果
-     */
-    const validationInput = LoginFormSchema.safeParse({
-      username,
-      password,
-    });
-    // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
-    // フィールドごとのエラー状態を設定する。 STEP3 MOD START
-    if (!validationInput.success) {
-      // エラーメッセージを一覧で取得
-      const errors = validationInput.error.errors;
-
-      // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
-      errors.forEach((err) => {
-        if (err.path[0] === 'username') setUsernameError(err.message);
-        if (err.path[0] === 'password') setPasswordError(err.message);
+      /**
+       * 入力バリデーションの実行
+       * @param {object} input 入力データ
+       * @returns {boolean} バリデーション結果
+       */
+      const validationInput = LoginFormSchema.safeParse({
+        username,
+        password,
       });
-      setIsLoading(false);
-      return;
-    }
-    // ログイン処理
-    try {
-      // フォームデータを送信
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
+      // バリデーション失敗時の処理 エラーメッセージを設定して処理を中断する。
+      // フィールドごとのエラー状態を設定する。 STEP3 MOD START
+      if (!validationInput.success) {
+        // エラーメッセージを一覧で取得
+        const errors = validationInput.error.errors;
 
-      // レスポンスチェック。
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'ログインに失敗しました。');
+        // err.path[0]でエラー対象のフィールド名を特定して、対応するエラーstateを更新
+        errors.forEach((err) => {
+          if (err.path[0] === 'username') setUsernameError(err.message);
+          if (err.path[0] === 'password') setPasswordError(err.message);
+        });
+        setIsLoading(false);
+        return;
       }
-      // ログイン成功時はTODOページへリダイレクト
-      router.push('/todos');
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'ログイン中にエラーが発生しました。',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // ログイン処理
+      try {
+        // フォームデータを送信
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        // レスポンスチェック。
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'ログインに失敗しました。');
+        }
+        // ログイン成功時はTODOページへリダイレクト
+        router.push('/todos');
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'ログイン中にエラーが発生しました。',
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [username, password, router],
+  );
 
   return (
     <Card className="p-8">
       {/* ログインフォーム */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/*ユーザー名の入力 */}
-        {/* input→Input STEP3 MOD START */}
         <Input
           id="username"
           type="text"
@@ -144,7 +147,6 @@ export function LoginForm() {
           isInvalid={!!passwordError}
           errorMessage={passwordError}
         />
-        {/* input→Input STEP3 MOD END */}
 
         {/*ログイン時エラーメッセージの表示 */}
         {error && (
