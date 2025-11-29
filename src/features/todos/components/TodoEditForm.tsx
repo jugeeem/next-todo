@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Card, CardBody, CardHeader, Input, Textarea } from '@heroui/react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import { z } from 'zod';
 import type { Todo } from './types';
 
@@ -66,37 +66,40 @@ export function TodoEditForm({
    * @param {FormEvent<HTMLFormElement>} e - フォームイベント
    * @returns {Promise<void>} 非同期処理の完了を示すPromise
    */
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // エラーメッセージをリセット
-    setTitleError('');
-    setDescriptionsError('');
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      // エラーメッセージをリセット
+      setTitleError('');
+      setDescriptionsError('');
 
-    // バリデーションの実行
-    const result = updateTodoSchema.safeParse({
-      title,
-      descriptions,
-    });
-
-    // バリデーション失敗時の処理
-    if (!result.success) {
-      // エラーメッセージを一覧で取得
-      const errors = result.error.errors;
-      // 各フィールドのエラーメッセージを設定
-      errors.forEach((err) => {
-        if (err.path[0] === 'title') {
-          setTitleError(err.message);
-        }
-        if (err.path[0] === 'descriptions') {
-          setDescriptionsError(err.message);
-        }
+      // バリデーションの実行
+      const result = updateTodoSchema.safeParse({
+        title,
+        descriptions,
       });
-      return;
-    }
 
-    // 親コンポーネントに更新処理を移譲
-    await onUpdate(title.trim(), descriptions.trim());
-  };
+      // バリデーション失敗時の処理
+      if (!result.success) {
+        // エラーメッセージを一覧で取得
+        const errors = result.error.errors;
+        // 各フィールドのエラーメッセージを設定
+        errors.forEach((err) => {
+          if (err.path[0] === 'title') {
+            setTitleError(err.message);
+          }
+          if (err.path[0] === 'descriptions') {
+            setDescriptionsError(err.message);
+          }
+        });
+        return;
+      }
+
+      // 親コンポーネントに更新処理を移譲
+      await onUpdate(title.trim(), descriptions.trim());
+    },
+    [title, descriptions, onUpdate],
+  );
 
   /**
    * キャンセルハンドラ。
