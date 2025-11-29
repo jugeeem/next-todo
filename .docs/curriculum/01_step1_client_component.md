@@ -335,7 +335,7 @@ const [successMessage, setSuccessMessage] = useState<string>('') // 成功メッ
 - ページネーション（前ページ/次ページボタン）
 - ロールフィルタリング(全て/ADMIN/MANAGER/USER/GUEST)
 - ソート機能(作成日時/更新日時/ユーザー名)
-- ユーザー検索(ユーザー名、名前での検索)
+- ユーザー検索(ユーザー名での検索)
 - ユーザー詳細ページへのリンク
 - ユーザー削除(ADMIN のみ、自分自身は削除不可)
 
@@ -362,7 +362,7 @@ const [currentUserId, setCurrentUserId] = useState<string>('') // 現在のユ�
 - ページアクセス時に現在のユーザー情報を取得し、`role < 2` の場合は `/todos` にリダイレクト
 - ADMIN (role: 1) のみ削除ボタンを表示
 - 自分自身のユーザーは削除ボタンを非表示
-- ユーザー検索は API 側でのフィルタリング(部分一致検索)
+- ユーザー検索は API 側でのフィルタリング(ユーザー名での部分一致検索)
 - ロールは数値と文字列の対応表示
   ```typescript
   const roleLabels: Record<number, string> = {
@@ -983,9 +983,10 @@ Step 1 完了後、以下を確認してください。
 
 ---
 
-**Document Version**: 1.3.0  
-**Last Updated**: 2025-10-27  
+**Document Version**: 1.3.1  
+**Last Updated**: 2025-11-29  
 **Changes**:
+- v1.3.1 (2025-11-29): ユーザー検索機能の説明を実装に合わせて修正（ユーザー名のみでの検索に統一）
 - v1.3.0 (2025-10-27): TodoDetailPage と ProfilePage のヘッダーナビゲーションにユーザー管理リンクの実装詳細を追加
 - v1.2.0 (2025-10-26): TodoListPageのヘッダーナビゲーションにユーザー管理リンクの実装詳細を追加
 - v1.1.0 (2025-10-26): ADMIN・MANAGER向けユーザー管理機能の基本設計を追加
