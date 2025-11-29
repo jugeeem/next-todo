@@ -905,7 +905,7 @@ export default function Loading() {
       {/* Todoリストスケルトン */}
       <div className="space-y-4">
         {[...Array(5)].map((_, index) => (
-          <Card key={index}>
+          <Card key={`skeleton-todo-${index}`}>
             <CardHeader>
               <Skeleton className="w-3/4 h-6 rounded-lg" />
             </CardHeader>
@@ -959,7 +959,7 @@ export default function Loading() {
       {/* ユーザーカードスケルトン */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(6)].map((_, index) => (
-          <Card key={index}>
+          <Card key={`skeleton-user-${index}`}>
             <CardBody className="gap-3">
               <Skeleton className="w-full h-6 rounded-lg" />
               <Skeleton className="w-3/4 h-4 rounded-lg" />
@@ -982,6 +982,12 @@ export default function Loading() {
 - `Spinner` の `label` プロパティでわかりやすいメッセージ
 - リスト表示の場合は複数のスケルトンを配置
 - 実際のコンテンツ構造を模倣することでユーザー体験を向上
+
+**⚠️ key属性の使用に関する注意**:
+- 配列の `map` で要素を生成する際、`key` 属性には配列のindexではなく、ユニークな識別子を使用してください
+- Skeletonのような固定的なローディング表示の場合は `key={\`skeleton-${type}-${index}\`}` のように、プレフィックスを付けたindexを使用します
+- 実際のデータを表示する場合は、必ずデータ固有のID（`todo.id`、`user.id` など）を使用してください
+- ESLintの `react/no-array-index-key` ルールに従い、動的なリストでindexをkeyに使用しないようにしましょう
 
 **Skeleton のカスタマイズ**:
 ```typescript
