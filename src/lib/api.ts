@@ -542,3 +542,96 @@ export async function deleteUser(userId: string) {
     };
   }
 }
+
+/**
+ * 現在のユーザーのプロフィール更新処理（サーバーアクション）
+ * クライアント側でプロフィール更新時に呼びだされます。
+ *
+ * @param formData 更新するプロフィールデータ
+ * @return プロフィール更新の実行結果
+ */
+export async function updateCurrentUserProfile(formData: {
+  firstName?: string;
+  lastName?: string;
+}) {
+  try {
+    // APIリクエストの実行
+    const response = await fetchWithAuth(`${API_URL}/api/users/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    // エラー発生時の処理
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'プロフィールの更新に失敗しました',
+      };
+    }
+
+    // 正常終了時、実行結果を返す。
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    // 例外発生時のレスポンス
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'プロフィールの更新に失敗しました',
+    };
+  }
+}
+
+/**
+ * ユーザー作成処理（サーバーアクション）
+ * クライアント側でユーザー作成時に呼び出されます。
+ *
+ * @param formData 作成するユーザーデータ
+ * @return ユーザー作成の実行結果
+ */
+export async function createUser(formData: {
+  username: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: number;
+}) {
+  try {
+    // APIリクエストの実行
+    const response = await fetchWithAuth(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    // エラー発生時の処理
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || 'ユーザーの作成に失敗しました',
+      };
+    }
+
+    // 正常終了時、実行結果を返す。
+    const data = await response.json();
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (err) {
+    // 例外発生時のレスポンス
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'ユーザーの作成に失敗しました',
+    };
+  }
+}
