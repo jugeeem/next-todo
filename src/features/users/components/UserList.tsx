@@ -53,28 +53,31 @@ export function UserList({
       </div>
 
       {/* ローディング表示 */}
-      {isLoading ? (
+      {isLoading && (
         <div className="flex items-center justify-center py-16">
           <div className="text-gray-500">読み込み中...</div>
         </div>
-      ) : users.length === 0 ? ( // ユーザーが存在しない場合の表示
+      )}
+
+      {/* ユーザーが存在しない場合の表示 */}
+      {users.length === 0 && (
         <div className="text-center py-12 text-gray-500 text-lg">
           ユーザーが見つかりませんでした
         </div>
-      ) : (
-        // 各ユーザーを個別のCardで表示
-        <div className="space-y-4">
-          {users.map((user) => (
-            <UserListItem
-              key={user.id}
-              user={user}
-              currentUserRole={currentUserRole}
-              currentUserId={currentUserId}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
       )}
+
+      {/* ユーザーリストの表示 */}
+      <div className="space-y-4">
+        {users.map((user) => (
+          <UserListItem
+            key={user.id}
+            user={user}
+            currentUserRole={currentUserRole}
+            currentUserId={currentUserId}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
     </CardBody>
   );
 }
