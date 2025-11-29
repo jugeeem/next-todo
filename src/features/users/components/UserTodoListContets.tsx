@@ -22,7 +22,7 @@ interface UserTodoListContentProps {
  * Todoリストコンテンツ表示コンポーネント。
  * ページネーション制御を含むTodoリストの表示を担当します。
  */
-export function UserTodoListContent({
+export function UserTodoListContents({
   todos,
   displayTodoCount,
   onLoadMoreTodos,
@@ -37,7 +37,7 @@ export function UserTodoListContent({
   return (
     <div>
       {/* Todoリストコンテンツ */}
-      <CardBody className="space-y-4">
+      <CardBody className='space-y-4'>
         {displayTodos.map((todo) => (
           <UserTodoItem key={todo.id} todo={todo} />
         ))}
@@ -45,12 +45,12 @@ export function UserTodoListContent({
 
       {/* もっと見るボタン */}
       {hasMoreTodos && (
-        <CardFooter className="justify-center mt-4">
+        <CardFooter className='justify-center mt-4'>
           <Button
-            type="button"
+            type='button'
             onPress={onLoadMoreTodos}
-            color="primary"
-            className="font-medium"
+            color='primary'
+            className='font-medium'
           >
             もっと見る
           </Button>
@@ -59,8 +59,10 @@ export function UserTodoListContent({
 
       {/* 全件表示完了メッセージ */}
       {isAllDisplayed && (
-        <CardFooter className="justify-center mt-4">
-          <p className="text-sm text-gray-500">すべてのTodoが表示されています</p>
+        <CardFooter className='justify-center mt-4'>
+          <p className='text-sm text-gray-500'>
+            すべてのTodoが表示されています
+          </p>
         </CardFooter>
       )}
     </div>
