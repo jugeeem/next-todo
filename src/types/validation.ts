@@ -197,11 +197,11 @@ export const createUserSchema = z.object({
    * パスワード（必須）
    *
    * ユーザーアカウントのセキュリティを保護するパスワードです。
-   * 最低6文字以上の強力なパスワードが要求されます。
+   * 最低8文字以上の強力なパスワードが要求されます。
    *
    * @type {string}
    * @constraints
-   * - 最小長: 6文字
+   * - 最小長: 8文字
    * - 必須項目
    * - ハッシュ化して保存
    *
@@ -212,7 +212,7 @@ export const createUserSchema = z.object({
    *
    * @example "securePassword123", "mySecret!@#"
    */
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 /**
@@ -583,7 +583,7 @@ export type UpdateTodoValidation = z.infer<typeof updateTodoSchema>;
  *
  * バリデーション項目:
  * - 現在のパスワード: 必須
- * - 新しいパスワード: 必須、最低6文字
+ * - 新しいパスワード: 必須、最低8文字
  * - パスワード確認: 必須、新しいパスワードと一致
  *
  * @constant changePasswordSchema
@@ -624,8 +624,8 @@ export const changePasswordSchema = z
     /** 現在のパスワード（認証用、必須） */
     currentPassword: z.string().min(1, 'Current password is required'),
 
-    /** 新しいパスワード（必須、最低6文字） */
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+    /** 新しいパスワード（必須、最低8文字） */
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
 
     /** 新しいパスワードの確認（必須） */
     confirmPassword: z.string().min(1, 'Password confirmation is required'),

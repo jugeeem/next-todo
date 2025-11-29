@@ -75,7 +75,7 @@ const [isLoading, setIsLoading] = useState<boolean>(false)
 **API エンドポイント**: `POST /api/auth/register`
 
 **実装のポイント**:
-- パスワードは6文字以上の制限
+- パスワードは8文字以上の制限
 - ユーザー名は1〜50文字の制限
 - 登録成功後は `/login` にリダイレクト
 - **エラーレスポンス**: APIレスポンスの `error` フィールドからエラーメッセージを取得
