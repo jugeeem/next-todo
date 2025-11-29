@@ -57,13 +57,13 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   };
 
   return (
-    <div className='min-h-screen flex flex-col bg-gray-50'>
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* メインコンテンツ */}
-      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
         {/* 成功メッセージ */}
         {successMessage && (
-          <div className='mb-8 p-4 bg-green-50 border border-green-200 rounded-lg'>
-            <p className='text-green-700 text-sm'>{successMessage}</p>
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm">{successMessage}</p>
           </div>
         )}
         {/* プロフィール情報 */}

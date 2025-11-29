@@ -2,6 +2,7 @@
 
 import { Card, CardBody, CardFooter, CardHeader } from '@heroui/react';
 import Link from 'next/link';
+import { TodoItem } from './TodoItem';
 import type { Todo } from './types';
 
 /**
@@ -32,47 +33,19 @@ export function UserTodoList({ todos, maxDisplay = 20 }: UserTodoListProps) {
         <h2 className="text-2xl font-semibold text-gray-900 mb-6">最近のTodo</h2>
       </CardHeader>
 
-      {todos.length === 0 ? (
-        // Todo がない場合
+      {/* Todoがない場合の表示 */}
+      {todos.length === 0 && (
         <CardBody>
           <p className="text-center text-gray-500 py-8">Todoがありません</p>
         </CardBody>
-      ) : (
-        // Todo を表示
-        <CardBody className="space-y-4">
-          {displayTodos.map((todo) => (
-            <Link
-              key={todo.id}
-              href={`/todos/${todo.id}`}
-              className="block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                {/* 完了状態のチェックボックス（読み取り専用） */}
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  readOnly
-                  className="w-5 h-5 text-blue-500 rounded-md border-gray-300"
-                />
-                <div className="flex-1">
-                  {/* Todoタイトル */}
-                  <h3
-                    className={`font-medium ${
-                      todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
-                    }`}
-                  >
-                    {todo.title}
-                  </h3>
-                  {/* Todo説明（任意） */}
-                  {todo.descriptions && (
-                    <p className="text-sm text-gray-600 mt-1">{todo.descriptions}</p>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </CardBody>
       )}
+
+      {/* Todo一覧の表示 */}
+      <CardBody className="space-y-4">
+        {displayTodos.map((todo) => (
+          <TodoItem key={todo.id} todo={todo} />
+        ))}
+      </CardBody>
 
       {/* すべてのTodoを見るリンク */}
       {hasMoreTodos && (
