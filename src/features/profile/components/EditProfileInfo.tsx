@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Input,
-} from '@heroui/react';
+import { Button, Card, CardBody, CardFooter, CardHeader, Input } from '@heroui/react';
 import { type FormEvent, useCallback, useState } from 'react';
 import { z } from 'zod';
 import { updateCurrentUserProfile } from '@/lib/api';
@@ -36,10 +29,7 @@ interface EditProfileInfoProps {
  * @property {string} [lastName] - ユーザーの姓（任意）
  */
 const profileUpdateSchema = z.object({
-  firstName: z
-    .string()
-    .max(50, '名前は50文字以内で入力してください')
-    .optional(),
+  firstName: z.string().max(50, '名前は50文字以内で入力してください').optional(),
   lastName: z.string().max(50, '姓は50文字以内で入力してください').optional(),
 });
 
@@ -47,14 +37,10 @@ const profileUpdateSchema = z.object({
  * プロフィール編集フォームコンポーネント。
  * ユーザーのプロフィール情報を編集するためのフォームを提供します。
  *
- * @param {ProfileInfoProps} props - コンポーネントのプロパティ
+ * @param {EditProfileInfoProps} props - コンポーネントのプロパティ
  * @returns {JSX.Element} プロフィール編集フォーム
  */
-export function EditProfileInfo({
-  user,
-  onSuccess,
-  onCancel,
-}: EditProfileInfoProps) {
+export function EditProfileInfo({ user, onSuccess, onCancel }: EditProfileInfoProps) {
   // 名前の状態
   const [firstName, setFirstName] = useState<string>(user.firstName || '');
   // 姓の状態
@@ -125,15 +111,13 @@ export function EditProfileInfo({
         // 更新成功時のコールバックを呼び出し
         onSuccess(response.data);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : '不明なエラーが発生しました'
-        );
+        setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
       } finally {
         // 保存処理の終了
         setIsSaving(false);
       }
     },
-    [firstName, lastName, onSuccess]
+    [firstName, lastName, onSuccess],
   );
 
   /**
@@ -156,72 +140,70 @@ export function EditProfileInfo({
   };
 
   return (
-    <Card className='p-6 mb-8'>
-      <CardHeader className='justify-between mb-4'>
-        <h2 className='text-2xl font-semibold text-gray-900'>
-          プロフィール情報
-        </h2>
+    <Card className="p-6 mb-8">
+      <CardHeader className="justify-between mb-4">
+        <h2 className="text-2xl font-semibold text-gray-900">プロフィール情報</h2>
       </CardHeader>
       {/* エラーメッセージ */}
       {error && (
-        <div className='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg'>
-          <p className='text-red-700 text-sm'>{error}</p>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleUpdate}>
-        <CardBody className='space-y-6'>
+        <CardBody className="space-y-6">
           <Input
-            id='username'
-            type='text'
+            id="username"
+            type="text"
             value={user.username}
-            label='ユーザー名'
+            label="ユーザー名"
             isReadOnly
             isDisabled
-            className='bg-gray-50'
+            className="bg-gray-50"
           />
           <Input
-            id='lastName'
-            type='text'
+            id="lastName"
+            type="text"
             value={lastName}
             onChange={(e) => {
               setLastName(e.target.value);
               setLastNameError('');
             }}
-            placeholder='姓を入力'
-            label='姓'
+            placeholder="姓を入力"
+            label="姓"
             isInvalid={!!lastNameError}
             errorMessage={lastNameError}
           />
           <Input
-            id='firstName'
-            type='text'
+            id="firstName"
+            type="text"
             value={firstName}
             onChange={(e) => {
               setFirstName(e.target.value);
               setFirstNameError('');
             }}
-            placeholder='名を入力'
-            label='名'
+            placeholder="名を入力"
+            label="名"
             isInvalid={!!firstNameError}
             errorMessage={firstNameError}
           />
         </CardBody>
 
-        <CardFooter className='justify-end gap-3'>
+        <CardFooter className="justify-end gap-3">
           <Button
-            type='button'
+            type="button"
             onPress={handleCancel}
             disabled={isSaving}
-            className='font-medium'
+            className="font-medium"
           >
             キャンセル
           </Button>
           <Button
-            type='submit'
+            type="submit"
             isLoading={isSaving}
-            color='primary'
-            className='font-medium'
+            color="primary"
+            className="font-medium"
           >
             {isSaving ? '保存中' : '保存'}
           </Button>

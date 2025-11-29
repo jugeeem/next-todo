@@ -20,33 +20,26 @@ interface ShowProfileInfoProps {
  */
 export function ShowProfileInfo({ user, onEdit }: ShowProfileInfoProps) {
   return (
-    <Card className='p-6 mb-8'>
-      <CardHeader className='justify-between mb-4'>
-        <h2 className='text-2xl font-semibold text-gray-900'>
-          プロフィール情報
-        </h2>
-        <Button
-          type='button'
-          onPress={onEdit}
-          color='primary'
-          className='font-medium'
-        >
+    <Card className="p-6 mb-8">
+      <CardHeader className="justify-between mb-4">
+        <h2 className="text-2xl font-semibold text-gray-900">プロフィール情報</h2>
+        <Button type="button" onPress={onEdit} color="primary" className="font-medium">
           編集
         </Button>
       </CardHeader>
 
-      <CardBody className='space-y-4'>
+      <CardBody className="space-y-4">
         <div>
-          <p className='text-sm font-medium text-gray-600 mb-1'>ユーザー名</p>
-          <p className='text-gray-900'>{user.username}</p>
+          <p className="text-sm font-medium text-gray-600 mb-1">ユーザー名</p>
+          <p className="text-gray-900">{user.username}</p>
         </div>
         <div>
-          <p className='text-sm font-medium text-gray-600 mb-1'>姓</p>
-          <p className='text-gray-900'>{user.lastName || '未設定'}</p>
+          <p className="text-sm font-medium text-gray-600 mb-1">姓</p>
+          <p className="text-gray-900">{user.lastName || '未設定'}</p>
         </div>
         <div>
-          <p className='text-sm font-medium text-gray-600 mb-1'>名</p>
-          <p className='text-gray-900'>{user.firstName || '未設定'}</p>
+          <p className="text-sm font-medium text-gray-600 mb-1">名</p>
+          <p className="text-gray-900">{user.firstName || '未設定'}</p>
         </div>
       </CardBody>
     </Card>
