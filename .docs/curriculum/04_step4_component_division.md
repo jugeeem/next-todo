@@ -99,75 +99,141 @@ function TodoItem({ todo, onDelete }: { todo: Todo, onDelete: (id: string) => vo
 
 ---
 
-### 2.4 表示・編集の一体型コンポーネント
+### 2.4 表示・編集の分離型コンポーネント
 
-シンプルな表示・編集の切り替えが必要な場合、内部状態で管理する**一体型コンポーネント**が有効です。
+表示と編集の責務を明確に分離することで、保守性と拡張性が向上します。基本的には**分離型コンポーネント**を推奨します。
 
-**一体型コンポーネントが適している場合**:
-- 編集対象が1つのエンティティ（ユーザー情報、プロフィールなど）
-- 編集項目が少ない（3〜5項目程度）
-- キャンセル時に元の状態に戻す必要がある
-- 親コンポーネントでの状態管理を最小限にしたい
+**分離型コンポーネントのメリット**:
+- 表示と編集の責務が明確（単一責任の原則）
+- コンポーネントごとにテストが容易
+- 編集フォームの拡張が容易（バリデーション、複数ステップ等）
+- 表示UIと編集UIを個別にスタイリング可能
+- 各コンポーネントの再利用性が高い
 
-**メリット**:
-- 状態管理がコンポーネント内で完結
-- キャンセル処理が簡単（ローカル状態を元に戻すだけ）
-- Props の受け渡しが最小限
+**分離型コンポーネントが適している場合**:
+- プロフィール情報の表示・編集
+- ユーザー情報の表示・編集
+- エンティティの詳細表示・編集
+- フォーム項目が今後増える可能性がある
+- バリデーションロジックが複雑
 
-**デメリット**:
-- コンポーネントが肥大化する可能性
-- 複雑な編集フローには不向き
-
-**実装例（ProfileInfo）**:
+**実装例（分離型 - 推奨）**:
 ```typescript
-export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
+// 親コンポーネント
+function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
+  const [user, setUser] = useState<User>(initialUser)
+  
+  const handleSave = async (updatedData: Partial<User>) => {
+    // 更新処理
+    await updateUser(updatedData)
+    setUser({ ...user, ...updatedData })
+    setIsEditing(false)
+  }
+  
+  return (
+    <div>
+      {isEditing ? (
+        <ProfileEditForm 
+          user={user} 
+          onSave={handleSave} 
+          onCancel={() => setIsEditing(false)} 
+        />
+      ) : (
+        <ProfileDisplay 
+          user={user} 
+          onEdit={() => setIsEditing(true)} 
+        />
+      )}
+    </div>
+  )
+}
+
+// 表示専用コンポーネント
+function ProfileDisplay({ user, onEdit }: ProfileDisplayProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2>プロフィール</h2>
+        <Button onPress={onEdit}>編集</Button>
+      </CardHeader>
+      <CardBody>
+        <div>ユーザー名: {user.username}</div>
+        <div>名: {user.firstName}</div>
+        <div>姓: {user.lastName}</div>
+      </CardBody>
+    </Card>
+  )
+}
+
+// 編集専用コンポーネント
+function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps) {
   const [firstName, setFirstName] = useState(user.firstName || '')
   const [lastName, setLastName] = useState(user.lastName || '')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   
-  const handleCancel = () => {
-    setIsEditing(false)
-    // ローカル状態を元に戻す
-    setFirstName(user.firstName || '')
-    setLastName(user.lastName || '')
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    // バリデーション
+    if (!validateForm()) return
+    
+    await onSave({ firstName, lastName })
   }
   
   return (
     <Card>
-      {isEditing ? (
-        <form onSubmit={handleSubmit}>
-          {/* 編集フォーム */}
-        </form>
-      ) : (
-        <div>
-          {/* 表示モード */}
-        </div>
-      )}
+      <form onSubmit={handleSubmit}>
+        <CardBody>
+          <Input 
+            label="名" 
+            value={firstName} 
+            onChange={(e) => setFirstName(e.target.value)}
+            errorMessage={errors.firstName}
+          />
+          <Input 
+            label="姓" 
+            value={lastName} 
+            onChange={(e) => setLastName(e.target.value)}
+            errorMessage={errors.lastName}
+          />
+        </CardBody>
+        <CardFooter>
+          <Button type="submit" color="primary">保存</Button>
+          <Button onPress={onCancel}>キャンセル</Button>
+        </CardFooter>
+      </form>
     </Card>
   )
 }
 ```
 
-**分離型コンポーネントが適している場合**:
-- 編集項目が多い（6項目以上）
-- 複数ステップのフォーム
-- バリデーションが複雑
-- 編集フォームを複数箇所で再利用する
+**一体型コンポーネントを使用する場合（限定的）**:
+- インライン編集（テーブルのセル編集など）
+- 極めてシンプルな1〜2項目の編集
+- 編集が頻繁に発生し、UIの切り替えコストが問題となる場合
 
-**実装例（分離型）**:
+**一体型実装例**:
 ```typescript
-// 親コンポーネント
-const [isEditing, setIsEditing] = useState(false)
-
-return (
-  <div>
-    {isEditing ? (
-      <UserEditForm user={user} onSave={handleSave} onCancel={() => setIsEditing(false)} />
-    ) : (
-      <UserDisplay user={user} onEdit={() => setIsEditing(true)} />
-    )}
-  </div>
-)
+function InlineEditField({ value, onSave }: InlineEditFieldProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(value)
+  
+  if (!isEditing) {
+    return <span onClick={() => setIsEditing(true)}>{value}</span>
+  }
+  
+  return (
+    <input
+      value={editValue}
+      onChange={(e) => setEditValue(e.target.value)}
+      onBlur={() => {
+        onSave(editValue)
+        setIsEditing(false)
+      }}
+      autoFocus
+    />
+  )
+}
 ```
 
 ---
@@ -199,7 +265,8 @@ src/features/
 ├── profile/
 │   ├── components/
 │   │   ├── types.ts             # プロフィール関連の型定義
-│   │   ├── ProfileInfo.tsx      # プロフィール情報表示・編集（一体型）
+│   │   ├── ProfileDisplay.tsx   # プロフィール情報表示（表示専用）
+│   │   ├── ProfileEditForm.tsx  # プロフィール情報編集（編集専用）
 │   │   ├── PasswordChangeForm.tsx # パスワード変更フォーム
 │   │   ├── TodoStatsDisplay.tsx # Todo 統計表示
 │   │   └── UserTodoList.tsx     # ユーザーの Todo 一覧
@@ -482,6 +549,7 @@ import {
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { getCurrentUser, logout } from '@/lib/api';
 
 export function Header() {
   const router = useRouter();
@@ -494,12 +562,11 @@ export function Header() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/users/me');
+        const result = await getCurrentUser();
         
-        if (response.ok) {
-          const data = await response.json();
+        if (result.success && result.data) {
           setIsAuthenticated(true);
-          setUserRole(data.data.role);
+          setUserRole(result.data.role);
         } else {
           setIsAuthenticated(false);
         }
@@ -523,9 +590,7 @@ export function Header() {
   // ログアウト処理
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
+      await logout();
       setIsAuthenticated(false);
       router.push('/login');
     } catch (err) {
@@ -735,6 +800,7 @@ export function LoginPage() {
 import { useState } from 'react'
 import { Input, Button, Card, CardBody } from '@heroui/react'
 import { useRouter } from 'next/navigation'
+import { login } from '@/lib/api'
 
 export function LoginForm() {
   const router = useRouter()
@@ -749,15 +815,10 @@ export function LoginForm() {
     setIsLoading(true)
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
+      const result = await login({ username, password })
       
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'ログインに失敗しました')
+      if (!result.success) {
+        throw new Error(result.error || 'ログインに失敗しました')
       }
       
       router.push('/todos')
@@ -1122,15 +1183,18 @@ export function TodoDetailPage({ initialTodo }: Props) {
 
 #### 分割する子コンポーネント
 
-1. **ProfileInfo**: プロフィール情報表示・編集（一体型コンポーネント）
-2. **PasswordChangeForm**: パスワード変更フォーム
-3. **TodoStatsDisplay**: Todo 統計表示
-4. **UserTodoList**: ユーザーの Todo 一覧（簡易版）
+1. **ProfileDisplay**: プロフィール情報表示（表示専用コンポーネント）
+2. **ProfileEditForm**: プロフィール情報編集（編集専用コンポーネント）
+3. **PasswordChangeForm**: パスワード変更フォーム
+4. **TodoStatsDisplay**: Todo 統計表示
+5. **UserTodoList**: ユーザーの Todo 一覧（簡易版）
 
 **設計の特記事項**:
-- `ProfileInfo` コンポーネントは、表示モードと編集モードを内部的に切り替える**一体型コンポーネント**として実装
-- `ProfileEditForm` は独立したコンポーネントとして切り出さず、`ProfileInfo` 内で編集状態を管理
-- これにより、編集時の状態管理がシンプルになり、キャンセル時の処理が容易
+- プロフィール情報の表示と編集を**独立したコンポーネント**として分離
+- `ProfileDisplay` は表示専用、`ProfileEditForm` は編集専用として責務を明確化
+- 親コンポーネント（`ProfilePage`）で表示・編集状態を管理し、必要に応じてコンポーネントを切り替え
+- 編集フォームのバリデーションやビジネスロジックは `ProfileEditForm` 内に集中
+- 今後のフォーム項目追加やバリデーション複雑化にも対応しやすい構成
 
 #### 親コンポーネント（ページ）
 
@@ -1140,10 +1204,12 @@ export function TodoDetailPage({ initialTodo }: Props) {
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ProfileInfo } from './components/ProfileInfo'
+import { ProfileDisplay } from './components/ProfileDisplay'
+import { ProfileEditForm } from './components/ProfileEditForm'
 import { PasswordChangeForm } from './components/PasswordChangeForm'
 import { TodoStatsDisplay } from './components/TodoStatsDisplay'
 import { UserTodoList } from './components/UserTodoList'
+import { updateProfile, changePassword, getCurrentUser } from '@/lib/api'
 import type { User, Todo, TodoStats } from './components/types'
 
 interface Props {
@@ -1159,6 +1225,7 @@ export function ProfilePage({ initialUser, initialStats, initialTodos }: Props) 
   const [todos, setTodos] = useState<Todo[]>(initialTodos || [])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string>('')
+  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false)
   
   // ユーザー情報を取得
   const fetchUserInfo = useCallback(async () => {
@@ -1192,23 +1259,17 @@ export function ProfilePage({ initialUser, initialStats, initialTodos }: Props) 
   
   // プロフィール更新
   const handleUpdateProfile = async (firstName?: string, lastName?: string) => {
-    const response = await fetch('/api/users/me', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        firstName,
-        lastName,
-      }),
+    const result = await updateProfile({
+      firstName,
+      lastName,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || 'プロフィールの更新に失敗しました')
+    if (!result.success) {
+      throw new Error(result.error || 'プロフィールの更新に失敗しました')
     }
 
     await fetchUserInfo()
+    setIsEditingProfile(false)
     setSuccessMessage('プロフィールを更新しました')
     setTimeout(() => setSuccessMessage(''), 3000)
   }
@@ -1219,21 +1280,14 @@ export function ProfilePage({ initialUser, initialStats, initialTodos }: Props) 
     newPassword: string,
     confirmPassword: string
   ) => {
-    const response = await fetch('/api/users/me/password', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        currentPassword,
-        newPassword,
-        confirmPassword,
-      }),
+    const result = await changePassword({
+      currentPassword,
+      newPassword,
+      confirmPassword,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || 'パスワードの変更に失敗しました')
+    if (!result.success) {
+      throw new Error(result.error || 'パスワードの変更に失敗しました')
     }
 
     setSuccessMessage('パスワードを変更しました')
@@ -1266,7 +1320,20 @@ export function ProfilePage({ initialUser, initialStats, initialTodos }: Props) 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 左カラム: ユーザー情報とパスワード変更 */}
           <div className="space-y-8">
-            {user && <ProfileInfo user={user} onUpdate={handleUpdateProfile} />}
+            {user && (
+              isEditingProfile ? (
+                <ProfileEditForm 
+                  user={user} 
+                  onSave={handleUpdateProfile}
+                  onCancel={() => setIsEditingProfile(false)}
+                />
+              ) : (
+                <ProfileDisplay 
+                  user={user} 
+                  onEdit={() => setIsEditingProfile(true)}
+                />
+              )
+            )}
             <PasswordChangeForm onChangePassword={handleChangePassword} />
           </div>
           
@@ -1284,27 +1351,110 @@ export function ProfilePage({ initialUser, initialStats, initialTodos }: Props) 
 
 #### 子コンポーネント例
 
-**ProfileInfo.tsx**（表示・編集一体型）:
+**ProfileDisplay.tsx**（表示専用）:
 ```typescript
-// src/features/profile/components/ProfileInfo.tsx
+// src/features/profile/components/ProfileDisplay.tsx
+'use client'
+
+import { Button, Card, CardBody, CardHeader } from '@heroui/react'
+import type { User } from './types'
+
+interface ProfileDisplayProps {
+  user: User
+  onEdit: () => void
+}
+
+/**
+ * プロフィール情報表示コンポーネント（表示専用）
+ */
+export function ProfileDisplay({ user, onEdit }: ProfileDisplayProps) {
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">プロフィール</h2>
+        <Button color="primary" onPress={onEdit}>
+          編集
+        </Button>
+      </CardHeader>
+      <CardBody>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-1">ユーザー名</h3>
+            <p className="text-gray-900">{user.username}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
+              <p className="text-gray-900">{user.lastName || '未設定'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
+              <p className="text-gray-900">{user.firstName || '未設定'}</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-1">ロール</h3>
+            <p className="text-gray-900">{getRoleLabel(user.role)}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">登録日</h3>
+              <p className="text-gray-900">{formatDate(user.createdAt)}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">最終更新</h3>
+              <p className="text-gray-900">{formatDate(user.updatedAt)}</p>
+            </div>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
+function getRoleLabel(role: number): string {
+  switch (role) {
+    case 1: return '管理者'
+    case 2: return 'マネージャー'
+    case 4: return 'ユーザー'
+    case 8: return 'ゲスト'
+    default: return '不明'
+  }
+}
+
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+```
+
+**ProfileEditForm.tsx**（編集専用）:
+```typescript
+// src/features/profile/components/ProfileEditForm.tsx
 'use client'
 
 import { Button, Card, CardBody, CardHeader, Input } from '@heroui/react'
 import { type FormEvent, useState } from 'react'
 import type { User } from './types'
 
-interface ProfileInfoProps {
+interface ProfileEditFormProps {
   user: User
-  onUpdate: (firstName?: string, lastName?: string) => Promise<void>
+  onSave: (firstName?: string, lastName?: string) => Promise<void>
+  onCancel: () => void
 }
 
 /**
- * プロフィール情報コンポーネント（表示・編集一体型）
+ * プロフィール情報編集コンポーネント（編集専用）
  */
-export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
+export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps) {
   const [firstName, setFirstName] = useState<string>(user.firstName || '')
   const [lastName, setLastName] = useState<string>(user.lastName || '')
-  const [isEditing, setIsEditing] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [isSaving, setIsSaving] = useState<boolean>(false)
 
@@ -1314,8 +1464,7 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
     setIsSaving(true)
 
     try {
-      await onUpdate(firstName || undefined, lastName || undefined)
-      setIsEditing(false)
+      await onSave(firstName || undefined, lastName || undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'プロフィールの更新に失敗しました')
     } finally {
@@ -1323,22 +1472,10 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
     }
   }
 
-  const handleCancel = () => {
-    setIsEditing(false)
-    setFirstName(user.firstName || '')
-    setLastName(user.lastName || '')
-    setError('')
-  }
-
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">プロフィール</h2>
-        {!isEditing && (
-          <Button color="primary" onPress={() => setIsEditing(true)}>
-            編集
-          </Button>
-        )}
+      <CardHeader>
+        <h2 className="text-xl font-bold text-gray-900">プロフィール編集</h2>
       </CardHeader>
       <CardBody>
         {error && (
@@ -1347,69 +1484,49 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
           </div>
         )}
 
-        {isEditing ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            label="ユーザー名"
+            value={user.username}
+            isDisabled
+            description="ユーザー名は変更できません"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               type="text"
-              label="ユーザー名"
-              value={user.username}
-              isDisabled
-              description="ユーザー名は変更できません"
+              label="姓"
+              placeholder="姓"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              isDisabled={isSaving}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                type="text"
-                label="姓"
-                placeholder="姓"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                isDisabled={isSaving}
-              />
-
-              <Input
-                type="text"
-                label="名"
-                placeholder="名"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                isDisabled={isSaving}
-              />
-            </div>
-
-            <div className="flex items-center gap-4 pt-4">
-              <Button type="submit" color="primary" isLoading={isSaving}>
-                保存
-              </Button>
-              <Button
-                color="default"
-                variant="flat"
-                onPress={handleCancel}
-                isDisabled={isSaving}
-              >
-                キャンセル
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-1">ユーザー名</h3>
-              <p className="text-gray-900">{user.username}</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">姓</h3>
-                <p className="text-gray-900">{user.lastName || '未設定'}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">名</h3>
-                <p className="text-gray-900">{user.firstName || '未設定'}</p>
-              </div>
-            </div>
+            <Input
+              type="text"
+              label="名"
+              placeholder="名"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              isDisabled={isSaving}
+            />
           </div>
-        )}
+
+          <div className="flex items-center gap-4 pt-4">
+            <Button type="submit" color="primary" isLoading={isSaving}>
+              保存
+            </Button>
+            <Button
+              color="default"
+              variant="flat"
+              onPress={onCancel}
+              isDisabled={isSaving}
+            >
+              キャンセル
+            </Button>
+          </div>
+        </form>
       </CardBody>
     </Card>
   )
@@ -1417,10 +1534,13 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
 ```
 
 **設計のポイント**:
-- **一体型コンポーネント**: `isEditing` 状態で表示・編集を切り替え
-- **状態のローカル管理**: 編集中のデータは `firstName`, `lastName` でローカル管理
-- **キャンセル処理**: 元の値に戻すロジックが単純化
-- **エラーハンドリング**: コンポーネント内でエラー表示を完結
+- **責務の分離**: 表示と編集を完全に独立したコンポーネントとして実装
+- **単一責任の原則**: 各コンポーネントが1つの明確な責務を持つ
+- **親での状態管理**: 表示・編集の切り替えは親コンポーネント（`ProfilePage`）で管理
+- **編集フォームの独立性**: バリデーションやエラーハンドリングを `ProfileEditForm` 内に集中
+- **拡張性**: フォーム項目の追加やバリデーションの複雑化に対応しやすい
+- **再利用性**: `ProfileDisplay` と `ProfileEditForm` を他の画面でも再利用可能
+- **テスト容易性**: 各コンポーネントを独立してテスト可能
 
 ---
 
@@ -1837,7 +1957,8 @@ interface Props {
 
 ### 6.3 プロフィールページ
 - [ ] types.ts の作成（型定義）
-- [ ] ProfileInfo コンポーネントの作成（表示・編集一体型）
+- [ ] ProfileDisplay コンポーネントの作成（表示専用）
+- [ ] ProfileEditForm コンポーネントの作成（編集専用）
 - [ ] PasswordChangeForm コンポーネントの作成
 - [ ] TodoStatsDisplay コンポーネントの作成
 - [ ] UserTodoList コンポーネントの作成
@@ -1904,7 +2025,7 @@ Step 4 完了後、以下を確認してください。
 |---------|--------|------|
 | 認証 | 100% | LoginForm, RegisterForm |
 | Todo 管理 | 100% | 全コンポーネント実装済み |
-| プロフィール | 100% | ProfileInfo（一体型）含む |
+| プロフィール | 100% | ProfileDisplay・ProfileEditForm（分離型）含む |
 | ユーザー管理 | 100% | 全コンポーネント実装済み |
 | 型定義 | 100% | types.ts 完備 |
 | 共通コンポーネント | 0% | Header 未実装 |
@@ -1929,7 +2050,8 @@ Step 4 完了後、以下を確認してください。
 
 **プロフィール機能（profile/）**:
 - ✅ `types.ts` - プロフィール関連の型定義
-- ✅ `ProfileInfo.tsx` - プロフィール情報表示・編集（一体型）
+- ✅ `ProfileDisplay.tsx` - プロフィール情報表示（表示専用）
+- ✅ `ProfileEditForm.tsx` - プロフィール情報編集（編集専用）
 - ✅ `PasswordChangeForm.tsx` - パスワード変更フォーム
 - ✅ `TodoStatsDisplay.tsx` - Todo 統計表示
 - ✅ `UserTodoList.tsx` - ユーザーの Todo 一覧
@@ -2016,37 +2138,58 @@ export function TodoItem({ todo, onUpdate }: TodoItemProps) {
 }
 ```
 
-#### 一体型コンポーネントの採用
+#### 分離型コンポーネントの採用
 
-ProfileInfo コンポーネントは、表示・編集を内部で切り替える一体型として実装：
+プロフィール機能は、表示と編集を独立したコンポーネントとして分離する設計に変更：
 
 ```typescript
-// ProfileInfo.tsx
-export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+// ProfileDisplay.tsx - 表示専用
+export function ProfileDisplay({ user, onEdit }: ProfileDisplayProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2>プロフィール</h2>
+        <Button onPress={onEdit}>編集</Button>
+      </CardHeader>
+      <CardBody>
+        <div>ユーザー名: {user.username}</div>
+        <div>名: {user.firstName}</div>
+        <div>姓: {user.lastName}</div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ProfileEditForm.tsx - 編集専用
+export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps) {
   const [firstName, setFirstName] = useState<string>(user.firstName || '');
   const [lastName, setLastName] = useState<string>(user.lastName || '');
 
   return (
     <Card>
-      {isEditing ? (
-        <form onSubmit={handleSubmit}>
-          {/* 編集フォーム */}
-        </form>
-      ) : (
-        <div>
-          {/* 表示モード */}
-        </div>
-      )}
+      <form onSubmit={handleSubmit}>
+        <CardBody>
+          <Input label="名" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          <Input label="姓" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+        </CardBody>
+        <CardFooter>
+          <Button type="submit" color="primary">保存</Button>
+          <Button onPress={onCancel}>キャンセル</Button>
+        </CardFooter>
+      </form>
     </Card>
   );
 }
 ```
 
-**適用理由**:
-- 編集項目が少ない（姓・名の2項目）
-- キャンセル時に元の状態に戻す処理がシンプル
-- 親コンポーネントの状態管理が最小限
+**変更理由（Issue #29）**:
+- 表示と編集の責務を明確に分離（単一責任の原則）
+- 編集フォームのバリデーションや拡張が容易
+- プロフィール表示UIと編集UIを個別にスタイリング可能
+- クリーンアーキテクチャの原則との整合性向上
+- 各コンポーネントの再利用性が高い
+- テスト容易性の向上（各コンポーネントを独立してテスト可能）
+- 今後のフォーム項目追加やバリデーション複雑化に対応しやすい
 
 ### 9.3 未実装項目と実装計画
 
@@ -2077,6 +2220,7 @@ import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button } from '@heroui/
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { getCurrentUser, logout } from '@/lib/api';
 
 export function Header() {
   const router = useRouter();
@@ -2089,12 +2233,11 @@ export function Header() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/users/me');
+        const result = await getCurrentUser();
         
-        if (response.ok) {
-          const data = await response.json();
+        if (result.success && result.data) {
           setIsAuthenticated(true);
-          setUserRole(data.data.role);
+          setUserRole(result.data.role);
         } else {
           setIsAuthenticated(false);
         }
@@ -2118,9 +2261,7 @@ export function Header() {
   // ログアウト処理
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
+      await logout();
       setIsAuthenticated(false);
       router.push('/login');
     } catch (err) {
@@ -2317,15 +2458,25 @@ export default function RootLayout({
 
 ---
 
-**Document Version**: 1.3.0  
-**Last Updated**: 2025-10-28  
+**Document Version**: 1.5.0  
+**Last Updated**: 2025-11-29  
 **Changes**: 
 - 型定義ファイル（types.ts）に関するセクションを追加
-- ProfileInfo コンポーネントの一体型実装パターンを追加
 - TodoStatsDisplay の命名を正確に反映
-- 表示・編集の一体型コンポーネントに関する設計原則を追加
 - 実装チェックリストを更新
 - **実装状況の分析と基本設計セクションを追加**（9.1〜9.5）
 - 達成状況の評価と未実装項目の特定
 - Header コンポーネント実装計画の詳細化
+- **Issue #29対応**: プロフィールコンポーネントを一体型から分離型に変更
+  - セクション2.4を「表示・編集の分離型コンポーネント」に更新
+  - ProfileInfoを削除し、ProfileDisplay（表示専用）とProfileEditForm（編集専用）に分割
+  - ディレクトリ構成を更新
+  - 実装例とベストプラクティスを全面的に書き換え
+  - 分離型コンポーネントのメリットと適用理由を明確化
+- **Server Actions への移行**:
+  - すべての`fetch()`呼び出しを`@/lib/api`のServer Actionsに置き換え
+  - Header コンポーネントで`getCurrentUser()`と`logout()`を使用
+  - LoginForm コンポーネントで`login()`を使用
+  - ProfilePage コンポーネントで`updateProfile()`と`changePassword()`を使用
+  - エラーハンドリングをServer Actionsの戻り値形式に統一
 - 品質保証計画の追加
