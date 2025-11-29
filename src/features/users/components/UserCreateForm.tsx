@@ -12,6 +12,7 @@ import {
 import Link from 'next/link';
 import { type FormEvent, useState } from 'react';
 import { z } from 'zod';
+import { createUser } from '@/lib/api';
 
 /**
  * ロール番号とラベルの対応表。
@@ -160,24 +161,16 @@ export function UserCreateForm({ currentUserRole, onSuccess }: UserCreateFormPro
 
     try {
       // ユーザー作成APIの呼び出し
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // リクエストボディの設定
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          role,
-        }),
+      const response = await createUser({
+        username: username.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        role,
       });
       // レスポンスのエラーチェック
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'ユーザーの作成に失敗しました');
+      if (!response.success) {
+        throw new Error(response.error || 'ユーザーの作成に失敗しました');
       }
 
       // 成功時の処理
