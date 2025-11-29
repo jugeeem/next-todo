@@ -192,8 +192,7 @@ src/features/
 │   │   ├── TodoCreateForm.tsx   # Todo 作成フォーム
 │   │   ├── TodoEditForm.tsx     # Todo 編集フォーム
 │   │   ├── TodoDisplay.tsx      # Todo 詳細表示
-│   │   ├── TodoFilter.tsx       # フィルタリング UI
-│   │   ├── TodoSort.tsx         # ソート UI
+│   │   ├── TodoListControls.tsx # フィルター・ソート統合UI
 │   │   └── TodoPagination.tsx   # ページネーション UI
 │   ├── TodoListPage.tsx         # Todo 一覧ページ（親コンポーネント）
 │   └── TodoDetailPage.tsx       # Todo 詳細ページ（親コンポーネント）
@@ -212,8 +211,7 @@ src/features/
     │   ├── UserInfoDisplay.tsx  # ユーザー情報表示
     │   ├── UserInfoEditForm.tsx # ユーザー情報編集フォーム
     │   ├── UserTodoList.tsx     # ユーザーのTodo一覧（簡易版）
-    │   ├── UserSearchFilter.tsx # 検索・フィルター
-    │   ├── UserSortSelect.tsx   # ソート選択
+    │   ├── UserListControls.tsx # 検索・フィルター・ソート統合UI
     │   ├── UserListItem.tsx     # ユーザーリスト項目
     │   ├── UserList.tsx         # ユーザーリスト全体
     │   └── UserPagination.tsx   # ページネーション
@@ -810,11 +808,15 @@ export function LoginForm() {
 #### 分割する子コンポーネント
 
 1. **TodoCreateForm**: Todo 作成フォーム
-2. **TodoFilter**: フィルタリング UI（全て/完了済み/未完了）
-3. **TodoSort**: ソート UI（作成日時/更新日時/タイトル）
-4. **TodoList**: Todo リスト全体
-5. **TodoItem**: 個別の Todo アイテム
-6. **TodoPagination**: ページネーション
+2. **TodoListControls**: フィルター・ソート統合UI（完了状態フィルター、ソート項目、ソート順序）
+3. **TodoList**: Todo リスト全体
+4. **TodoItem**: 個別の Todo アイテム
+5. **TodoPagination**: ページネーション
+
+**設計の特記事項**:
+- `TodoListControls` コンポーネントは、フィルタリングとソートを一体的に管理するコントロールパネルとして実装
+- フィルター（完了/未完了）とソート（作成日時/更新日時/タイトル、昇順/降順）は機能的に密接で、同じUI領域に配置されるため統合
+- 状態管理とイベントハンドラーを共通化することで、保守性と再利用性が向上
 
 #### 親コンポーネント（ページ）
 
@@ -824,8 +826,7 @@ export function LoginForm() {
 
 import { useState, useEffect } from 'react'
 import { TodoCreateForm } from './components/TodoCreateForm'
-import { TodoFilter } from './components/TodoFilter'
-import { TodoSort } from './components/TodoSort'
+import { TodoListControls } from './components/TodoListControls'
 import { TodoList } from './components/TodoList'
 import { TodoPagination } from './components/TodoPagination'
 import type { Todo } from '@/types'
@@ -879,15 +880,14 @@ export function TodoListPage({ initialData }: Props) {
       
       <TodoCreateForm onCreateTodo={handleCreateTodo} />
       
-      <div className="flex gap-4 my-6">
-        <TodoFilter value={completedFilter} onChange={setCompletedFilter} />
-        <TodoSort
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortByChange={setSortBy}
-          onSortOrderChange={setSortOrder}
-        />
-      </div>
+      <TodoListControls
+        completedFilter={completedFilter}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onCompletedFilterChange={setCompletedFilter}
+        onSortByChange={setSortBy}
+        onSortOrderChange={setSortOrder}
+      />
       
       <TodoList
         todos={todos}
@@ -990,30 +990,64 @@ export function TodoList({ todos, onDelete, onToggleComplete, isLoading }: Props
 }
 ```
 
-**TodoFilter.tsx**:
+**TodoListControls.tsx**:
 ```typescript
-// src/features/todos/components/TodoFilter.tsx
+// src/features/todos/components/TodoListControls.tsx
 'use client'
 
 import { Select, SelectItem } from '@heroui/react'
 
 interface Props {
-  value: 'all' | 'completed' | 'incomplete'
-  onChange: (value: 'all' | 'completed' | 'incomplete') => void
+  completedFilter: 'all' | 'completed' | 'incomplete'
+  sortBy: 'createdAt' | 'updatedAt' | 'title'
+  sortOrder: 'asc' | 'desc'
+  onCompletedFilterChange: (value: 'all' | 'completed' | 'incomplete') => void
+  onSortByChange: (value: 'createdAt' | 'updatedAt' | 'title') => void
+  onSortOrderChange: (value: 'asc' | 'desc') => void
 }
 
-export function TodoFilter({ value, onChange }: Props) {
+export function TodoListControls({
+  completedFilter,
+  sortBy,
+  sortOrder,
+  onCompletedFilterChange,
+  onSortByChange,
+  onSortOrderChange,
+}: Props) {
   return (
-    <Select
-      label="フィルター"
-      selectedKeys={[value]}
-      onChange={(e) => onChange(e.target.value as 'all' | 'completed' | 'incomplete')}
-      className="max-w-xs"
-    >
-      <SelectItem key="all" value="all">すべて</SelectItem>
-      <SelectItem key="completed" value="completed">完了済み</SelectItem>
-      <SelectItem key="incomplete" value="incomplete">未完了</SelectItem>
-    </Select>
+    <div className="flex gap-4 my-6">
+      <Select
+        label="フィルター"
+        selectedKeys={[completedFilter]}
+        onChange={(e) => onCompletedFilterChange(e.target.value as 'all' | 'completed' | 'incomplete')}
+        className="max-w-xs"
+      >
+        <SelectItem key="all" value="all">すべて</SelectItem>
+        <SelectItem key="completed" value="completed">完了済み</SelectItem>
+        <SelectItem key="incomplete" value="incomplete">未完了</SelectItem>
+      </Select>
+      
+      <Select
+        label="ソート項目"
+        selectedKeys={[sortBy]}
+        onChange={(e) => onSortByChange(e.target.value as 'createdAt' | 'updatedAt' | 'title')}
+        className="max-w-xs"
+      >
+        <SelectItem key="createdAt" value="createdAt">作成日時</SelectItem>
+        <SelectItem key="updatedAt" value="updatedAt">更新日時</SelectItem>
+        <SelectItem key="title" value="title">タイトル</SelectItem>
+      </Select>
+      
+      <Select
+        label="ソート順"
+        selectedKeys={[sortOrder]}
+        onChange={(e) => onSortOrderChange(e.target.value as 'asc' | 'desc')}
+        className="max-w-xs"
+      >
+        <SelectItem key="asc" value="asc">昇順</SelectItem>
+        <SelectItem key="desc" value="desc">降順</SelectItem>
+      </Select>
+    </div>
   )
 }
 ```
@@ -1403,11 +1437,15 @@ export function ProfileInfo({ user, onUpdate }: ProfileInfoProps) {
 3. **UserTodoList**: ユーザーのTodo一覧（簡易版）
 
 **ユーザー一覧ページ**:
-1. **UserSearchFilter**: 検索・ロールフィルター
-2. **UserSortSelect**: ソート選択（並び順・順序）
-3. **UserList**: ユーザーリスト全体
-4. **UserListItem**: 個別のユーザーアイテム
-5. **UserPagination**: ページネーション
+1. **UserListControls**: 検索・フィルター・ソート統合UI（ユーザー名検索、ロールフィルター、ソート項目、ソート順序）
+2. **UserList**: ユーザーリスト全体
+3. **UserListItem**: 個別のユーザーアイテム
+4. **UserPagination**: ページネーション
+
+**設計の特記事項**:
+- `UserListControls` コンポーネントは、検索、フィルタリング、ソートを一体的に管理するコントロールパネルとして実装
+- 検索・フィルター・ソートは機能的に密接で、同じUI領域に配置されるため統合
+- 状態管理とイベントハンドラーを共通化することで、保守性と再利用性が向上
 
 #### 親コンポーネント（ユーザー作成ページ）
 
@@ -1621,8 +1659,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button, useDisclosure } from '@heroui/react'
 import Link from 'next/link'
-import { UserSearchFilter } from './components/UserSearchFilter'
-import { UserSortSelect } from './components/UserSortSelect'
+import { UserListControls } from './components/UserListControls'
 import { UserList } from './components/UserList'
 import { UserPagination } from './components/UserPagination'
 import type { UserWithStats, PaginationInfo } from './components/types'
@@ -1676,9 +1713,11 @@ export function UserListPage() {
         </div>
 
         {/* 検索・フィルター・ソート */}
-        <UserSearchFilter
+        <UserListControls
           searchQuery={searchQuery}
           roleFilter={roleFilter}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
           onSearchChange={(query) => {
             setSearchQuery(query)
             setPage(1)
@@ -1687,11 +1726,6 @@ export function UserListPage() {
             setRoleFilter(role)
             setPage(1)
           }}
-        />
-
-        <UserSortSelect
-          sortBy={sortBy}
-          sortOrder={sortOrder}
           onSortByChange={setSortBy}
           onSortOrderChange={setSortOrder}
         />
@@ -1794,8 +1828,7 @@ interface Props {
 ### 6.2 Todo 管理ページ
 - [ ] types.ts の作成（型定義）
 - [ ] TodoCreateForm コンポーネントの作成
-- [ ] TodoFilter コンポーネントの作成
-- [ ] TodoSort コンポーネントの作成
+- [ ] TodoListControls コンポーネントの作成（フィルター・ソート統合）
 - [ ] TodoList コンポーネントの作成
 - [ ] TodoItem コンポーネントの作成
 - [ ] TodoPagination コンポーネントの作成
@@ -1815,8 +1848,7 @@ interface Props {
 - [ ] UserInfoDisplay コンポーネントの作成
 - [ ] UserInfoEditForm コンポーネントの作成
 - [ ] UserTodoList コンポーネントの作成
-- [ ] UserSearchFilter コンポーネントの作成
-- [ ] UserSortSelect コンポーネントの作成
+- [ ] UserListControls コンポーネントの作成（検索・フィルター・ソート統合）
 - [ ] UserListItem コンポーネントの作成
 - [ ] UserList コンポーネントの作成
 - [ ] UserPagination コンポーネントの作成
@@ -1890,11 +1922,10 @@ Step 4 完了後、以下を確認してください。
 - ✅ `TodoCreateForm.tsx` - Todo 作成フォーム
 - ✅ `TodoDisplay.tsx` - Todo 詳細表示
 - ✅ `TodoEditForm.tsx` - Todo 編集フォーム
-- ✅ `TodoFilter.tsx` - フィルタリング UI
+- ✅ `TodoListControls.tsx` - フィルター・ソート統合UI
 - ✅ `TodoItem.tsx` - 個別の Todo アイテム
 - ✅ `TodoList.tsx` - Todo リスト全体
 - ✅ `TodoPagination.tsx` - ページネーション
-- ✅ `TodoSort.tsx` - ソート UI
 
 **プロフィール機能（profile/）**:
 - ✅ `types.ts` - プロフィール関連の型定義
@@ -1909,8 +1940,7 @@ Step 4 完了後、以下を確認してください。
 - ✅ `UserInfoDisplay.tsx` - ユーザー情報表示
 - ✅ `UserInfoEditForm.tsx` - ユーザー情報編集フォーム
 - ✅ `UserTodoList.tsx` - ユーザーの Todo 一覧
-- ✅ `UserSearchFilter.tsx` - 検索・フィルター
-- ✅ `UserSortSelect.tsx` - ソート選択
+- ✅ `UserListControls.tsx` - 検索・フィルター・ソート統合UI
 - ✅ `UserListItem.tsx` - ユーザーリスト項目
 - ✅ `UserList.tsx` - ユーザーリスト全体
 - ✅ `UserPagination.tsx` - ページネーション
