@@ -163,10 +163,7 @@ export const UserTodosPaginationSchema = z.object({
    * - 'incomplete': 未完了のみ
    * デフォルト: 'all'
    */
-  completedFilter: z
-    .enum(['all', 'completed', 'incomplete'])
-    .optional()
-    .default('all'),
+  completedFilter: z.enum(['all', 'completed', 'incomplete']).optional().default('all'),
 
   /**
    * ソート基準フィールド
@@ -175,10 +172,7 @@ export const UserTodosPaginationSchema = z.object({
    * - 'title': タイトル
    * デフォルト: 'createdAt'
    */
-  sortBy: z
-    .enum(['createdAt', 'updatedAt', 'title'])
-    .optional()
-    .default('createdAt'),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'title']).optional().default('createdAt'),
 
   /**
    * ソート順序

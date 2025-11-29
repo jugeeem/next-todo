@@ -385,7 +385,9 @@ describe('/api/users/[id]/todos', () => {
 
       await GET(request, context);
 
-      expect(responseLib.internalError).toHaveBeenCalledWith('Failed to retrieve todos');
+      expect(responseLib.internalError).toHaveBeenCalledWith(
+        'Failed to retrieve todos',
+      );
     });
   });
 });

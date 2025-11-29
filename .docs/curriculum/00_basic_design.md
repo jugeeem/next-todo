@@ -76,7 +76,7 @@ React + Next.js の初心者が、API との連携を学習するための Todo 
   ```json
   {
     "username": "string (必須, 1-50文字)",
-    "password": "string (必須, 6文字以上)",
+    "password": "string (必須, 8文字以上)",
     "firstName": "string (任意)",
     "lastName": "string (任意)"
   }
@@ -182,7 +182,7 @@ React + Next.js の初心者が、API との連携を学習するための Todo 
   ```json
   {
     "currentPassword": "string (必須)",
-    "newPassword": "string (必須, 6文字以上)"
+    "newPassword": "string (必須, 8文字以上)"
   }
   ```
 - **レスポンス**: 成功メッセージ
