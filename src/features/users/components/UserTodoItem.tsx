@@ -14,7 +14,7 @@ interface UserTodoItemProps {
 
 /**
  * 個別のユーザーTodoアイテムコンポーネント。
- * 1つのTodoの情報を表示のみを担当します。
+ * 1つのTodoの情報表示のみを担当します。
  *
  * @param {UserTodoItemProps} props - コンポーネントのプロパティ
  * @return {JSX.Element} TodoアイテムのJSX要素。
