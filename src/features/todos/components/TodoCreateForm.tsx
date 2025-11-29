@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Card, CardBody, CardHeader, Input, Textarea } from '@heroui/react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import { z } from 'zod';
 
 /**
@@ -46,42 +46,45 @@ export function TodoCreateForm({ onSubmit, isCreating }: TodoCreateFormProps) {
    * フォーム送信ハンドラ。
    * バリデーション処理を行い、エラーがなければonSubmitを呼び出します。送信成功後にフォームをリセットします。
    */
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
 
-    // エラーメッセージをリセット
-    setTitleError('');
-    setDescriptionError('');
+      // エラーメッセージをリセット
+      setTitleError('');
+      setDescriptionError('');
 
-    // バリデーションの実行
-    const result = createTodoSchema.safeParse({
-      title,
-      descriptions: description,
-    });
-
-    // バリデーション失敗時の処理
-    if (!result.success) {
-      // エラーメッセージを一覧で取得
-      const errors = result.error.errors;
-      // 各フィールドのエラーメッセージを設定
-      errors.forEach((err) => {
-        if (err.path[0] === 'title') {
-          setTitleError(err.message);
-        }
-        if (err.path[0] === 'descriptions') {
-          setDescriptionError(err.message);
-        }
+      // バリデーションの実行
+      const result = createTodoSchema.safeParse({
+        title,
+        descriptions: description,
       });
-      return;
-    }
 
-    // 親コンポーネントに送信処理を移譲。(descriptionが空文字の場合は親側でundefinedとして処理する。)
-    await onSubmit(title.trim(), description.trim());
+      // バリデーション失敗時の処理
+      if (!result.success) {
+        // エラーメッセージを一覧で取得
+        const errors = result.error.errors;
+        // 各フィールドのエラーメッセージを設定
+        errors.forEach((err) => {
+          if (err.path[0] === 'title') {
+            setTitleError(err.message);
+          }
+          if (err.path[0] === 'descriptions') {
+            setDescriptionError(err.message);
+          }
+        });
+        return;
+      }
 
-    // フォームのリセット
-    setTitle('');
-    setDescription('');
-  };
+      // 親コンポーネントに送信処理を移譲。(descriptionが空文字の場合は親側でundefinedとして処理する。)
+      await onSubmit(title.trim(), description.trim());
+
+      // フォームのリセット
+      setTitle('');
+      setDescription('');
+    },
+    [title, description, onSubmit],
+  );
 
   return (
     <Card className="mb-10 p-4">
