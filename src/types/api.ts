@@ -189,3 +189,111 @@ export interface ApiResponse<T = unknown> {
    */
   message?: string;
 }
+
+/**
+ * ページネーション対応レスポンス型
+ *
+ * データ一覧を取得するAPIにおいて、ページネーション情報を含む
+ * レスポンス形式を定義します。総件数、ページ情報などのメタデータを提供し、
+ * フロントエンドでのページング実装を容易にします。
+ *
+ * @template T データ配列の要素型
+ *
+ * @interface PaginatedResponse
+ *
+ * @example
+ * ```typescript
+ * // API レスポンスの型定義
+ * const response: ApiResponse<PaginatedResponse<Todo>> = {
+ *   success: true,
+ *   data: {
+ *     data: [...todos],
+ *     total: 50,
+ *     page: 1,
+ *     perPage: 10,
+ *     totalPages: 5
+ *   },
+ *   message: 'Todos retrieved successfully'
+ * };
+ *
+ * // フロントエンドでの使用
+ * const result = await fetch('/api/users/123/todos?page=1&perPage=10');
+ * const json: ApiResponse<PaginatedResponse<Todo>> = await result.json();
+ *
+ * if (json.success && json.data) {
+ *   console.log(`総件数: ${json.data.total}`);
+ *   console.log(`現在ページ: ${json.data.page}/${json.data.totalPages}`);
+ *   json.data.data.forEach(todo => console.log(todo.title));
+ * }
+ * ```
+ */
+export interface PaginatedResponse<T> {
+  /**
+   * データ配列
+   *
+   * 現在のページに含まれるデータの配列です。
+   *
+   * @type {T[]}
+   * @example
+   * ```typescript
+   * const todos: Todo[] = response.data.data;
+   * todos.forEach(todo => {
+   *   console.log(`${todo.title}: ${todo.completed ? '完了' : '未完了'}`);
+   * });
+   * ```
+   */
+  data: T[];
+
+  /**
+   * 総件数
+   *
+   * フィルター条件に一致する全データの件数です。
+   * ページネーション UI の表示に使用されます。
+   *
+   * @type {number}
+   * @example
+   * ```typescript
+   * console.log(`全${response.data.total}件中 ${response.data.data.length}件を表示`);
+   * ```
+   */
+  total: number;
+
+  /**
+   * 現在のページ番号（1から開始）
+   *
+   * @type {number}
+   * @example
+   * ```typescript
+   * const currentPage = response.data.page; // 1, 2, 3, ...
+   * ```
+   */
+  page: number;
+
+  /**
+   * 1ページあたりの件数
+   *
+   * @type {number}
+   * @example
+   * ```typescript
+   * const itemsPerPage = response.data.perPage; // 10, 20, etc.
+   * ```
+   */
+  perPage: number;
+
+  /**
+   * 総ページ数
+   *
+   * total と perPage から算出される総ページ数です。
+   * ページネーション UI の構築に使用されます。
+   *
+   * @type {number}
+   * @example
+   * ```typescript
+   * const totalPages = response.data.totalPages;
+   * for (let i = 1; i <= totalPages; i++) {
+   *   renderPageButton(i, i === response.data.page);
+   * }
+   * ```
+   */
+  totalPages: number;
+}
