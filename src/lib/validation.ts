@@ -103,3 +103,93 @@ export {
   updateTodoSchema,
   updateUserSchema,
 } from '@/types/validation';
+
+/**
+ * ユーザー別Todo一覧取得のページネーションパラメータバリデーションスキーマ
+ *
+ * ユーザー詳細画面でのTodo一覧取得APIにおけるクエリパラメータの
+ * バリデーションを行います。ページネーション、フィルター、ソート機能を提供します。
+ *
+ * @example
+ * ```typescript
+ * // APIエンドポイントでの使用
+ * const { searchParams } = new URL(request.url);
+ * const queryParams = {
+ *   page: searchParams.get('page'),
+ *   perPage: searchParams.get('perPage'),
+ *   completedFilter: searchParams.get('completedFilter'),
+ *   sortBy: searchParams.get('sortBy'),
+ *   sortOrder: searchParams.get('sortOrder'),
+ * };
+ *
+ * const validationResult = UserTodosPaginationSchema.safeParse(queryParams);
+ * if (!validationResult.success) {
+ *   return error('Validation failed', 400, validationResult.error.issues);
+ * }
+ *
+ * const { page, perPage, completedFilter, sortBy, sortOrder } = validationResult.data;
+ * ```
+ */
+import { z } from 'zod';
+
+export const UserTodosPaginationSchema = z.object({
+  /**
+   * ページ番号（1から開始）
+   * デフォルト: 1
+   */
+  page: z.coerce
+    .number()
+    .int()
+    .min(1, 'ページ番号は1以上である必要があります')
+    .optional()
+    .default(1),
+
+  /**
+   * 1ページあたりの件数（1〜100）
+   * デフォルト: 10
+   */
+  perPage: z.coerce
+    .number()
+    .int()
+    .min(1, '1ページあたりの件数は1以上である必要があります')
+    .max(100, '1ページあたりの件数は100以下である必要があります')
+    .optional()
+    .default(10),
+
+  /**
+   * 完了状態フィルター
+   * - 'all': 全件取得
+   * - 'completed': 完了済みのみ
+   * - 'incomplete': 未完了のみ
+   * デフォルト: 'all'
+   */
+  completedFilter: z
+    .enum(['all', 'completed', 'incomplete'])
+    .optional()
+    .default('all'),
+
+  /**
+   * ソート基準フィールド
+   * - 'createdAt': 作成日時
+   * - 'updatedAt': 更新日時
+   * - 'title': タイトル
+   * デフォルト: 'createdAt'
+   */
+  sortBy: z
+    .enum(['createdAt', 'updatedAt', 'title'])
+    .optional()
+    .default('createdAt'),
+
+  /**
+   * ソート順序
+   * - 'asc': 昇順
+   * - 'desc': 降順
+   * デフォルト: 'desc'
+   */
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+/**
+ * ユーザー別Todo一覧取得のページネーションパラメータ型
+ */
+export type UserTodosPaginationParams = z.infer<typeof UserTodosPaginationSchema>;
