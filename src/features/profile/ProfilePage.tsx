@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { PasswordChangeForm } from './components/PasswordChangeForm';
-import { ProfileInfo } from './components/ProfileInfo';
+import { ShowProfileInfo } from './components/ShowProfileInfo';
+import { EditProfileInfo } from './components/EditProfileInfo';
 import { TodoStatsDisplay } from './components/TodoStatsDisplay';
 import type { Todo, TodoStats, User } from './components/types';
 import { UserTodoList } from './components/UserTodoList';
@@ -35,12 +36,18 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
   const [user, setUser] = useState<User>(userInfo);
   // 成功メッセージ
   const [successMessage, setSuccessMessage] = useState<string>('');
+  // プロフィール編集モードの状態
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+
   /**
    * プロフィール更新用のコールバック。
    * ユーザーの苗字と名前を更新します。
+   *
+   * @param {User} updatedUser - 更新されたユーザー情報
    */
   const handleProfileUpdate = (updatedUser: User) => {
     setUser(updatedUser);
+    setIsEditing(false);
     setSuccessMessage('プロフィール情報が更新されました。');
 
     // 成功メッセージを3秒後にクリア
@@ -48,19 +55,31 @@ export default function ProfilePage({ userInfo, todoStats, userTodos }: Props) {
       setSuccessMessage('');
     }, 3000);
   };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className='min-h-screen flex flex-col bg-gray-50'>
       {/* メインコンテンツ */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
+      <main className='flex-1 max-w-7xl mx-auto px-6 py-10 w-full'>
         {/* 成功メッセージ */}
         {successMessage && (
-          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-700 text-sm">{successMessage}</p>
+          <div className='mb-8 p-4 bg-green-50 border border-green-200 rounded-lg'>
+            <p className='text-green-700 text-sm'>{successMessage}</p>
           </div>
         )}
 
         {/* プロフィール情報 */}
-        <ProfileInfo user={user} onUpdate={handleProfileUpdate} />
+
+        {/* 編集モード */}
+        {isEditing ? (
+          <EditProfileInfo
+            user={user}
+            onSuccess={handleProfileUpdate}
+            onCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          // 表示モード
+          <ShowProfileInfo user={user} onEdit={() => setIsEditing(true)} />
+        )}
 
         {/* Todo統計表示 */}
         <TodoStatsDisplay stats={todoStats} />
