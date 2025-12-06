@@ -4,7 +4,7 @@ JWT認証機能を持ったTodoアプリのAPI。クリーンアーキテクチ�
 
 ## 技術スタック
 
-- **Framework**: Next.js 15.4.3 + Turbopack
+- **Framework**: Next.js 15.4.8 + Turbopack
 - **Runtime**: React 19.1.0
 - **Database**: PostgreSQL 16
 - **ORM**: 生のSQL (pg 8.12.0)
