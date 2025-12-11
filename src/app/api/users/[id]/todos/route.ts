@@ -117,7 +117,10 @@ export async function GET(
     // バリデーション
     const validationResult = UserTodosPaginationSchema.safeParse(queryParams);
     if (!validationResult.success) {
-      return error('Validation failed', 400, validationResult.error.issues);
+      return error(
+        validationResult.error.issues.map((issue) => issue.message).join(', '),
+        400,
+      );
     }
 
     const { page, perPage, completedFilter, sortBy, sortOrder } = validationResult.data;
