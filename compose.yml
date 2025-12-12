@@ -1,4 +1,21 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - .:/workspace
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=Asia/Tokyo
+    env_file:
+      - .env.development
+    depends_on:
+      db:
+        condition: service_healthy
+    command: tail -f /dev/null
+
   db:
     build:
       context: .

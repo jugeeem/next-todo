@@ -57,6 +57,371 @@ docker compose up --build
 docker compose up -d --build
 ```
 
+### 4. VSCode Dev Containers での開発
+
+**推奨**: このプロジェクトは VSCode の Dev Containers に対応しています。コンテナ内で完結した開発環境を構築できます。
+
+#### 前提条件
+
+以下のソフトウェアが事前にインストールされている必要があります:
+
+1. **Visual Studio Code**
+   - 公式サイト: https://code.visualstudio.com/
+   - 最新の安定版を推奨
+
+2. **Docker Desktop**
+   - Windows: https://docs.docker.com/desktop/install/windows-install/
+   - macOS: https://docs.docker.com/desktop/install/mac-install/
+   - Linux: https://docs.docker.com/desktop/install/linux-install/
+   - **重要**: Docker Desktop を起動してから作業を開始してください
+
+3. **VSCode 拡張機能「Dev Containers」**
+   - 拡張機能ID: `ms-vscode-remote.remote-containers`
+   - VSCode の拡張機能マーケットプレイスからインストール
+   - または、コマンドパレットから `Extensions: Install Extensions` で検索してインストール
+
+#### 初期化手順（初回セットアップ）
+
+##### ステップ 1: リポジトリのクローン
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/jugeeem/next-todo.git
+cd next-todo
+```
+
+##### ステップ 2: 環境変数ファイルの作成
+
+Dev Containers で使用する環境変数ファイルを作成します:
+
+```bash
+# .env.development.example をコピー
+cp .env.development.example .env.development
+```
+
+`.env.development` の内容を必要に応じて編集してください（通常はデフォルト値で動作します）:
+
+```env
+# データベース設定
+DB_HOST=db
+DB_LOCAL_PORT=5431
+DB_CONTAINER_PORT=5432
+DB_NAME=next_todo
+DB_USER=postgres
+DB_PASSWORD=password
+
+# JWT設定
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# 環境設定
+NODE_ENV=development
+```
+
+**注意**: 
+- `DB_HOST=db` はコンテナ間通信用のホスト名です（変更不要）
+- `JWT_SECRET` は本番環境では必ず変更してください
+
+##### ステップ 3: VSCode で Dev Container を起動
+
+1. **VSCode でプロジェクトフォルダを開く**:
+   ```bash
+   code .
+   ```
+   または、VSCode のメニューから `File` → `Open Folder` でプロジェクトフォルダを選択
+
+2. **コマンドパレットを開く**:
+   - Windows/Linux: `Ctrl+Shift+P`
+   - macOS: `Cmd+Shift+P`
+
+3. **Dev Container で開く**:
+   コマンドパレットに以下を入力して選択:
+   ```
+   Dev Containers: Reopen in Container
+   ```
+
+4. **初回ビルドの待機**:
+   初回起動時は以下の処理が自動実行されます（5〜10分程度）:
+   - ✅ Docker イメージのビルド（Node.js、PostgreSQL）
+   - ✅ PostgreSQL コンテナの起動とデータベース初期化
+   - ✅ `npm install` による依存関係のインストール（約3分）
+   - ✅ VSCode 拡張機能のインストール（Biome、TypeScript など）
+   - ✅ `npm run dev` による開発サーバーの自動起動
+
+5. **進捗の確認**:
+   - VSCode の右下に「Starting Dev Container」の通知が表示されます
+   - 詳細ログを確認するには、通知の「show log」をクリック
+   - ターミナルに `npm run dev` の出力が表示されれば起動完了です
+
+6. **ブラウザでアクセス**:
+   開発サーバーが起動したら、ブラウザで以下にアクセス:
+   ```
+   http://localhost:3000
+   ```
+
+##### ステップ 4: データベースの確認
+
+Dev Container 起動時にデータベースが自動的に初期化され、テストユーザーが作成されます:
+
+**テストユーザー**:
+- 管理者: `admin` / `password` (role: 1)
+- 一般ユーザー: `user1` / `password` (role: 4)
+
+**データベース接続情報**:
+- ホスト: `localhost`
+- ポート: `5432`（コンテナ内）、`5431`（ホストから接続する場合）
+- データベース名: `next_todo`
+- ユーザー名: `postgres`
+- パスワード: `password`
+
+##### ステップ 5: 開発環境の確認
+
+コンテナ内のターミナルで以下のコマンドを実行して、環境が正しくセットアップされているか確認します:
+
+```bash
+# Node.js のバージョン確認
+node --version  # v20.19.9 以上
+
+# npm のバージョン確認
+npm --version   # 10.x 以上
+
+# PostgreSQL への接続確認
+psql -h db -U postgres -d next_todo -c "SELECT version();"
+
+# テストの実行
+npm test
+
+# コード品質チェック
+npm run check
+```
+
+#### Dev Containers の構成
+
+このプロジェクトの Dev Containers 設定には以下が含まれています:
+
+##### 自動インストールされる VSCode 拡張機能
+
+- **biomejs.biome**: コードフォーマット＆リント
+- **dbaeumer.vscode-eslint**: ESLint サポート
+- **esbenp.prettier-vscode**: Prettier サポート
+- **ms-azuretools.vscode-docker**: Docker サポート
+- **GitHub.copilot**: GitHub Copilot（インストール済みの場合）
+- **GitHub.copilot-chat**: GitHub Copilot Chat（インストール済みの場合）
+
+##### 永続化されるデータ
+
+以下のデータは Docker ボリュームで永続化されます:
+
+- **PostgreSQL データベース**: `next-todo_db-data`
+- **node_modules**: コンテナ再起動後も保持
+- **ビルドキャッシュ**: Next.js のビルドキャッシュ
+
+##### ポート転送
+
+以下のポートが自動的にホストマシンに転送されます:
+
+| サービス | コンテナポート | ホストポート | 説明 |
+|---------|--------------|-------------|------|
+| Next.js | 3000 | 3000 | 開発サーバー |
+| PostgreSQL | 5432 | 5431 | データベース |
+
+#### Dev Containers の特徴
+
+- ✅ **完全自動セットアップ**: 依存関係とデータベースが自動的に構築されます
+- ✅ **開発サーバー自動起動**: `npm run dev` が起動時に自動実行されます
+- ✅ **VSCode 拡張機能**: Biome、TypeScript、ESLint などが事前設定済み
+- ✅ **Git 設定継承**: ホストの `.gitconfig` と SSH キーが利用可能
+- ✅ **データ永続化**: PostgreSQL データは Docker ボリュームで永続化されます
+- ✅ **ポート転送**: Next.js (3000) と PostgreSQL (5432) が自動転送されます
+- ✅ **ホットリロード**: ソースコードの変更が即座に反映されます
+- ✅ **一貫した環境**: チーム全員が同じ開発環境を使用できます
+
+#### 日常的な使い方
+
+##### コンテナの起動・停止
+
+```bash
+# コンテナの停止（VSCode を閉じるか、コマンドパレットから）
+Dev Containers: Reopen Folder Locally
+
+# コンテナの再起動
+Dev Containers: Rebuild Container
+```
+
+##### 開発サーバーの操作
+
+```bash
+# 開発サーバーの停止（ターミナルで Ctrl+C）
+Ctrl+C
+
+# 開発サーバーの手動起動
+npm run dev
+
+# 本番ビルド
+npm run build
+
+# 本番モードで起動
+npm start
+```
+
+##### データベース操作
+
+```bash
+# PostgreSQL に接続
+psql -h db -U postgres -d next_todo
+
+# データベースのリセット（全データ削除＋再初期化）
+psql -h db -U postgres -d next_todo -f nginx/init.sql
+
+# テーブル一覧の確認
+psql -h db -U postgres -d next_todo -c "\dt"
+```
+
+#### トラブルシューティング
+
+##### 問題 1: 開発サーバーが起動しない
+
+**症状**: `npm run dev` が実行されない、またはエラーが発生する
+
+**解決方法**:
+
+```bash
+# ターミナルで手動起動を試す
+npm run dev
+
+# package-lock.json を削除して再インストール
+rm package-lock.json
+rm -rf node_modules
+npm install
+npm run dev
+```
+
+##### 問題 2: データベースに接続できない
+
+**症状**: `Connection refused` や `database does not exist` エラー
+
+**解決方法**:
+
+```bash
+# PostgreSQL コンテナの状態確認
+docker ps | grep postgres
+
+# データベースが存在するか確認
+psql -h db -U postgres -c "\l"
+
+# データベースを手動作成（存在しない場合）
+psql -h db -U postgres -c "CREATE DATABASE next_todo;"
+
+# 初期化スクリプトを再実行
+psql -h db -U postgres -d next_todo -f nginx/init.sql
+```
+
+##### 問題 3: コンテナのビルドが失敗する
+
+**症状**: `Error: Failed to start the container`
+
+**解決方法**:
+
+```bash
+# Docker のクリーンアップ
+docker system prune -a
+
+# VSCode で「Rebuild Container」を実行
+# コマンドパレット → Dev Containers: Rebuild Container
+
+# または、compose.yml を使って手動ビルド
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+```
+
+##### 問題 4: npm install が失敗する
+
+**症状**: 依存関係のインストール中にエラー
+
+**解決方法**:
+
+```bash
+# npm キャッシュをクリア
+npm cache clean --force
+
+# node_modules を削除して再インストール
+rm -rf node_modules package-lock.json
+npm install
+
+# Node.js のバージョン確認（20.19.9 以上が必要）
+node --version
+```
+
+##### 問題 5: ポートが既に使用されている
+
+**症状**: `Port 3000 is already in use` エラー
+
+**解決方法**:
+
+```bash
+# ホストマシンで 3000 番ポートを使用しているプロセスを確認
+# Windows
+netstat -ano | findstr :3000
+
+# macOS/Linux
+lsof -i :3000
+
+# 該当プロセスを停止してから再起動
+```
+
+##### 問題 6: 拡張機能が動作しない
+
+**症状**: Biome や TypeScript の拡張機能が機能しない
+
+**解決方法**:
+
+```bash
+# VSCode をリロード
+# コマンドパレット → Developer: Reload Window
+
+# 拡張機能を手動でインストール
+# 拡張機能パネル → 「Biome」を検索 → インストール
+
+# コンテナを再ビルド
+# コマンドパレット → Dev Containers: Rebuild Container
+```
+
+##### 問題 7: Git が使えない
+
+**症状**: Git コマンドが実行できない、または SSH キーが認識されない
+
+**解決方法**:
+
+```bash
+# Git の設定確認
+git config --list
+
+# SSH エージェントの転送確認（ホストで SSH キーを使用している場合）
+# .devcontainer/devcontainer.json の forwardAgent 設定を確認
+
+# Git の認証情報をコンテナ内で設定
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
+
+##### 問題 8: ボリュームのデータを完全にリセットしたい
+
+**解決方法**:
+
+```bash
+# 全てのコンテナとボリュームを削除
+docker compose down -v
+
+# VSCode で「Rebuild Container」を実行
+# コマンドパレット → Dev Containers: Rebuild Container
+```
+
+#### 参考リンク
+
+- [VSCode Dev Containers 公式ドキュメント](https://code.visualstudio.com/docs/devcontainers/containers)
+- [Docker Desktop 公式ドキュメント](https://docs.docker.com/desktop/)
+- [Next.js 公式ドキュメント](https://nextjs.org/docs)
+
 ## テスト
 
 このプロジェクトは包括的なテストスイートを備えています：
