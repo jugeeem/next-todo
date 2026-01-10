@@ -4,9 +4,31 @@ import React, { useState } from "react";
 export default function LoginPage() {
   const [username, setUsername] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async(e: React.FormEvent) => {
     //ログイン処理
     e.preventDefault();
+    try{
+      const res = await fetch('http://localhost:3000/api/auth/login' , {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body:JSON.stringify({username,password})
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.log('ログイン失敗')
+      }
+
+      //ログイン成功の処理
+      const data = await res.json();
+      console.log('ログイン成功',data)
+    }catch{
+
+    }finally{
+
+    }
   };
 
   return (
