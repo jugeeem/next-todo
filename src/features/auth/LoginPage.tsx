@@ -1,9 +1,14 @@
 "use client";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState<string>('')
   const [password, setPassword] = useState<string>('')
+  const [error, setError] = useState<string>('')
+
+  const router = useRouter()
+
   const handleSubmit = async(e: React.FormEvent) => {
     //ログイン処理
     e.preventDefault();
@@ -13,17 +18,16 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body:JSON.stringify({username,password})
+        body:JSON.stringify({username,password}),
       })
 
       if (!res.ok) {
-        const errorData = await res.json();
         console.log('ログイン失敗')
+        return
       }
 
       //ログイン成功の処理
-      const data = await res.json();
-      console.log('ログイン成功',data)
+      router.push('/todos')
     }catch{
 
     }finally{
